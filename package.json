@@ -10,6 +10,11 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@nuxt/image": "^1.7.0",
+    "@radix-icons/react": "^1.0.0",
+    "@radix-icons/vue": "^1.0.0",
+    "@studiometa/vue-mapbox-gl": "^2.5.0",
+    "@tanstack/vue-table": "^8.17.3",
     "@unovis/ts": "^1.4.0",
     "@unovis/vue": "^1.4.0",
     "@vee-validate/zod": "^4.12.7",
@@ -19,6 +24,7 @@
     "embla-carousel": "^8.0.4",
     "embla-carousel-vue": "^8.0.4",
     "lucide-vue-next": "^0.378.0",
+    "mapbox-gl": "^3.3.0",
     "nuxt": "^3.11.2",
     "radix-vue": "^1.7.4",
     "shadcn-nuxt": "^0.10.4",
