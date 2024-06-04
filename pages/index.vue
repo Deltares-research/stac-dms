@@ -19,7 +19,6 @@ import { ref } from "vue"
 import { Calendar as CalendarIcon } from "lucide-vue-next"
 import { Calendar } from "@/components/ui/calendar"
 import { ChevronRight, ChevronDown } from "lucide-vue-next"
-import Container from "@/components/deltares/Container"
 
 const mapCenter = ref([0, 0])
 const accesToken =
@@ -178,7 +177,7 @@ const df = new DateFormatter("en-US", {
       />
     </div>
   </div>
-  <Container class="flex justify-between">
+  <div class="flex justify-between px-8">
     <div class="grid grid-cols-1">
       <Collapsible v-model:open="isOpenKeywords">
         <CollapsibleTrigger as-child>
@@ -263,8 +262,8 @@ const df = new DateFormatter("en-US", {
     <div>
       <Button>Search</Button>
     </div>
-  </Container>
-  <Container class="grid grid-cols-3 gap-5">
+  </div>
+  <div class="grid grid-cols-3 gap-5 px-8">
     <Card>
       <CardHeader>
         <CardTitle class="text-xl">GeoLab FIM</CardTitle>
@@ -317,5 +316,5 @@ const df = new DateFormatter("en-US", {
         </Button>
       </CardFooter>
     </Card>
-  </Container>
+  </div>
 </template>
