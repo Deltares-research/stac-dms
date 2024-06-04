@@ -48,15 +48,8 @@
   </Container>
 </template>
 
-<script>
+<script setup lang="ts">
 import Container from "~/components/deltares/Container.vue"
-
-export default {
-  name: "main",
-  components: {
-    Container,
-  },
-}
 </script>
 
 <style scoped></style>
