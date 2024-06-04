@@ -9,21 +9,23 @@ function login() {
 </script>
 
 <template>
-  <div class="grid grid-cols-2 justify-center p-5 size-full...">
-    <div class="flex justify-start p-5 ...">
-      <Button @click="navigateTo('/')" variant="ghost">Search</Button>
-      <Button v-if="loginDone" @click="navigateTo('/items')" variant="ghost"
-        >Register</Button
-      >
-      <Button v-if="loginDone" @click="navigateTo('/main')" variant="ghost"
-        >Admin</Button
-      >
-      <Button @click="navigateTo('/main')" variant="ghost"
-        >Storage finder</Button
-      >
-    </div>
-    <div class="flex justify-end p-5 ...">
-      <Button class="align-right" @click="login" variant="ghost">Login</Button>
+  <div class="grid grid-cols-2 py-2 px-4 border-b border-border">
+    <nav class="flex">
+      <Button as-child variant="link">
+        <NuxtLink to="/">Search</NuxtLink>
+      </Button>
+      <Button as-child v-if="loginDone" variant="link">
+        <NuxtLink to="/items">Register</NuxtLink>
+      </Button>
+      <Button as-child v-if="loginDone" variant="link">
+        <NuxtLink to="/main">Admin</NuxtLink>
+      </Button>
+      <Button as-child variant="link">
+        <NuxtLink to="/main">Storage Finder</NuxtLink>
+      </Button>
+    </nav>
+    <div class="flex justify-end">
+      <Button class="align-right" @click="login" variant="link">Login</Button>
     </div>
   </div>
   <NuxtPage />

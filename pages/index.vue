@@ -20,38 +20,15 @@ import { Calendar as CalendarIcon } from "lucide-vue-next"
 import { Calendar } from "@/components/ui/calendar"
 import { ChevronRight, ChevronDown } from "lucide-vue-next"
 
-const keywords = [
-  { value: "Unprotected foundation", label: "Unprotected foundation" },
-  { value: "Scour protection", label: "Scour protection" },
-]
-const selectedKeyword = ref("")
-
-const catalogues = [
-  { value: "numerical models", label: "numerical models" },
-  { value: "experimental facilities", label: "experimental facilities" },
-]
-const selectedCatalogue = ref("")
-
-const collection = [
-  { value: "GeoCentrifuge", label: "GeoCentrifuge" },
-  { value: "Delta Basin", label: "Delta Basin" },
-]
-const selectedCollection = ref("")
 const mapCenter = ref([0, 0])
 const accesToken =
   "pk.eyJ1IjoicGlldGVyZ3JpanplMTIzIiwiYSI6ImNreGc2emtjcjNtYmkycm81czF3M3Zpa3YifQ.ZJEb13EmlPZwXY5PCp80sw"
-const loginDone = ref(false)
 const isOpenKeywords = ref(false)
-const isOpen = ref(false)
 const value = ref("")
 const dateDataSet = ref<DateValue>()
 const df = new DateFormatter("en-US", {
   dateStyle: "long",
 })
-
-function login() {
-  loginDone.value = true
-}
 </script>
 
 <template>
@@ -72,64 +49,68 @@ function login() {
           </span>
         </div>
       </div>
-      <div class="p-5">
-        <Label for="dateDataSet" class="pe-4">Start</Label>
-        <Popover>
-          <PopoverTrigger as-child>
-            <Button
-              id="dateDataSet"
-              variant="outline"
-              :class="
-                cn(
-                  'w-[280px] justify-start text-left font-normal',
-                  !value && 'text-muted-foreground',
-                )
-              "
-            >
-              <CalendarIcon class="mr-2 h-4 w-4" />
-              {{
-                dateDataSet
-                  ? df.format(dateDataSet.toDate(getLocalTimeZone()))
-                  : "Pick a date"
-              }}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent class="w-auto p-0">
-            <Calendar v-model="dateDataSet" initial-focus />
-          </PopoverContent>
-        </Popover>
-        <Label for="dateDataSet" class="p-5">End</Label>
-        <Popover>
-          <PopoverTrigger as-child>
-            <Button
-              id="dateDataSet"
-              variant="outline"
-              :class="
-                cn(
-                  'w-[280px] justify-start text-left font-normal',
-                  !value && 'text-muted-foreground',
-                )
-              "
-            >
-              <CalendarIcon class="mr-2 h-4 w-4" />
-              {{
-                dateDataSet
-                  ? df.format(dateDataSet.toDate(getLocalTimeZone()))
-                  : "Pick a date"
-              }}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent class="w-auto p-0">
-            <Calendar v-model="dateDataSet" initial-focus />
-          </PopoverContent>
-        </Popover>
+      <div class="py-3 flex items-center gap-x-5 gap-y-3 flex-wrap">
+        <div class="flex items-center gap-3">
+          <Label for="dateDataSet" class="w-10">Start</Label>
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button
+                id="dateDataSet"
+                variant="outline"
+                :class="
+                  cn(
+                    'w-[280px] justify-start text-left font-normal',
+                    !value && 'text-muted-foreground',
+                  )
+                "
+              >
+                <CalendarIcon class="mr-2 h-4 w-4" />
+                {{
+                  dateDataSet
+                    ? df.format(dateDataSet.toDate(getLocalTimeZone()))
+                    : "Pick a date"
+                }}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-auto p-0">
+              <Calendar v-model="dateDataSet" initial-focus />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div class="flex items-center gap-3">
+          <Label for="dateDataSet" class="w-10">End</Label>
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button
+                id="dateDataSet"
+                variant="outline"
+                :class="
+                  cn(
+                    'w-[280px] justify-start text-left font-normal',
+                    !value && 'text-muted-foreground',
+                  )
+                "
+              >
+                <CalendarIcon class="mr-2 h-4 w-4" />
+                {{
+                  dateDataSet
+                    ? df.format(dateDataSet.toDate(getLocalTimeZone()))
+                    : "Pick a date"
+                }}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-auto p-0">
+              <Calendar v-model="dateDataSet" initial-focus />
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
-      <Card>
+      <Card class="mt-3">
         <CardHeader>
           <CardTitle>Experimental facilities</CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="grid grid-cols-4 justify-center p-1 size-full...">
+          <div class="grid grid-cols-2 gap-2 justify-center p-1 size-full">
             <div>
               <Checkbox id="GeoCentrifuge" />
               <Label class="m-2" for="GeoCentrifuge">GeoCentrifuge</Label>
@@ -163,12 +144,12 @@ function login() {
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <Card class="mt-5">
         <CardHeader>
           <CardTitle>Numerical Models</CardTitle>
         </CardHeader>
         <CardContent>
-          <div class="grid grid-cols-4 justify-center p-1 size-full...">
+          <div class="grid grid-cols-2 gap-1 justify-center p-1 size-full...">
             <div>
               <Checkbox id="GeoCentrifuge" />
               <Label class="m-2" for="GeoCentrifuge">Model</Label>
