@@ -19,6 +19,7 @@ import { ref } from "vue"
 import { Calendar as CalendarIcon } from "lucide-vue-next"
 import { Calendar } from "@/components/ui/calendar"
 import { ChevronRight, ChevronDown } from "lucide-vue-next"
+import Container from "@/components/deltares/Container"
 
 const mapCenter = ref([0, 0])
 const accesToken =
@@ -177,12 +178,7 @@ const df = new DateFormatter("en-US", {
       />
     </div>
   </div>
-  <div class="flex justify-end p-5 ...">
-    <div>
-      <Button>Search</Button>
-    </div>
-  </div>
-  <div class="grid grid-cols-[25%_75%] px-5">
+  <Container class="flex justify-between">
     <div class="grid grid-cols-1">
       <Collapsible v-model:open="isOpenKeywords">
         <CollapsibleTrigger as-child>
@@ -264,45 +260,62 @@ const df = new DateFormatter("en-US", {
         </CollapsibleContent>
       </Collapsible>
     </div>
-    <div class="grid grid-cols-3">
-      <Card>
-        <CardHeader>
-          <CardTitle>GeoLab FIM</CardTitle>
-          <CardDescription>Research on mud slides</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="grid grid-cols-[25%_75%] text-xs">
-            <Label class="text-xs" for="name">Storage location</Label>
-            <Label class="text-xs" for="name"
-              >P:\geocentrifuge\11206575-019 - Geolab FIM</Label
-            >
-            <Label class="text-xs" for="name">Date</Label>
-            <Label class="text-xs" for="name">2023-03-23</Label>
-          </div>
-        </CardContent>
-        <CardFooter class="flex justify-end px-6 pb-6">
-          <Button @click="navigateTo('/view')" variant="outline">View</Button>
-        </CardFooter>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>GeoLab FIM</CardTitle>
-          <CardDescription>Research on mud slides</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div class="grid grid-cols-[25%_75%] text-xs">
-            <Label class="text-xs" for="name">Storage location</Label>
-            <Label class="text-xs" for="name"
-              >P:\geocentrifuge\11206575-019 - Geolab FIM</Label
-            >
-            <Label class="text-xs" for="name">Date</Label>
-            <Label class="text-xs" for="name">2023-03-23</Label>
-          </div>
-        </CardContent>
-        <CardFooter class="flex justify-end px-6 pb-6">
-          <Button @click="navigateTo('/view')" variant="outline">View</Button>
-        </CardFooter>
-      </Card>
+    <div>
+      <Button>Search</Button>
     </div>
-  </div>
+  </Container>
+  <Container class="grid grid-cols-3 gap-5">
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-xl">GeoLab FIM</CardTitle>
+        <CardDescription>Research on mud slides</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div class="text-xs flex flex-col gap-3">
+          <div class="flex flex-col gap-0.5">
+            <div class="text-xs font-medium">Storage location</div>
+            <div class="text-xs text-muted-foreground">
+              P:\geocentrifuge\11206575-019 - Geolab FIM
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-0.5">
+            <div class="text-xs font-medium">Date</div>
+            <div class="text-xs text-muted-foreground">2023-03-23</div>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter class="flex">
+        <Button as-child variant="outline">
+          <NuxtLink to="/view">View</NuxtLink>
+        </Button>
+      </CardFooter>
+    </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-xl">GeoLab FIM</CardTitle>
+        <CardDescription>Research on mud slides</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div class="text-xs flex flex-col gap-3">
+          <div class="flex flex-col gap-0.5">
+            <div class="text-xs font-medium">Storage location</div>
+            <div class="text-xs text-muted-foreground">
+              P:\geocentrifuge\11206575-019 - Geolab FIM
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-0.5">
+            <div class="text-xs font-medium">Date</div>
+            <div class="text-xs text-muted-foreground">2023-03-23</div>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter class="flex">
+        <Button as-child variant="outline">
+          <NuxtLink to="/view">View</NuxtLink>
+        </Button>
+      </CardFooter>
+    </Card>
+  </Container>
 </template>
