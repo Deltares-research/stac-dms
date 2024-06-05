@@ -1,0 +1,72 @@
+version: "3.10docker"
+
+x-build-args: &build_args
+  INSTALL_PYTHON_VERSION: ""
+  INSTALL_NODE_VERSION: ""
+
+x-default-volumes: &default_volumes
+  volumes:
+    - ./:/app
+    - node-modules:/app/node_modules
+    - ./dev.db:/tmp/dev.db
+
+services:
+  flask-dev:
+    build:
+      context: .
+      target: development
+      args:
+        <<: *build_args
+    image: "stac_dms_api-development"
+    ports:
+      - "5000:5000"
+    <<: *default_volumes
+
+  # app-opensearch:
+  #   container_name: app-opensearch
+  #   image: containers.deltares/fairdata/app-opensearch
+  #   hostname: app-opensearch
+  #   ports:
+  #     - "9202:9202"
+
+  stac_fast-api:
+    container_name: stac-fast-api-container
+    image: containers.deltares.nl/fair-data/stac-fast-api:latest
+    hostname: stac-fast-api
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8080
+      - RELOAD=true
+      - ENVIRONMENT=local
+      - WEB_CONCURRENCY=10
+      - ES_HOST=opensearch
+      - ES_PORT=9202
+      - ES_USE_SSL=false
+      - ES_VERIFY_CERTS=false
+      - BACKEND=opensearch
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./shell_scripts:/app/scripts
+      - ./osdata:/usr/share/opensearch/data
+    depends_on:
+      - opensearch
+    command:
+      bash -c "./scripts/wait-for-it-es.sh os-container:9202 && python -m stac_fastapi.opensearch.app"
+
+  opensearch:
+    container_name: os-container
+    image: opensearchproject/opensearch:${OPENSEARCH_VERSION:-2.11.1}
+    hostname: opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - ./opensearch/config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+      - ./opensearch/snapshots:/usr/share/opensearch/snapshots
+    ports:
+      - "9202:9202"
+
+volumes:
+  node-modules:

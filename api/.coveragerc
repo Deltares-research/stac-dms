@@ -1,0 +1,6 @@
+[run]
+source = stac_dms_api
+omit = 
+    tests/*
+    autoapp.py
+
