@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "api"
+version = "0.1.0"
+description = "The backend API implementation for the STAC Data Management Suite"
+authors = ["Nathan Clerkx <nathan.clerkx@deltares.nl>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+"stac-fastapi.opensearch" = {git = "https://git@github.com/stac-utils/stac-fastapi-elasticsearch-opensearch.git", tag="v3.0.0a2", subdirectory="stac_fastapi/opensearch"}
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.10.1"
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]
+ignore_missing_imports = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
