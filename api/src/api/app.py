@@ -93,7 +93,7 @@ def run() -> None:
         import uvicorn
 
         uvicorn.run(
-            "stac_fastapi.opensearch.app:app",
+            "src.api.app:app",
             host=settings.app_host,
             port=settings.app_port,
             log_level="info",
