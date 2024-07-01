@@ -58,3 +58,13 @@ services:
       OPENSEARCH_HOSTS: '["http://opensearch:9202"]' # Define the OpenSearch nodes that OpenSearch Dashboards will query
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: true # disables security dashboards plugin in OpenSearch Dashboards
 
+  stac-dms:
+    build: 
+      context: ./frontend
+      target: run-dev
+    container_name: stac-dms-frontend
+    image: stac-dms/frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/src
