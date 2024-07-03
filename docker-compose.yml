@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   stac-api:
@@ -27,8 +27,7 @@ services:
       # - ./osdata:/usr/share/opensearch/data
     depends_on:
       - opensearch
-    command:
-      bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m src.api.app"
+    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m src.api.app"
 
   opensearch:
     container_name: os-container
@@ -57,14 +56,17 @@ services:
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: true # disables security dashboards plugin in OpenSearch Dashboards
 
   stac-dms:
-    build: 
+    build:
       context: ./frontend
       target: run-dev
+    ports:
+      - 24678:24678
+      - 3000:3000
     container_name: stac-dms-frontend
     image: stac-dms/frontend
     volumes:
       - ./frontend:/src
-  
+
   stac-proxy:
     container_name: stac-proxy
     image: stac-dms/proxy
