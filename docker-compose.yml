@@ -21,8 +21,6 @@ services:
       - ES_USE_SSL=false
       - ES_VERIFY_CERTS=false
       - BACKEND=opensearch
-    ports:
-      - "8000:8000"
     volumes:
       - ./api:/code
       # - ./scripts:/app/scripts
@@ -53,7 +51,7 @@ services:
     ports:
       - 5601:5601 # Map host port 5601 to container port 5601
     expose:
-      - "5601" # Expose port 5601 for web access to OpenSearch Dashboards
+      - 5601 # Expose port 5601 for web access to OpenSearch Dashboards
     environment:
       OPENSEARCH_HOSTS: '["http://opensearch:9202"]' # Define the OpenSearch nodes that OpenSearch Dashboards will query
       DISABLE_SECURITY_DASHBOARDS_PLUGIN: true # disables security dashboards plugin in OpenSearch Dashboards
@@ -64,7 +62,27 @@ services:
       target: run-dev
     container_name: stac-dms-frontend
     image: stac-dms/frontend
-    ports:
-      - "3000:3000"
     volumes:
       - ./frontend:/src
+  
+  stac-proxy:
+    container_name: stac-proxy
+    image: stac-dms/proxy
+    build:
+      context: ./proxy
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile
+      - ./proxy/data/data:/data
+      - ./proxy/data/config:/config
+    depends_on:
+      - stac-api
+      - stac-dms
+    environment:
+      - DOMAIN=localhost
+      - PROXY_BACKEND_HOST=stac-fastapi-os
+      - PROXY_BACKEND_PORT=8000
+      - PROXY_FRONTEND_HOST=stac-dms
+      - PROXY_FRONTEND_PORT=3000
