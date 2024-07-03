@@ -6,4 +6,12 @@ export default defineNuxtConfig({
     prefix: "",
     componentDir: "./components/ui",
   },
+  vite: {
+    server: {
+      hmr: {
+        protocol: "wss",
+        clientPort: 3000,
+      },
+    },
+  },
 });
