@@ -28,7 +28,7 @@ services:
       # - ./osdata:/usr/share/opensearch/data
     depends_on:
       - opensearch
-    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m src.api.app"
+    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m dmsapi.app"
 
   opensearch:
     container_name: os-container
