@@ -4,7 +4,6 @@ import os
 
 from stac_fastapi.api.app import StacApi
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
-from stac_fastapi.core.basic_auth import apply_basic_auth
 from stac_fastapi.core.core import (
     BulkTransactionsClient,
     CoreClient,
@@ -27,6 +26,7 @@ from stac_fastapi.opensearch.database_logic import (
     create_collection_index,
     create_index_templates,
 )
+from dmsapi.core.sso_auth import apply_sso_auth
 
 settings = OpensearchSettings()
 session = Session.create_from_settings(settings)
@@ -78,7 +78,7 @@ api = StacApi(
 app = api.app
 app.root_path = os.getenv("STAC_FASTAPI_ROOT_PATH", "/api")
 
-apply_basic_auth(api)
+apply_sso_auth(api)
 
 
 @app.on_event("startup")

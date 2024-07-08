@@ -8,9 +8,11 @@ services:
     build:
       context: ./api
       target: development
+    env_file:
+      - ./api/.env
     environment:
-      - STAC_FASTAPI_TITLE=stac-fastapi-opensearch
-      - STAC_FASTAPI_DESCRIPTION=A STAC FastAPI with an Opensearch backend
+      - STAC_FASTAPI_TITLE=Deltares Data Management Suite STAC API
+      - STAC_FASTAPI_DESCRIPTION=A STAC API containing Deltares datasets
       - STAC_FASTAPI_VERSION=3.0.0a2
       - APP_HOST=0.0.0.0
       - APP_PORT=8000
