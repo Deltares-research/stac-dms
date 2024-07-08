@@ -7,6 +7,7 @@ services:
     restart: always
     build:
       context: ./api
+      target: development
     environment:
       - STAC_FASTAPI_TITLE=stac-fastapi-opensearch
       - STAC_FASTAPI_DESCRIPTION=A STAC FastAPI with an Opensearch backend
@@ -22,8 +23,8 @@ services:
       - ES_VERIFY_CERTS=false
       - BACKEND=opensearch
     volumes:
-      - ./api:/code
-      # - ./scripts:/app/scripts
+      - ./api/dmsapi:/app/dmsapi
+      - ./api/scripts:/app/scripts
       # - ./osdata:/usr/share/opensearch/data
     depends_on:
       - opensearch
