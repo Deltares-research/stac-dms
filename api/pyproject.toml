@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "api"
+name = "dmsapi"
 version = "0.1.0"
 description = "The backend API implementation for the STAC Data Management Suite"
 authors = ["Nathan Clerkx <nathan.clerkx@deltares.nl>"]

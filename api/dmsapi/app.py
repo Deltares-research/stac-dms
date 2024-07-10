@@ -93,7 +93,7 @@ def run() -> None:
         import uvicorn
 
         uvicorn.run(
-            "src.api.app:app",
+            "dmsapi.app:app",
             host=settings.app_host,
             port=settings.app_port,
             log_level="info",
