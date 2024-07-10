@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Search } from "lucide-vue-next"
+import { Search } from "lucide-vue-next";
 import {
   DateFormatter,
   type DateValue,
   getLocalTimeZone,
-} from "@internationalized/date"
+} from "@internationalized/date";
 import {
   Card,
   CardContent,
@@ -12,23 +12,23 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { cn } from "@/lib/utils"
-import { MapboxMap } from "@studiometa/vue-mapbox-gl"
-import { ref } from "vue"
-import { Calendar as CalendarIcon } from "lucide-vue-next"
-import { Calendar } from "@/components/ui/calendar"
-import { ChevronRight, ChevronDown } from "lucide-vue-next"
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { MapboxMap } from "@studiometa/vue-mapbox-gl";
+import { ref } from "vue";
+import { Calendar as CalendarIcon } from "lucide-vue-next";
+import { Calendar } from "@/components/ui/calendar";
+import { ChevronRight, ChevronDown } from "lucide-vue-next";
 
-const mapCenter = ref([0, 0])
+const mapCenter = ref([0, 0]);
 const accesToken =
-  "pk.eyJ1IjoicGlldGVyZ3JpanplMTIzIiwiYSI6ImNreGc2emtjcjNtYmkycm81czF3M3Zpa3YifQ.ZJEb13EmlPZwXY5PCp80sw"
-const isOpenKeywords = ref(false)
-const value = ref("")
-const dateDataSet = ref<DateValue>()
+  "pk.eyJ1IjoicGlldGVyZ3JpanplMTIzIiwiYSI6ImNreGc2emtjcjNtYmkycm81czF3M3Zpa3YifQ.ZJEb13EmlPZwXY5PCp80sw";
+const isOpenKeywords = ref(false);
+const value = ref("");
+const dateDataSet = ref<DateValue>();
 const df = new DateFormatter("en-US", {
   dateStyle: "long",
-})
+});
 </script>
 
 <template>
@@ -60,7 +60,7 @@ const df = new DateFormatter("en-US", {
                 :class="
                   cn(
                     'w-[280px] justify-start text-left font-normal',
-                    !value && 'text-muted-foreground',
+                    !value && 'text-muted-foreground'
                   )
                 "
               >
@@ -87,7 +87,7 @@ const df = new DateFormatter("en-US", {
                 :class="
                   cn(
                     'w-[280px] justify-start text-left font-normal',
-                    !value && 'text-muted-foreground',
+                    !value && 'text-muted-foreground'
                   )
                 "
               >
