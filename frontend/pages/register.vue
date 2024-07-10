@@ -28,19 +28,13 @@ import Label from "@/components/ui/label/Label.vue";
 import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue";
 import Container from "~/components/deltares/Container.vue";
 import Textarea from "~/components/ui/textarea/Textarea.vue";
-import {
-  createCollectionCollectionsPost,
-  createItemCollectionsCollectionIdItemsPost,
-  getCollectionsCollectionsGet,
-  type CreateItemCollectionsCollectionIdItemsPostData,
-} from "~/lib/apiClient";
+
 import { toTypedSchema } from "@vee-validate/zod";
 import { z } from "zod";
 import { zu } from "@infra-blocks/zod-utils";
 import { AutoForm } from "~/components/ui/auto-form";
 import { FormField, FormItem } from "~/components/ui/form";
 import { useForm } from "vee-validate";
-import { createClient } from "@hey-api/client-fetch";
 import { useToast } from "~/components/ui/toast";
 
 const accesToken =
@@ -235,6 +229,7 @@ let onSubmit = form.handleSubmit(
         title: "Data registered successfully",
       });
 
+      // TODO: data is typed unknown
       await navigateTo(`/view/${data.id}`);
     } catch (error) {
       toast({
@@ -613,7 +608,7 @@ function removeLink(id: string | number) {
           </CardContent>
         </Card>
 
-        <!-- <Card>
+        <Card>
           <CardHeader
             ><CardTitle class="text-lg"
               >Spatial information</CardTitle
@@ -640,7 +635,7 @@ function removeLink(id: string | number) {
               </div>
             </div>
           </CardContent>
-        </Card> -->
+        </Card>
         <Card>
           <CardHeader
             ><CardTitle class="text-lg">Numerical models</CardTitle></CardHeader
