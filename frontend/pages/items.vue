@@ -7,38 +7,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
-import Container from "@/components/deltares/Container"
+import Container from "@/components/deltares/Container";
 
-import { TrashIcon, PencilIcon, PlusIcon } from "lucide-vue-next"
+import { TrashIcon, PencilIcon, PlusIcon } from "lucide-vue-next";
 
-const items = [
-  {
-    title: "Geo centrifuge",
-    description: "Cool measurement",
-    creator: "Andre Grijze",
-    collection: "GeoCentrifuge",
-  },
-  {
-    title: "Geo centrifuge",
-    description: "Cooler measurement",
-    creator: "Also Andre Grijze",
-    collection: "GeoCentrifuge",
-  },
-  {
-    title: "Geo centrifuge",
-    description: "Bad measurement",
-    creator: "Patrick",
-    collection: "GeoCentrifuge",
-  },
-  {
-    title: "Geo centrifuge",
-    description: "Worst measurement",
-    creator: "GertJan",
-    collection: "GeoCentrifuge",
-  },
-]
+let { data: items } = await useApi("/search");
 </script>
 
 <template>
@@ -62,19 +37,17 @@ const items = [
             <TableRow>
               <TableHead>Title</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead>Creator</TableHead>
               <TableHead>Collection</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            <TableRow v-for="item in items" :key="item.title">
+          <TableBody v-if="items">
+            <TableRow v-for="feature in items.features">
               <TableCell class="font-medium">
-                {{ item.title }}
+                {{ feature.properties.title }}
               </TableCell>
-              <TableCell>{{ item.description }}</TableCell>
-              <TableCell>{{ item.creator }}</TableCell>
+              <TableCell>{{ feature.properties.description }}</TableCell>
               <TableCell>
-                {{ item.collection }}
+                {{ feature.collection }}
               </TableCell>
               <TableCell>
                 <div class="flex gap-1.5 justify-end">

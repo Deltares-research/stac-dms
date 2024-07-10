@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref } from "vue";
 
-const loginDone = ref(false)
+const loginDone = ref(false);
 
 function login() {
-  loginDone.value = true
+  loginDone.value = true;
 }
 </script>
 
@@ -29,4 +29,6 @@ function login() {
     </div>
   </div>
   <NuxtPage />
+
+  <Toaster />
 </template>

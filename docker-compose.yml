@@ -7,6 +7,10 @@ services:
     restart: always
     build:
       context: ./api
+    ports:
+      - 8000:8000
+    expose:
+      - 8000
     environment:
       - STAC_FASTAPI_TITLE=stac-fastapi-opensearch
       - STAC_FASTAPI_DESCRIPTION=A STAC FastAPI with an Opensearch backend
