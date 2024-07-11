@@ -10,6 +10,10 @@ services:
       target: development
     env_file:
       - ./api/.env
+    ports:
+      - 8000:8000
+    expose:
+      - 8000
     environment:
       - STAC_FASTAPI_TITLE=Deltares Data Management Suite STAC API
       - STAC_FASTAPI_DESCRIPTION=A STAC API containing Deltares datasets
