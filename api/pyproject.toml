@@ -7,7 +7,9 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-"stac-fastapi.opensearch" = {git = "https://git@github.com/stac-utils/stac-fastapi-elasticsearch-opensearch.git", tag="v3.0.0a2", subdirectory="stac_fastapi/opensearch"}
+"stac-fastapi.opensearch" = {git = "https://git@github.com/stac-utils/stac-fastapi-elasticsearch-opensearch.git", tag="3.0.0a4", subdirectory="stac_fastapi/opensearch"}
+fastapi-sso = "^0.15.0"
+authlib = "^1.3.1"
 
 
 [tool.poetry.group.dev.dependencies]
