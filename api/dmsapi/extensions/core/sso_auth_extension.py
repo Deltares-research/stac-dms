@@ -9,6 +9,7 @@ from typing import (
     Literal,
     Optional,
 )  # to calculate expiration of the JWT
+from dmsapi.config import DMSAPISettings
 from fastapi import FastAPI, Depends, HTTPException, Security, Request
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRoute
@@ -20,13 +21,13 @@ from fastapi_sso import SSOBase, OpenID
 from stac_fastapi.api.routes import add_route_dependencies, Scope
 from stac_fastapi.types.extension import ApiExtension
 
-from authlib.jose import jwt, Key
+from authlib.jose import jwt, Key, OctKey
 
 _LOGGER = logging.getLogger("uvicorn.default")
 
-
+settings = DMSAPISettings()
 COOKIE_NAME = "DMS_TOKEN"
-KEY: Key = None
+APP_SECRET_KEY: Key = OctKey.import_key(settings.app_secret_key)
 
 
 class SSOAuthExtension(ApiExtension):
@@ -44,21 +45,16 @@ class SSOAuthExtension(ApiExtension):
     """
 
     sso_client: SSOBase
-    key: Key = None
     algorithm: str = "HS256"
     public_endpoints: List[Scope] = []
 
     def __init__(
         self,
         sso_client: SSOBase,
-        key: Key,
         algorithm: Optional[str] = None,
         public_endpoints: Optional[List[Scope]] = None,
     ):
         self.sso_client = sso_client
-        self.key = key
-        global KEY
-        KEY = key
 
         if algorithm:
             self.algorithm = algorithm
@@ -108,8 +104,8 @@ class SSOAuthExtension(ApiExtension):
     ) -> OpenID:
         """Get user's JWT stored in cookie 'token', parse it and return the user's OpenID."""
         try:
-            _LOGGER.info(f"{KEY}")
-            claims = jwt.decode(cookie, key=KEY)
+            _LOGGER.info(f"{APP_SECRET_KEY}")
+            claims = jwt.decode(cookie, key=APP_SECRET_KEY)
             claims.validate()
             return OpenID(**claims)
         except Exception as error:
