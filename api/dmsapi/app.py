@@ -29,7 +29,6 @@ from fastapi_sso.sso.microsoft import MicrosoftSSO
 
 from authlib.jose import jwt, OctKey
 
-# from dmsapi.core.sso_auth import apply_sso_auth
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.config import DMSAPISettings
 
@@ -43,7 +42,6 @@ sso_client = MicrosoftSSO(
     redirect_uri=f"https://{settings.app_domain}/api/auth/callback",
     allow_insecure_http=True,
 )
-key = OctKey.import_key(settings.app_secret_key)
 
 filter_extension = FilterExtension(client=EsAsyncBaseFiltersClient())
 filter_extension.conformance_classes.append(
@@ -71,7 +69,7 @@ extensions = [
     SortExtension(),
     TokenPaginationExtension(),
     filter_extension,
-    SSOAuthExtension(sso_client=sso_client, key=key, public_endpoints=[]),
+    SSOAuthExtension(sso_client=sso_client, public_endpoints=[]),
 ]
 
 database_logic.extensions = [type(ext).__name__ for ext in extensions]
