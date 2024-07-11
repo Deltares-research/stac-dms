@@ -4,7 +4,6 @@ import os
 
 from stac_fastapi.api.app import StacApi
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
-from stac_fastapi.core.basic_auth import apply_basic_auth
 from stac_fastapi.core.core import (
     BulkTransactionsClient,
     CoreClient,
@@ -21,15 +20,28 @@ from stac_fastapi.extensions.core import (
     TransactionExtension,
 )
 from stac_fastapi.extensions.third_party import BulkTransactionExtension
-from stac_fastapi.opensearch.config import OpensearchSettings
 from stac_fastapi.opensearch.database_logic import (
     DatabaseLogic,
     create_collection_index,
     create_index_templates,
 )
+from fastapi_sso.sso.microsoft import MicrosoftSSO
 
-settings = OpensearchSettings()
+from authlib.jose import jwt, OctKey
+
+from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
+from dmsapi.config import DMSAPISettings
+
+settings = DMSAPISettings()
 session = Session.create_from_settings(settings)
+
+sso_client = MicrosoftSSO(
+    client_id=settings.azure_app_client_id,
+    client_secret=settings.azure_app_client_secret,
+    tenant=settings.azure_tenant_id,
+    redirect_uri=f"https://{settings.app_domain}/api/auth/callback",
+    allow_insecure_http=True,
+)
 
 filter_extension = FilterExtension(client=EsAsyncBaseFiltersClient())
 filter_extension.conformance_classes.append(
@@ -57,6 +69,7 @@ extensions = [
     SortExtension(),
     TokenPaginationExtension(),
     filter_extension,
+    SSOAuthExtension(sso_client=sso_client, public_endpoints=[]),
 ]
 
 database_logic.extensions = [type(ext).__name__ for ext in extensions]
@@ -78,7 +91,7 @@ api = StacApi(
 app = api.app
 app.root_path = os.getenv("STAC_FASTAPI_ROOT_PATH", "/api")
 
-apply_basic_auth(api)
+# apply_sso_auth(api)
 
 
 @app.on_event("startup")
