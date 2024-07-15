@@ -104,12 +104,15 @@ class SSOAuthExtension(ApiExtension):
     ) -> OpenID:
         """Get user's JWT stored in cookie 'token', parse it and return the user's OpenID."""
         try:
-            _LOGGER.info(f"{APP_SECRET_KEY}")
+            if not cookie:
+                raise HTTPException(
+                    status_code=401, detail="No authentication credentials provided"
+                )
             claims = jwt.decode(cookie, key=APP_SECRET_KEY)
             claims.validate()
             return OpenID(**claims)
         except Exception as error:
-            _LOGGER.error(f"Error while decoding JWT: {error}")
+            _LOGGER.debug(f"Error while decoding JWT: {error}")
             raise HTTPException(
                 status_code=401, detail="Invalid authentication credentials"
             ) from error
@@ -153,7 +156,7 @@ class SSOAuthExtension(ApiExtension):
                 "sub": openid.id,
             },
             header={"alg": self.algorithm},
-            key=self.key,
+            key=APP_SECRET_KEY,
         ).decode("utf-8")
         response = RedirectResponse(url="/")
         response.set_cookie(
