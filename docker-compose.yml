@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   stac-api:
     container_name: stac-fastapi-os
