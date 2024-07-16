@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
-
-const loginDone = ref(false);
-
-function login() {
-  loginDone.value = true;
-}
+let { data } = await useApi("/auth/me");
 </script>
 
 <template>
@@ -14,10 +8,10 @@ function login() {
       <Button as-child variant="link">
         <NuxtLink to="/">Search</NuxtLink>
       </Button>
-      <Button as-child v-if="loginDone" variant="link">
+      <Button as-child v-if="data" variant="link">
         <NuxtLink to="/items">Register</NuxtLink>
       </Button>
-      <Button as-child v-if="loginDone" variant="link">
+      <Button as-child v-if="data" variant="link">
         <NuxtLink to="/main">Admin</NuxtLink>
       </Button>
       <Button as-child variant="link">
@@ -25,7 +19,12 @@ function login() {
       </Button>
     </nav>
     <div class="flex justify-end">
-      <Button class="align-right" @click="login" variant="link">Login</Button>
+      <Button v-if="!data" as-child variant="link">
+        <a href="/api/auth/login">Login</a>
+      </Button>
+      <Button v-if="data" as-child variant="link">
+        <a href="/api/auth/logout">Logout</a>
+      </Button>
     </div>
   </div>
   <NuxtPage />

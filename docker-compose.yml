@@ -66,6 +66,8 @@ services:
     build:
       context: ./frontend
       target: run-dev
+    depends_on:
+      - stac-api
     ports:
       - 24678:24678
       - 3000:3000
