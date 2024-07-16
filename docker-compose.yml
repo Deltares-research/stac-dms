@@ -60,6 +60,7 @@ services:
     image: stac-dms/frontend
     volumes:
       - ./frontend:/src
+      - /src/node_modules
 
   stac-proxy:
     container_name: stac-proxy
