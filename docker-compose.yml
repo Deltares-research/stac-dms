@@ -58,9 +58,12 @@ services:
       - 3000:3000
     container_name: stac-dms-frontend
     image: stac-dms/frontend
+    tmpfs:
+       - /tmp
     volumes:
       - ./frontend:/src
       - /src/node_modules
+      - /nuxt/.nuxt
 
   stac-proxy:
     container_name: stac-proxy
