@@ -56,10 +56,12 @@ services:
     ports:
       - 24678:24678
       - 3000:3000
+    depends_on:
+      - stac-api
     container_name: stac-dms-frontend
     image: stac-dms/frontend
     tmpfs:
-       - /tmp
+      - /tmp
     volumes:
       - ./frontend:/src
       - /src/node_modules
