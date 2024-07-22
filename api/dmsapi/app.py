@@ -1,6 +1,8 @@
 """FastAPI application."""
 
+import logging
 import os
+from pathlib import Path
 
 from stac_fastapi.api.app import StacApi
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
@@ -27,11 +29,10 @@ from stac_fastapi.opensearch.database_logic import (
 )
 from fastapi_sso.sso.microsoft import MicrosoftSSO
 
-from authlib.jose import jwt, OctKey
-
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.config import DMSAPISettings
 
+_LOGGER = logging.getLogger("uvicorn.default")
 settings = DMSAPISettings()
 session = Session.create_from_settings(settings)
 
@@ -91,13 +92,25 @@ api = StacApi(
 app = api.app
 app.root_path = os.getenv("STAC_FASTAPI_ROOT_PATH", "/api")
 
-# apply_sso_auth(api)
+
+def run_migrations():
+    from alembic.config import Config
+    from alembic import command
+
+    alembic_cfg = Config(Path(__file__).parent.parent / "alembic.ini")
+    if settings.environment == "local":
+        _LOGGER.info("Checking for unapplied DB migrations. Not running them")
+        command.check(alembic_cfg)
+    else:
+        _LOGGER.info("Running DB migrations")
+        # command.upgrade(alembic_cfg, "head")
 
 
 @app.on_event("startup")
 async def _startup_event() -> None:
     await create_index_templates()
     await create_collection_index()
+    run_migrations()
 
 
 def run() -> None:
