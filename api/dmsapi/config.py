@@ -1,4 +1,3 @@
-from typing import Any, Dict, Set
 from stac_fastapi.opensearch.config import OpensearchSettings
 
 
@@ -13,3 +12,5 @@ class DMSAPISettings(OpensearchSettings):
     azure_tenant_id: str
     app_domain: str
     app_secret_key: str
+    db_connection_url: str
+    environment: str
