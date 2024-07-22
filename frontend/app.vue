@@ -2,9 +2,10 @@
 
 import {User} from 'lucide-vue-next'
 import {Button} from '@/components/ui/button'
+import {useFetch} from "nuxt/app";
 
 
-const {data, error, pending, refresh} = useFetch("/api/auth/me")
+const {data, error:notAuthenticated, refresh} = await useFetch("/api/auth/me")
 async function logout() {
     await $fetch("/api/auth/logout");
     await refresh()
@@ -19,10 +20,10 @@ async function logout() {
             <Button as-child variant="link">
                 <NuxtLink to="/">Search</NuxtLink>
             </Button>
-            <Button as-child v-if="!error" variant="link">
+            <Button as-child v-if="!notAuthenticated" variant="link">
                 <NuxtLink to="/items">Register</NuxtLink>
             </Button>
-            <Button as-child v-if="!error" variant="link">
+            <Button as-child v-if="!notAuthenticated" variant="link">
                 <NuxtLink to="/main">Admin</NuxtLink>
             </Button>
             <Button as-child variant="link">
@@ -31,10 +32,10 @@ async function logout() {
         </nav>
         <div class="flex justify-end">
             <nav class="flex">
-                <Button v-if="error" variant="link">
+                <Button v-if="notAuthenticated" variant="link">
                     <a href="/api/auth/login"> Login</a>
                 </Button>
-                <Button v-if="!error && !pending" variant="ghost" @click="logout">
+                <Button v-if="!notAuthenticated" variant="ghost" @click="logout">
                     <User class="w-4 h-4 mr-2"/>
                     {{ data.display_name }} Logout
                 </Button>
