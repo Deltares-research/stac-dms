@@ -4,7 +4,6 @@ import logging
 import os
 from pathlib import Path
 
-from stac_fastapi.api.app import StacApi
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
 from stac_fastapi.core.core import (
     BulkTransactionsClient,
@@ -29,6 +28,7 @@ from stac_fastapi.opensearch.database_logic import (
 )
 from fastapi_sso.sso.microsoft import MicrosoftSSO
 
+from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.config import DMSAPISettings
 
@@ -77,7 +77,7 @@ database_logic.extensions = [type(ext).__name__ for ext in extensions]
 
 post_request_model = create_post_request_model(extensions)
 
-api = StacApi(
+api = StacDmsApi(
     title=os.getenv("STAC_FASTAPI_TITLE", "stac-fastapi-opensearch"),
     description=os.getenv("STAC_FASTAPI_DESCRIPTION", "stac-fastapi-opensearch"),
     api_version=os.getenv("STAC_FASTAPI_VERSION", "2.1"),
