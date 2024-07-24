@@ -1,12 +1,7 @@
-from dataclasses import dataclass
 import logging
-import os
 import datetime
-from functools import partial
 from typing import (
-    Annotated,
     List,
-    Literal,
     Optional,
 )  # to calculate expiration of the JWT
 from dmsapi.config import DMSAPISettings
@@ -25,9 +20,8 @@ from authlib.jose import jwt, Key, OctKey
 
 _LOGGER = logging.getLogger("uvicorn.default")
 
-settings = DMSAPISettings()
 COOKIE_NAME = "DMS_TOKEN"
-APP_SECRET_KEY: Key = OctKey.import_key(settings.app_secret_key)
+APP_SECRET_KEY: Optional[Key] = None
 
 
 class SSOAuthExtension(ApiExtension):
@@ -50,12 +44,14 @@ class SSOAuthExtension(ApiExtension):
 
     def __init__(
         self,
+        settings: DMSAPISettings,
         sso_client: SSOBase,
         algorithm: Optional[str] = None,
         public_endpoints: Optional[List[Scope]] = None,
     ):
         self.sso_client = sso_client
-
+        global APP_SECRET_KEY
+        APP_SECRET_KEY = OctKey.import_key(settings.app_secret_key)
         if algorithm:
             self.algorithm = algorithm
         if public_endpoints:

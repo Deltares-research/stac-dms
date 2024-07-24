@@ -1,26 +1,26 @@
 ARG NODE_VERSION=20.15.0
 
-FROM node:${NODE_VERSION} as base
+FROM node:${NODE_VERSION} AS base
 
 ARG PORT=3000
 WORKDIR /src
 
-FROM base as base-dev
+FROM base AS base-dev
 
 ENV NODE_ENV=development
 
-FROM base as base-prod
+FROM base AS base-prod
 
 ENV NODE_ENV=production
 
 # Build 
-FROM base-dev as build-dev
+FROM base-dev AS build-dev
 
 COPY --link package.json package-lock.json ./
 RUN npm install
 
 # Build
-FROM base-prod as build-prod
+FROM base-prod AS build-prod
 
 COPY --link package.json package-lock.json ./
 RUN npm install --production=false
@@ -31,7 +31,7 @@ RUN npm run build
 RUN npm prune
 
 # Run 
-FROM base-dev as run-dev
+FROM base-dev AS run-dev
 
 COPY --from=build-dev /src/node_modules /src/node_modules
 COPY --from=build-dev /src/.nuxt /src/.nuxt
@@ -40,7 +40,7 @@ COPY --from=build-dev /src/package.json /src/package.json
 CMD [ "npm", "run", "dev" ]
 
 # Run
-FROM base-prod as run-prod
+FROM base-prod AS run-prod
 
 ENV PORT=$PORT
 

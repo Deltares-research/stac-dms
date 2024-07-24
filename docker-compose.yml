@@ -26,13 +26,23 @@ services:
       - ES_USE_SSL=false
       - ES_VERIFY_CERTS=false
       - BACKEND=opensearch
+      - DB_CONNECTION_URL=postgresql+psycopg://postgres:postgres@postgres:5432/postgres
     volumes:
-      - ./api/dmsapi:/app/dmsapi
-      - ./api/scripts:/app/scripts
-      # - ./osdata:/usr/share/opensearch/data
+      - ./api:/app
+      - /app/.venv
     depends_on:
       - opensearch
     command: bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m dmsapi.app"
+
+  postgres:
+    image: postgres:16
+    # Add any additional configuration for the Postgres container here
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
 
   opensearch:
     container_name: os-container
