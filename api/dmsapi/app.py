@@ -20,6 +20,7 @@ from stac_fastapi.extensions.core import (
     TokenPaginationExtension,
     TransactionExtension,
 )
+from stac_fastapi.types.config import Settings
 from stac_fastapi.extensions.third_party import BulkTransactionExtension
 from stac_fastapi.opensearch.database_logic import (
     DatabaseLogic,
@@ -35,6 +36,7 @@ from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.config import DMSAPISettings
 
 settings = DMSAPISettings()
+Settings.set(settings)
 _LOGGER = logging.getLogger("uvicorn.default")
 session = Session.create_from_settings(settings)
 db_engine = create_db_engine(settings)
