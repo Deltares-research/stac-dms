@@ -6,9 +6,8 @@ from sqlalchemy import pool
 from alembic import context
 from sqlmodel import SQLModel
 import dmsapi.database.models
-from dmsapi.config import DMSAPISettings
+from dmsapi.app import settings
 
-settings = DMSAPISettings()
 url = settings.db_connection_url
 
 # this is the Alembic Config object, which provides
