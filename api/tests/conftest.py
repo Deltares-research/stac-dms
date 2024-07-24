@@ -12,6 +12,8 @@ if "ES_PORT" not in os.environ:
 
 from dmsapi.config import DMSAPISettings
 from dmsapi.database.db import create_db_engine
+import dmsapi.database.models
+from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
@@ -57,7 +59,7 @@ Settings.set(settings)
 
 database = DatabaseLogic()
 settings = Settings.get()
-db_engine = create_db_engine(settings, echo=True)
+db_engine = create_db_engine(settings)
 
 
 @pytest.fixture
@@ -73,6 +75,12 @@ def txn_client():
 @pytest.fixture
 def bulk_txn_client():
     return BulkTransactionsClient(database=database, session=None, settings=settings)
+
+
+@pytest.fixture
+def keyword_client():
+    return KeywordExtension(db_engine=db_engine).client
+
 
 @pytest_asyncio.fixture(scope="session")
 async def app():
@@ -94,6 +102,7 @@ async def app():
         SortExtension(),
         TokenPaginationExtension(),
         filter_extension,
+        KeywordExtension(db_engine=db_engine),
     ]
     SQLModel.metadata.create_all(db_engine)
 
