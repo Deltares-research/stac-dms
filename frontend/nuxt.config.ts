@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  ssr: false,
   devtools: { enabled: true },
   modules: [
     "@nuxtjs/tailwindcss",
@@ -22,12 +23,12 @@ export default defineNuxtConfig({
   openFetch: {
     clients: {
       api: {
-        schema: "http://stac-api:8000/api/api",
+        schema: "http://localhost:8000/api/api",
         baseURL: "/api",
       },
     },
   },
   routeRules: {
-    "/api/**": { proxy: "http://stac-api:8000/api/**" },
+    "/api/**": { proxy: "http://localhost:8000/api/**" },
   },
 });
