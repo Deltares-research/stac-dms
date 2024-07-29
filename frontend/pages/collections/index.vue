@@ -3,9 +3,8 @@
     <CardHeader>
       <CardTitle>Collections</CardTitle>
       <CardDescription
-        >List of data sets collections, which you are allowed to
-        edit</CardDescription
-      >
+        >List of data sets collections, which you are allowed to edit
+      </CardDescription>
     </CardHeader>
     <CardContent>
       <div class="flex justify-end">
