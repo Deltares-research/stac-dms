@@ -30,14 +30,11 @@ import type { ColumnDef } from "@tanstack/vue-table"
 import type { components } from "#open-fetch-schemas/api"
 
 const router = useRouter()
-const { data } = await useApi("/collections", {
-  cache: "no-cache",
-  key: "collectionsPage",
-})
+const { data, refresh } = await useApi("/collections")
 
 onMounted(async () => {
   await new Promise((r) => setTimeout(r, 1000))
-  refreshNuxtData("collectionsPage")
+  await refresh()
 })
 
 async function updateCollection(id: string) {
