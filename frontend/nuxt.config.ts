@@ -30,4 +30,4 @@ export default defineNuxtConfig({
   routeRules: {
     "/api/**": { proxy: "http://stac-api:8000/api/**" },
   },
-});
+})

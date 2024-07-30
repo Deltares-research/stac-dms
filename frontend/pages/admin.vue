@@ -1,47 +1,39 @@
 <template>
   <Container>
     <h3 class="mt-8 scroll-m-20 text-2xl font-semibold tracking-tight">
-      Data management suite
+      Admin
     </h3>
     <p class="text-sm text-muted-foreground">
-      Welcome to the Deltares data management suite. Entry point for finding and
-      publishing datasets.
+      Administration of catalogues, collections and permissions.
     </p>
     <div class="grid grid-cols-3 gap-4 pt-8">
       <Card class="flex flex-col">
         <CardHeader>
-          <CardTitle>Find data</CardTitle>
-          <CardDescription
-            >Explore the central data catalog using the radiantearth STAC
-            Browser.</CardDescription
-          >
+          <CardTitle>Catalogue</CardTitle>
+          <CardDescription>Administration of catalogues</CardDescription>
         </CardHeader>
         <CardFooter class="mt-auto">
-          <Button>Search data</Button>
+          <Button>Admin catalogue</Button>
         </CardFooter>
       </Card>
       <Card class="flex flex-col">
         <CardHeader>
-          <CardTitle>Register data</CardTitle>
-          <CardDescription
-            >Register data for projects, experimental
-            facilities</CardDescription
-          >
+          <CardTitle>Collections</CardTitle>
+          <CardDescription>Administration of collections</CardDescription>
         </CardHeader>
         <CardFooter class="mt-auto">
-          <Button>Register data</Button>
+          <Button as-child>
+            <NuxtLink to="/collections">Collections</NuxtLink>
+          </Button>
         </CardFooter>
       </Card>
       <Card class="flex flex-col">
         <CardHeader>
-          <CardTitle>Admin</CardTitle>
-          <CardDescription
-            >Adminstration of catalogues, collections and user
-            permissions</CardDescription
-          >
+          <CardTitle>Permissions</CardTitle>
+          <CardDescription>Administration of user permissions</CardDescription>
         </CardHeader>
         <CardFooter class="mt-auto">
-          <Button>Admin</Button>
+          <Button>Admin permissions</Button>
         </CardFooter>
       </Card>
     </div>
