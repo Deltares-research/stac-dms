@@ -12,11 +12,7 @@
           <NuxtLink to="/collections/create">Add collection</NuxtLink>
         </Button>
       </div>
-      <DataTable
-        v-if="data?.collections"
-        :columns="collectionColumns"
-        :data="data?.collections"
-      />
+      <DataTable :columns="collectionColumns" :data="collections" />
     </CardContent>
   </Card>
 </template>
@@ -27,14 +23,37 @@ import { ArrowUpDown, Pencil, Trash2 } from "lucide-vue-next"
 import { Button } from "@/components/ui/button"
 import type { ColumnDef } from "@tanstack/vue-table"
 import type { components } from "#open-fetch-schemas/api"
+import { h, onMounted, ref } from "vue"
+import { useNuxtApp, useRouter } from "nuxt/app"
 
 const router = useRouter()
-const { data, refresh } = await useApi("/collections")
+const { $api } = useNuxtApp()
+const collections = ref([])
 
 onMounted(async () => {
   await new Promise((r) => setTimeout(r, 1000))
-  await refresh()
+  let retrievedCollections = []
+  let url = "/collections"
+  while (url) {
+    let pos = url.search("/api") //should be fixed in the backend!
+    url = pos != -1 ? url.substring(pos) : url
+    url = await retrieveCollection(url, retrievedCollections)
+  }
+  collections.value = retrievedCollections
 })
+
+async function retrieveCollection(
+  url: string,
+  collections: [],
+): Promise<string> {
+  try {
+    const collectionsData = await $api(url)
+    collectionsData.collections.forEach((item) => collections.push(item))
+    return collectionsData.links[3].href
+  } catch (e) {
+    return ""
+  }
+}
 
 async function updateCollection(id: string) {
   router.push("/collections/update/" + id)

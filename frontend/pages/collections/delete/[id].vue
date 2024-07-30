@@ -1,5 +1,5 @@
 <template>
-  <CollectionCard
+  <CollectionCardForm
     buttonTitle="Delete"
     card-title="Are you sure you want to delete this collection?"
     :error="errors"
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import CollectionCard from "@/components/collections/CollectionCard.vue"
+import CollectionCardForm from "@/components/collections/CollectionCardForm.vue"
 
 const { $api } = useNuxtApp()
 

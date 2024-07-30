@@ -1,6 +1,6 @@
 <template>
   <div class="justify-end">
-    <CollectionCard
+    <CollectionCardForm
       card-title="Edit collection"
       button-title="update"
       :errors="errors"
@@ -12,8 +12,10 @@
 </template>
 
 <script setup lang="ts">
-import CollectionCard from "@/components/collections/CollectionCard.vue"
 import type { Collection } from "@/lib/collection"
+import CollectionCardForm from "@/components/collections/CollectionCardForm.vue"
+import { useNuxtApp, useRoute, useRouter } from "nuxt/app"
+import { ref } from "vue"
 
 const { $api } = useNuxtApp()
 
