@@ -1,6 +1,6 @@
 <template>
   <div class="justify-end">
-    <CollectionCard
+    <CollectionCardForm
       button-title="Create"
       card-title="Create a new collection"
       @update="createCollection"
@@ -10,8 +10,10 @@
 </template>
 
 <script setup lang="ts">
-import CollectionCard from "@/components/collections/CollectionCard.vue"
 import type { Collection } from "@/lib/collection"
+import CollectionCardForm from "@/components/collections/CollectionCardForm.vue"
+import { useNuxtApp, useRouter } from "nuxt/app"
+import { ref } from "vue"
 
 const errors = ref("")
 const { $api } = useNuxtApp()
@@ -19,7 +21,6 @@ const title = ref("")
 const description = ref("")
 
 async function createCollection(emitedCollection: Collection) {
-  console.log(emitedCollection)
   const newCollection = {
     type: "Collection",
     stac_version: "1.0.0",
@@ -47,10 +48,7 @@ async function createCollection(emitedCollection: Collection) {
     errors.value = "It was not possible to create the collection"
     return
   }
-
   const router = useRouter()
   router.push("/collections")
 }
 </script>
-
-<style scoped></style>
