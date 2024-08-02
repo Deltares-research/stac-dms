@@ -1,68 +1,170 @@
 <script setup lang="ts">
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PlusIcon, ArrowUpDown, Pencil, Trash2 } from "lucide-vue-next"
+import type { ColumnDef } from "@tanstack/vue-table"
+import type { components } from "#open-fetch-schemas/api"
+import { Button } from "@/components/ui/button"
+import DataTable from "@/components/table/DataTable.vue"
+import dateFormat from "dateformat"
 
-import Container from "@/components/deltares/Container";
+let { data: items, refresh } = await useApi("/search?limit=1000")
 
-import { TrashIcon, PencilIcon, PlusIcon } from "lucide-vue-next";
-
-let { data: items } = await useApi("/search");
+onMounted(async () => {
+  await new Promise((r) => setTimeout(r, 1000))
+  await refresh()
+})
+const collectionColumns: ColumnDef<
+  components["schemas"]["stac_pydantic__api__item_collection__ItemCollection"]
+>[] = [
+  {
+    accessorKey: "properties.title",
+    id: "properties.title",
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => {
+            column.toggleSorting(column.getIsSorted() === "asc")
+          },
+        },
+        () => ["Title", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+    cell: ({ row }) => {
+      return (
+        h("div", { class: "lowercase" }, row.original.properties.title) ?? ""
+      )
+    },
+  },
+  {
+    accessorKey: "properties.description",
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
+        },
+        () => ["Description", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+    cell: ({ row }) => {
+      return h(
+        "div",
+        { class: "lowercase" },
+        row.original.properties.description ?? "",
+      )
+    },
+  },
+  {
+    accessorKey: "collection",
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
+        },
+        () => ["Collection", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+    cell: ({ row }) => {
+      return h("div", { class: "lowercase" }, row.original.collection)
+    },
+  },
+  {
+    accessorKey: "properties.storagelocation",
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
+        },
+        () => ["Storage location", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+    cell: ({ row }) => {
+      return h(
+        "div",
+        { class: "lowercase" },
+        row.original.properties.storagelocation,
+      )
+    },
+  },
+  {
+    accessorKey: "properties.datetime",
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
+        },
+        () => ["Date", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+    cell: ({ row }) => {
+      const date = dateFormat(
+        row.original.properties.datetime,
+        "dd-mm-yyyy hh:MM:ss",
+      )
+      return h("div", { class: "lowercase" }, date)
+    },
+  },
+  {
+    id: "edit",
+    cell: ({ row }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => {},
+        },
+        () => ["Edit", h(Pencil, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+  },
+  {
+    id: "delete",
+    cell: ({ row }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => {},
+        },
+        () => ["Delete", h(Trash2, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+  },
+]
 </script>
 
 <template>
-  <Container class="py-8">
-    <div class="flex items-center justify-between gap-5">
-      <h1 class="font-semibold text-2xl">Registered data</h1>
-      <Button as-child>
-        <NuxtLink to="/register" class="flex items-center gap-1">
-          <PlusIcon class="w-4 h-4 mr-2" /> Register new dataset
-        </NuxtLink>
-      </Button>
-    </div>
-    <Card class="mt-8">
-      <CardContent class="p-0 pb-5">
-        <Table>
-          <TableCaption
-            >List of data sets registrations, which you are allowed to
-            edit</TableCaption
-          >
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Collection</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody v-if="items">
-            <TableRow v-for="feature in items.features">
-              <TableCell class="font-medium">
-                {{ feature.properties.title }}
-              </TableCell>
-              <TableCell>{{ feature.properties.description }}</TableCell>
-              <TableCell>
-                {{ feature.collection }}
-              </TableCell>
-              <TableCell>
-                <div class="flex gap-1.5 justify-end">
-                  <Button size="icon" variant="outline">
-                    <PencilIcon class="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="destructive">
-                    <TrashIcon class="w-4 h-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  </Container>
+  <Card class="mt-5">
+    <CardHeader>
+      <CardTitle>Registered data</CardTitle>
+      <CardDescription
+        >List of data sets registrations, which you are allowed to edit
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div class="flex justify-end">
+        <Button as-child>
+          <NuxtLink to="/register" class="flex items-center gap-1">
+            <PlusIcon class="w-4 h-4 mr-2" />
+            Register new dataset
+          </NuxtLink>
+        </Button>
+      </div>
+      <div class="flex justify-end"></div>
+      <DataTable
+        v-if="items.features"
+        :columns="collectionColumns"
+        :data="items.features"
+        filterId="properties.title"
+      />
+    </CardContent>
+  </Card>
 </template>

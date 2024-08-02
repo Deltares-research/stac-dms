@@ -12,7 +12,11 @@
           <NuxtLink to="/collections/create">Add collection</NuxtLink>
         </Button>
       </div>
-      <DataTable :columns="collectionColumns" :data="collections" />
+      <DataTable
+        :columns="collectionColumns"
+        :data="collections"
+        filterId="title"
+      />
     </CardContent>
   </Card>
 </template>
