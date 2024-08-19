@@ -10,6 +10,7 @@ from dmsapi.database.models import (
     Keyword_Group,
     Keyword_GroupCreate,
     KeywordBase,
+    OKResponse,
 )
 
 
@@ -39,7 +40,7 @@ class KeywordClient:
             return db_keywordgroup
 
     def get_keyword_group(
-        self, keywordgroup_id: Annotated[str, Path(title="The ID of the item to get")]
+        self, keywordgroup_id: Annotated[str, Path(title="The ID of the group to get")]
     ) -> Keyword_Group:
         """Retrieve a keyword group by ID.
 
@@ -62,6 +63,34 @@ class KeywordClient:
                     f"Keyword group with ID {keywordgroup_id} not found"
                 )
             return result
+
+    def delete_keyword_group(
+        self,
+        keywordgroup_id: Annotated[str, Path(title="The ID of the group to delete")],
+    ) -> OKResponse:
+        """Delete a keyword group by ID.
+
+        Args:
+            keywordgroup_id: ID of the keyword group to delete.
+
+        Returns:
+            None
+        """
+        try:
+            uuid = UUID(keywordgroup_id)
+        except ValueError:
+            raise InvalidQueryParameter(
+                f"Keyword group ID {keywordgroup_id} invalid UUID"
+            )
+        with Session(self.db_engine) as session:
+            result = session.get(Keyword_Group, uuid)
+            if result is None:
+                raise NotFoundError(
+                    f"Keyword group with ID {keywordgroup_id} not found"
+                )
+            session.delete(result)
+            session.commit()
+            return OKResponse(message="Keyword group deleted")
 
     def create_keyword(self, keyword_input: KeywordBase) -> Keyword:
         """Create a new keyword.

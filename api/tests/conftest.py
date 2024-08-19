@@ -1,6 +1,7 @@
 import os
 
 from dmsapi.core.stacdms import StacDmsApi
+from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from sqlmodel import SQLModel
 
 ## This part is gross but it's the only way to get the settings to load withouth changing to much in the underlying package
@@ -77,7 +78,7 @@ def bulk_txn_client():
     return BulkTransactionsClient(database=database, session=None, settings=settings)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def keyword_client():
     return KeywordExtension(db_engine=db_engine).client
 
@@ -129,3 +130,10 @@ async def app_client(app):
 
     async with AsyncClient(app=app, base_url="http://test-server") as c:
         yield c
+
+
+@pytest_asyncio.fixture(scope="session")
+async def keyword_group(keyword_client: KeywordClient):
+    return keyword_client.create_keywordgroup(
+        {"group_name_nl": "test", "group_name_en": "engelse_test"}
+    )

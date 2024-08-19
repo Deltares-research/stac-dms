@@ -59,3 +59,7 @@ class Facility(SQLModel, table=True):
 class ErrorResponse(SQLModel):
     code: str
     description: str
+
+
+class OKResponse(SQLModel):
+    message: str

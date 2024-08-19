@@ -8,6 +8,7 @@ from dmsapi.database.models import (
     ErrorResponse,
     Keyword,
     Keyword_GroupPublic,
+    OKResponse,
 )
 
 
@@ -65,6 +66,8 @@ class KeywordExtension(ApiExtension):
         """
         self.router.prefix = app.state.router_prefix
         self.add_create_keyword_group()
+        self.add_get_keyword_group()
+        self.add_delete_keyword_group()
         self.add_create_keyword()
         self.add_get_keyword()
         app.include_router(self.router, tags=["Keyword Extension"])
@@ -76,6 +79,64 @@ class KeywordExtension(ApiExtension):
             endpoint=self.client.create_keywordgroup,
             response_model=Keyword_GroupPublic,
             methods=["POST"],
+        )
+
+    def add_get_keyword_group(self):
+        self.router.add_api_route(
+            name="Get Keyword Group",
+            path="/keywordgroup/{keywordgroup_id}",
+            response_model=Keyword_GroupPublic,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": Keyword_GroupPublic,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            endpoint=self.client.get_keyword_group,
+            methods=["GET"],
+        )
+
+    def add_delete_keyword_group(self):
+        self.router.add_api_route(
+            name="Delete Keyword Group",
+            path="/keywordgroup/{keywordgroup_id}",
+            response_model=OKResponse,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": OKResponse,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            endpoint=self.client.delete_keyword_group,
+            methods=["DELETE"],
         )
 
     def add_create_keyword(self):
