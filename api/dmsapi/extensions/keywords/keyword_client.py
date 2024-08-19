@@ -1,11 +1,15 @@
-from typing import Annotated
+from typing import Annotated, List
 from uuid import UUID
 from fastapi import Path
 from stac_fastapi.types.errors import NotFoundError, InvalidQueryParameter
 from sqlalchemy.engine import Engine
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from dmsapi.database.models import (
+from dmsapi.database.models import (  # type: ignore
+    Facility,
+    FacilityBase,
+    FacilityCreate,
+    FacilityList,
     Keyword,
     Keyword_Group,
     Keyword_GroupCreate,
@@ -15,13 +19,85 @@ from dmsapi.database.models import (
 
 
 class KeywordClient:
-    """Cleint for managing and retrieving keywords."""
+    """Client for managing and retrieving keywords."""
 
     db_engine: Engine
 
     def __init__(self, db_engine: Engine):
         """Initialize the client."""
         self.db_engine = db_engine
+
+    def create_facility(self, facility: FacilityCreate) -> Facility:
+        """Create a new facility.
+
+        Args:
+            facility: facility to create.
+
+        Returns:
+            created facility.
+        """
+        with Session(self.db_engine) as session:
+            db_facility = Facility.model_validate(facility)
+            session.add(db_facility)
+            session.commit()
+            session.refresh(db_facility)
+            return db_facility
+
+    def get_facility(
+        self, facility_id: Annotated[str, Path(title="The ID of the facility to get")]
+    ) -> Facility:
+        """Retrieve a facility by ID.
+
+        Args:
+            facility_id: ID of the facility to retrieve.
+
+        Returns:
+            retrieved facility.
+        """
+        try:
+            uuid = UUID(facility_id)
+        except ValueError:
+            raise InvalidQueryParameter(f"Facility ID {facility_id} invalid UUID")
+        with Session(self.db_engine) as session:
+            result = session.get(Facility, uuid)
+            if result is None:
+                raise NotFoundError(f"Facility with ID {facility_id} not found")
+            return result
+
+    def get_facilities(self) -> List[FacilityList]:
+        """Retrieve all facilities.
+
+        Returns:
+            list of all facilities.
+        """
+        with Session(self.db_engine) as session:
+            results = session.exec(select(Facility))
+            return list(results.all())
+
+    # def update_facility(self, facility_id: Annotated[str, Path(title="The ID of the facility to update")], facility: FacilityUpdate) -> Facility:
+    def delete_facility(
+        self,
+        facility_id: Annotated[str, Path(title="The ID of the facility to delete")],
+    ) -> OKResponse:
+        """Delete a facility by ID.
+
+        Args:
+            facility_id: ID of the facility to delete.
+
+        Returns:
+            OKResponse
+        """
+        try:
+            uuid = UUID(facility_id)
+        except ValueError:
+            raise InvalidQueryParameter(f"Facility ID {facility_id} invalid UUID")
+        with Session(self.db_engine) as session:
+            result = session.get(Facility, uuid)
+            if result is None:
+                raise NotFoundError(f"Facility with ID {facility_id} not found")
+            session.delete(result)
+            session.commit()
+            return OKResponse(message="Facility deleted")
 
     def create_keywordgroup(self, keywordgroup: Keyword_GroupCreate):
         """Create a new keyword group.

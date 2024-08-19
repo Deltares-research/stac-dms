@@ -1,6 +1,6 @@
 import pytest
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
-from dmsapi.database.models import Keyword_Group
+from dmsapi.database.models import Keyword_Group  # type: ignore
 from httpx import AsyncClient
 
 

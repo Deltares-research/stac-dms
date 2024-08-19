@@ -48,9 +48,20 @@ class KeywordURI:
     keyword_id: uuid.UUID = Path(..., description="Keyword ID")
 
 
-class Facility(SQLModel, table=True):
-    id: uuid.UUID = Field(primary_key=True)
-    name: str
+class FacilityBase(SQLModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class FacilityCreate(FacilityBase):
+    pass
+
+
+class FacilityList(FacilityBase):
+    id: uuid.UUID
+
+
+class Facility(FacilityBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     keyword_groups: list["Keyword_Group"] = Relationship(
         back_populates="facilities", link_model=FacilityKeywordGroupLink
     )

@@ -61,6 +61,8 @@ Settings.set(settings)
 database = DatabaseLogic()
 settings = Settings.get()
 db_engine = create_db_engine(settings)
+SQLModel.metadata.drop_all(db_engine)
+SQLModel.metadata.create_all(db_engine)
 
 
 @pytest.fixture
@@ -134,6 +136,15 @@ async def app_client(app):
 
 @pytest_asyncio.fixture(scope="session")
 async def keyword_group(keyword_client: KeywordClient):
-    return keyword_client.create_keywordgroup(
+    keyword_group = keyword_client.create_keywordgroup(
         {"group_name_nl": "test", "group_name_en": "engelse_test"}
     )
+    yield keyword_group
+    keyword_client.delete_keyword_group(keyword_group.id)
+
+
+@pytest_asyncio.fixture(scope="session")
+async def facility(keyword_client: KeywordClient):
+    facility = keyword_client.create_facility({"name": "test_facility"})
+    yield facility
+    keyword_client.delete_facility(facility.id)
