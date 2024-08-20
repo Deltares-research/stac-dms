@@ -206,6 +206,16 @@ class KeywordClient:
                 )
             return result
 
+    def get_keyword_groups(self) -> List[Keyword_Group]:
+        """Retrieve all keyword groups.
+
+        Returns:
+            list of all keyword groups.
+        """
+        with Session(self.db_engine) as session:
+            results = session.exec(select(Keyword_Group))
+            return list(results.all())
+
     def delete_keyword_group(
         self,
         keywordgroup_id: Annotated[str, Path(title="The ID of the group to delete")],
