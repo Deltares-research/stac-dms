@@ -69,7 +69,9 @@ async def test_delete_link(
 ):
 
     facility = keyword_client.get_facility(str(facility_keyword_group_link.facility_id))
-    assert facility.keyword_groups[0].id == facility_keyword_group_link.keyword_group_id
+    assert facility.keyword_groups[0].id == UUID(
+        facility_keyword_group_link.keyword_group_id
+    )
 
     response_delete = await app_client.request(
         method="DELETE",
