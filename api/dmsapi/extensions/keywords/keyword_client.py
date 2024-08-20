@@ -153,11 +153,11 @@ class KeywordClient:
                 raise NotFoundError(message="Facility not found")
             # check if keyword group exists
             keyword_group = session.get(
-                Keyword_Group, facility_keywordgroup_link.keywordgroup_id
+                Keyword_Group, facility_keywordgroup_link.keyword_group_id
             )
             if keyword_group is None:
                 raise NotFoundError(
-                    f"Keyword group with ID {facility_keywordgroup_link.keywordgroup_id} not found"
+                    f"Keyword group with ID {facility_keywordgroup_link.keyword_group_id} not found"
                 )
 
             facility.keyword_groups.remove(keyword_group)
