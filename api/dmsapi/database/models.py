@@ -17,7 +17,9 @@ class Keyword_GroupBase(SQLModel, table=False):
 
 class Keyword_Group(Keyword_GroupBase, table=True):
     id: uuid.UUID | None = Field(default_factory=uuid.uuid4, primary_key=True)
-    keywords: list["Keyword"] = Relationship(back_populates="group")
+    keywords: list["Keyword"] = Relationship(
+        back_populates="group", cascade_delete=True
+    )
     facilities: list["Facility"] = Relationship(
         back_populates="keyword_groups", link_model=FacilityKeywordGroupLink
     )
@@ -32,11 +34,17 @@ class Keyword_GroupPublic(Keyword_GroupBase):
     keywords: list["Keyword"] = Relationship(back_populates="group")
 
 
-class KeywordBase(SQLModel):
-    nl_keyword: str | None
-    en_keyword: str | None
-    external_id: str | None
-    group_id: uuid.UUID = Field(foreign_key="keyword_group.id")
+class KeywordUpdate(SQLModel):
+    nl_keyword: str | None = Field(min_length=1, max_length=100, default=None)
+    en_keyword: str | None = Field(min_length=1, max_length=100, default=None)
+    external_id: str | None = Field(default=None)
+
+
+class KeywordBase(KeywordUpdate):
+    nl_keyword: str = Field(min_length=1, max_length=100)
+    en_keyword: str = Field(min_length=1, max_length=100)
+    external_id: str | None = Field(default=None)
+    group_id: uuid.UUID = Field(foreign_key="keyword_group.id", ondelete="CASCADE")
 
 
 class Keyword(KeywordBase, table=True):

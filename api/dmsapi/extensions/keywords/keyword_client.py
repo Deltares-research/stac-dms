@@ -117,15 +117,25 @@ class KeywordClient:
         """
         with Session(self.db_engine) as session:
             # check if facility exists
-            facility = session.get(Facility, facility_keywordgroup_link.facility_id)
+            try:
+                facility_uuid = UUID(facility_keywordgroup_link.facility_id)
+            except ValueError:
+                raise InvalidQueryParameter(
+                    f"Facility ID {facility_keywordgroup_link.facility_id} invalid UUID"
+                )
+            facility = session.get(Facility, facility_uuid)
             if facility is None:
                 raise NotFoundError(
                     f"Facility with ID {facility_keywordgroup_link.facility_id} not found"
                 )
             # check if keyword group exists
-            keyword_group = session.get(
-                Keyword_Group, facility_keywordgroup_link.keyword_group_id
-            )
+            try:
+                keyword_group_uuid = UUID(facility_keywordgroup_link.keyword_group_id)
+            except ValueError:
+                raise InvalidQueryParameter(
+                    f"Keyword group ID {facility_keywordgroup_link.keyword_group_id} invalid UUID"
+                )
+            keyword_group = session.get(Keyword_Group, keyword_group_uuid)
             if keyword_group is None:
                 raise NotFoundError(
                     f"Keyword group with ID {facility_keywordgroup_link.keyword_group_id} not found"
@@ -148,13 +158,23 @@ class KeywordClient:
         """
         with Session(self.db_engine) as session:
             # check if facility exists
-            facility = session.get(Facility, facility_keywordgroup_link.facility_id)
+            try:
+                facility_uuid = UUID(facility_keywordgroup_link.facility_id)
+            except ValueError:
+                raise InvalidQueryParameter(
+                    f"Facility ID {facility_keywordgroup_link.facility_id} invalid UUID"
+                )
+            facility = session.get(Facility, facility_uuid)
             if facility is None:
                 raise NotFoundError(message="Facility not found")
             # check if keyword group exists
-            keyword_group = session.get(
-                Keyword_Group, facility_keywordgroup_link.keyword_group_id
-            )
+            try:
+                keyword_group_uuid = UUID(facility_keywordgroup_link.keyword_group_id)
+            except ValueError:
+                raise InvalidQueryParameter(
+                    f"Keyword group ID {facility_keywordgroup_link.keyword_group_id} invalid UUID"
+                )
+            keyword_group = session.get(Keyword_Group, keyword_group_uuid)
             if keyword_group is None:
                 raise NotFoundError(
                     f"Keyword group with ID {facility_keywordgroup_link.keyword_group_id} not found"
