@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 import pytest
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
-from dmsapi.database.models import Facility, Keyword_Group  # type: ignore
+from dmsapi.database.models import Facility, FacilityKeywordGroupLink, Keyword_Group  # type: ignore
 from httpx import AsyncClient
 
 
@@ -65,27 +65,18 @@ async def test_create_link_invalid_keyword_group(
 async def test_delete_link(
     app_client: AsyncClient,
     keyword_client: KeywordClient,
-    facility: Facility,
-    keyword_group: Keyword_Group,
+    facility_keyword_group_link: FacilityKeywordGroupLink,
 ):
-    response = await app_client.post(
-        "/facility_keywordgroup_link",
-        json={
-            "facility_id": str(facility.id),
-            "keyword_group_id": str(keyword_group.id),
-        },
-    )
-    assert response.status_code == 200
-    assert response.json() == {"message": "Keyword group linked to facility"}
-    facility = keyword_client.get_facility(str(facility.id))
-    assert facility.keyword_groups[0].id == keyword_group.id
+
+    facility = keyword_client.get_facility(str(facility_keyword_group_link.facility_id))
+    assert facility.keyword_groups[0].id == facility_keyword_group_link.keyword_group_id
 
     response_delete = await app_client.request(
         method="DELETE",
         url="/facility_keywordgroup_link",
         json={
             "facility_id": str(facility.id),
-            "keyword_group_id": str(keyword_group.id),
+            "keyword_group_id": str(facility_keyword_group_link.keyword_group_id),
         },
     )
     assert response_delete.status_code == 200

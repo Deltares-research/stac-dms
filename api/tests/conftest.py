@@ -14,7 +14,7 @@ if "ES_PORT" not in os.environ:
 from dmsapi.config import DMSAPISettings
 from dmsapi.database.db import create_db_engine
 import dmsapi.database.models
-from dmsapi.database.models import FacilityKeywordGroupLink  # type: ignore
+from dmsapi.database.models import Facility, FacilityKeywordGroupLink, Keyword_Group  # type: ignore
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 
 import pytest
@@ -136,7 +136,7 @@ async def app_client(app):
         yield c
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def keyword_group(keyword_client: KeywordClient):
     keyword_group = keyword_client.create_keywordgroup(
         {"group_name_nl": "test", "group_name_en": "engelse_test"}
@@ -145,19 +145,19 @@ async def keyword_group(keyword_client: KeywordClient):
     keyword_client.delete_keyword_group(keyword_group.id)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def facility(keyword_client: KeywordClient):
     facility = keyword_client.create_facility({"name": "test_facility"})
     yield facility
     keyword_client.delete_facility(facility.id)
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def facility_keyword_group_link(
-    keyword_client: KeywordClient, facility, keyword_group
+    keyword_client: KeywordClient, facility: Facility, keyword_group: Keyword_Group
 ):
     link = FacilityKeywordGroupLink(
-        facility_id=facility.id, keywordgroup_id=keyword_group.id
+        facility_id=facility.id, keyword_group_id=keyword_group.id
     )
     result = keyword_client.link_keywordgroup_to_facility(link)
     yield link
