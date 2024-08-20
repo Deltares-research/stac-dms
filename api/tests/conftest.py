@@ -162,3 +162,14 @@ async def facility_keyword_group_link(
     result = keyword_client.link_keywordgroup_to_facility(link)
     yield link
     keyword_client.unlink_keywordgroup_from_facility(link)
+
+
+@pytest_asyncio.fixture(scope="function")
+async def keyword(keyword_client: KeywordClient, keyword_group: Keyword_Group):
+    return keyword_client.create_keyword(
+        {
+            "group_id": keyword_group.id,
+            "nl_keyword": "testwoord",
+            "en_keyword": "english_testword",
+        }
+    )

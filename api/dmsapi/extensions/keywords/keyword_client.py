@@ -16,6 +16,7 @@ from dmsapi.database.models import (  # type: ignore
     Keyword_Group,
     Keyword_GroupCreate,
     KeywordBase,
+    KeywordUpdate,
     OKResponse,
 )
 
@@ -281,7 +282,7 @@ class KeywordClient:
             return db_keyword
 
     def get_keyword(
-        self, keyword_id: Annotated[str, Path(title="The ID of the item to get")]
+        self, keyword_id: Annotated[str, Path(title="The ID of the keyword to get")]
     ) -> Keyword:
         """Retrieve a keyword by ID.
 
@@ -300,3 +301,58 @@ class KeywordClient:
             if result is None:
                 raise NotFoundError(f"Keyword with ID {keyword_id} not found")
             return result
+
+    def update_keyword(
+        self,
+        keyword_id: Annotated[str, Path(title="The ID of the keyword to get")],
+        keyword_update: KeywordUpdate,
+    ) -> Keyword:
+        """Update a keyword by ID.
+
+        Args:
+            keyword_id: ID of the keyword to update.
+            keyword: keyword to update.
+
+        Returns:
+            updated keyword.
+        """
+        try:
+            uuid = UUID(keyword_id)
+        except ValueError:
+            raise InvalidQueryParameter(f"Keyword ID {keyword_id} invalid UUID")
+        with Session(self.db_engine) as session:
+            keyword = session.get(Keyword, uuid)
+            if keyword is None:
+                raise NotFoundError(f"Keyword with ID {keyword_id} not found")
+
+            for key, value in keyword_update.model_dump().items():
+                if value:
+                    setattr(keyword, key, value)
+            session.add(keyword)
+            session.commit()
+            session.refresh(keyword)
+            return keyword
+
+    def delete_keyword(
+        self,
+        keyword_id: Annotated[str, Path(title="The ID of the keyword to delete")],
+    ) -> OKResponse:
+        """Delete a keyword by ID.
+
+        Args:
+            keyword_id: ID of the keyword to delete.
+
+        Returns:
+            OKResponse
+        """
+        try:
+            uuid = UUID(keyword_id)
+        except ValueError:
+            raise InvalidQueryParameter(f"Keyword ID {keyword_id} invalid UUID")
+        with Session(self.db_engine) as session:
+            result = session.get(Keyword, uuid)
+            if result is None:
+                raise NotFoundError(f"Keyword with ID {keyword_id} not found")
+            session.delete(result)
+            session.commit()
+            return OKResponse(message="Keyword deleted")

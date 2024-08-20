@@ -38,7 +38,7 @@ class KeywordExtension(ApiExtension):
     Manage keywords:
         POST /keyword
         PUT /keyword/{keyword_id}
-        DELETE /keywordgroup/{keywordgroup_id}/keyword/{keyword_id}
+        DELETE /keyword/{keyword_id}
 
     Get keywords:
         GET /keywords?facility_id={facility_id}
@@ -78,6 +78,8 @@ class KeywordExtension(ApiExtension):
         self.add_delete_keyword_group()
         self.add_create_keyword()
         self.add_get_keyword()
+        self.add_update_keyword()
+        self.add_delete_keyword()
         app.include_router(self.router, tags=["Keyword Extension"])
 
     def add_create_facility(self):
@@ -286,4 +288,62 @@ class KeywordExtension(ApiExtension):
             },
             endpoint=self.client.get_keyword,
             methods=["GET"],
+        )
+
+    def add_update_keyword(self):
+        self.router.add_api_route(
+            name="Update Keyword",
+            path="/keyword/{keyword_id}",
+            endpoint=self.client.update_keyword,
+            response_model=Keyword,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": Keyword,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            methods=["PUT"],
+        )
+
+    def add_delete_keyword(self):
+        self.router.add_api_route(
+            name="Delete Keyword",
+            path="/keyword/{keyword_id}",
+            endpoint=self.client.delete_keyword,
+            response_model=OKResponse,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": OKResponse,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            methods=["DELETE"],
         )
