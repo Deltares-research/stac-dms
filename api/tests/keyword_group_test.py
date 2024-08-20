@@ -36,6 +36,16 @@ async def test_get_keywordgroup(app_client: AsyncClient, keyword_group: Keyword_
     assert keyword_group_obj.group_name_en == "engelse_test"
 
 
+# test get all keyword groups
+@pytest.mark.asyncio
+async def test_get_keywordgroups(app_client: AsyncClient, keyword_group: Keyword_Group):
+    response = await app_client.get(f"/keywordgroups")
+    assert response.status_code == 200
+    assert len(response.json()) > 0
+    keyword_group_obj = Keyword_Group(**response.json()[0])
+    assert keyword_group_obj.group_name_nl == keyword_group.group_name_nl
+
+
 @pytest.mark.asyncio
 async def test_delete_keywordgroup(
     app_client: AsyncClient, keyword_group: Keyword_Group

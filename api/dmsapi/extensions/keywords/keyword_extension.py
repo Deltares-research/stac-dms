@@ -74,6 +74,7 @@ class KeywordExtension(ApiExtension):
         self.add_unlink_keyword_group_from_facility()
         self.add_create_keyword_group()
         self.add_get_keyword_group()
+        self.add_get_keyword_groups()
         self.add_delete_keyword_group()
         self.add_create_keyword()
         self.add_get_keyword()
@@ -208,6 +209,15 @@ class KeywordExtension(ApiExtension):
                 },
             },
             endpoint=self.client.get_keyword_group,
+            methods=["GET"],
+        )
+
+    def add_get_keyword_groups(self):
+        self.router.add_api_route(
+            name="Get Keyword Groups",
+            path="/keywordgroups",
+            response_model=list[Keyword_GroupPublic],
+            endpoint=self.client.get_keyword_groups,
             methods=["GET"],
         )
 
