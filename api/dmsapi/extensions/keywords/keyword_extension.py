@@ -70,6 +70,8 @@ class KeywordExtension(ApiExtension):
         self.add_get_facility()
         self.add_get_facilities()
         self.add_delete_facility()
+        self.add_link_keyword_group_to_facility()
+        self.add_unlink_keyword_group_from_facility()
         self.add_create_keyword_group()
         self.add_get_keyword_group()
         self.add_delete_keyword_group()
@@ -150,6 +152,24 @@ class KeywordExtension(ApiExtension):
                 },
             },
             endpoint=self.client.delete_facility,
+            methods=["DELETE"],
+        )
+
+    def add_link_keyword_group_to_facility(self):
+        self.router.add_api_route(
+            name="Link Keyword Group to Facility",
+            path="/facility_keywordgroup_link",
+            endpoint=self.client.link_keywordgroup_to_facility,
+            response_model=OKResponse,
+            methods=["POST"],
+        )
+
+    def add_unlink_keyword_group_from_facility(self):
+        self.router.add_api_route(
+            name="Unlink Keyword Group from Facility",
+            path="/facility_keywordgroup_link",
+            endpoint=self.client.unlink_keywordgroup_from_facility,
+            response_model=OKResponse,
             methods=["DELETE"],
         )
 

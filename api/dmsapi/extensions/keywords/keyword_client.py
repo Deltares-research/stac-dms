@@ -1,14 +1,16 @@
 from typing import Annotated, List
 from uuid import UUID
-from fastapi import Path
+from fastapi import Path, Query
 from stac_fastapi.types.errors import NotFoundError, InvalidQueryParameter
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from dmsapi.database.models import (  # type: ignore
     Facility,
     FacilityBase,
     FacilityCreate,
+    FacilityKeywordGroupLink,
     FacilityList,
     Keyword,
     Keyword_Group,
@@ -59,7 +61,11 @@ class KeywordClient:
         except ValueError:
             raise InvalidQueryParameter(f"Facility ID {facility_id} invalid UUID")
         with Session(self.db_engine) as session:
-            result = session.get(Facility, uuid)
+            result = session.exec(
+                select(Facility)
+                .where(Facility.id == uuid)
+                .options(selectinload(Facility.keyword_groups))
+            ).first()
             if result is None:
                 raise NotFoundError(f"Facility with ID {facility_id} not found")
             return result
@@ -74,7 +80,6 @@ class KeywordClient:
             results = session.exec(select(Facility))
             return list(results.all())
 
-    # def update_facility(self, facility_id: Annotated[str, Path(title="The ID of the facility to update")], facility: FacilityUpdate) -> Facility:
     def delete_facility(
         self,
         facility_id: Annotated[str, Path(title="The ID of the facility to delete")],
@@ -98,6 +103,67 @@ class KeywordClient:
             session.delete(result)
             session.commit()
             return OKResponse(message="Facility deleted")
+
+    def link_keywordgroup_to_facility(
+        self, facility_keywordgroup_link: FacilityKeywordGroupLink
+    ) -> OKResponse:
+        """Link a keyword group to a facility.
+
+        Args:
+            facility_keywrdgroup_link: link to create.
+
+        Returns:
+            OKResponse
+        """
+        with Session(self.db_engine) as session:
+            # check if facility exists
+            facility = session.get(Facility, facility_keywordgroup_link.facility_id)
+            if facility is None:
+                raise NotFoundError(
+                    f"Facility with ID {facility_keywordgroup_link.facility_id} not found"
+                )
+            # check if keyword group exists
+            keyword_group = session.get(
+                Keyword_Group, facility_keywordgroup_link.keyword_group_id
+            )
+            if keyword_group is None:
+                raise NotFoundError(
+                    f"Keyword group with ID {facility_keywordgroup_link.keyword_group_id} not found"
+                )
+            facility.keyword_groups.append(keyword_group)
+            session.add(facility)
+            session.commit()
+            return OKResponse(message="Keyword group linked to facility")
+
+    def unlink_keywordgroup_from_facility(
+        self, facility_keywordgroup_link: FacilityKeywordGroupLink
+    ) -> OKResponse:
+        """Unlink a keyword group from a facility.
+
+        Args:
+            facility_keywrdgroup_link: link to delete.
+
+        Returns:
+            OKResponse
+        """
+        with Session(self.db_engine) as session:
+            # check if facility exists
+            facility = session.get(Facility, facility_keywordgroup_link.facility_id)
+            if facility is None:
+                raise NotFoundError(message="Facility not found")
+            # check if keyword group exists
+            keyword_group = session.get(
+                Keyword_Group, facility_keywordgroup_link.keywordgroup_id
+            )
+            if keyword_group is None:
+                raise NotFoundError(
+                    f"Keyword group with ID {facility_keywordgroup_link.keywordgroup_id} not found"
+                )
+
+            facility.keyword_groups.remove(keyword_group)
+            session.add(facility)
+            session.commit()
+            return OKResponse(message="Keyword group unlinked from facility")
 
     def create_keywordgroup(self, keywordgroup: Keyword_GroupCreate):
         """Create a new keyword group.
