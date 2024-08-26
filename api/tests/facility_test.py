@@ -9,7 +9,6 @@ from httpx import AsyncClient
 async def test_create_facility(app_client: AsyncClient, keyword_client: KeywordClient):
     facility_name = "test_facility"
     response = await app_client.post("/facility", json={"name": facility_name})
-    print(response.json())
     assert response.status_code == 200
     assert response.json()["name"] == facility_name
     assert response.json()["id"] is not None
