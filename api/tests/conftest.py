@@ -56,7 +56,7 @@ settings = DMSAPISettings(
     db_connection_url=f"sqlite:////{DATA_DIR}/test.db",
     environment="test",
 )
-print(settings)
+
 Settings.set(settings)
 
 
@@ -142,14 +142,20 @@ async def keyword_group(keyword_client: KeywordClient):
         {"group_name_nl": "test", "group_name_en": "engelse_test"}
     )
     yield keyword_group
-    keyword_client.delete_keyword_group(str(keyword_group.id))
+    try:
+        keyword_client.delete_keyword_group(str(keyword_group.id))
+    except Exception:
+        pass
 
 
 @pytest_asyncio.fixture(scope="function")
 async def facility(keyword_client: KeywordClient):
     facility = keyword_client.create_facility({"name": "test_facility"})
     yield facility
-    keyword_client.delete_facility(str(facility.id))
+    try:
+        keyword_client.delete_facility(str(facility.id))
+    except Exception:
+        pass
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -161,7 +167,10 @@ async def facility_keyword_group_link(
     )
     result = keyword_client.link_keywordgroup_to_facility(link)
     yield link
-    keyword_client.unlink_keywordgroup_from_facility(link)
+    try:
+        keyword_client.unlink_keywordgroup_from_facility(link)
+    except Exception:
+        pass
 
 
 @pytest_asyncio.fixture(scope="function")
