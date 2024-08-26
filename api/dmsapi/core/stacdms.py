@@ -73,8 +73,11 @@ class StacDmsApi(StacApi):
         self.app.openapi = self.customize_openapi
 
         # add middlewares
+        if self.middlewares and self.app.middleware_stack is not None:
+            raise RuntimeError("Cannot add middleware after an application has started")
+
         for middleware in self.middlewares:
-            self.add_middleware(middleware)
+            self.app.user_middleware.insert(0, middleware)
 
         # customize route dependencies
         for scopes, dependencies in self.route_dependencies:
