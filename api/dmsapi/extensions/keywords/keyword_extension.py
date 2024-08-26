@@ -9,6 +9,7 @@ from dmsapi.database.models import (  # type: ignore
     Facility,
     Keyword,
     Keyword_GroupPublic,
+    Keyword_GroupPublicWithKeywords,
     OKResponse,
 )
 
@@ -80,6 +81,7 @@ class KeywordExtension(ApiExtension):
         self.add_get_keyword()
         self.add_update_keyword()
         self.add_delete_keyword()
+        self.add_get_keywords()
         app.include_router(self.router, tags=["Keyword Extension"])
 
     def add_create_facility(self):
@@ -346,4 +348,33 @@ class KeywordExtension(ApiExtension):
                 },
             },
             methods=["DELETE"],
+        )
+
+    def add_get_keywords(self):
+        self.router.add_api_route(
+            name="Get Keywords",
+            path="/keywords",
+            response_model=list[Keyword_GroupPublicWithKeywords],
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": list[Keyword_GroupPublicWithKeywords],
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            endpoint=self.client.get_keywords,
+            methods=["GET"],
         )

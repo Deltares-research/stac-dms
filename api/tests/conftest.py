@@ -182,3 +182,66 @@ async def keyword(keyword_client: KeywordClient, keyword_group: Keyword_Group):
             "en_keyword": "english_testword",
         }
     )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def filled_db(keyword_client: KeywordClient):
+    # create facilities
+    facility1 = keyword_client.create_facility({"name": "test_facility"})
+    facility2 = keyword_client.create_facility({"name": "test_facility2"})
+
+    # create keyword group
+    keyword_group1 = keyword_client.create_keywordgroup(
+        {"group_name_nl": "testgroup1", "group_name_en": "engelse_testgroup1"}
+    )
+    keyword_group2 = keyword_client.create_keywordgroup(
+        {"group_name_nl": "testgroup2", "group_name_en": "engelse_testgroup2"}
+    )
+
+    # link facility1 to both keyword groups, facility2 to the second keyword group
+    keyword_client.link_keywordgroup_to_facility(
+        FacilityKeywordGroupLink(
+            facility_id=str(facility1.id), keyword_group_id=str(keyword_group1.id)
+        )
+    )
+    keyword_client.link_keywordgroup_to_facility(
+        FacilityKeywordGroupLink(
+            facility_id=str(facility1.id), keyword_group_id=str(keyword_group2.id)
+        )
+    )
+    keyword_client.link_keywordgroup_to_facility(
+        FacilityKeywordGroupLink(
+            facility_id=str(facility2.id), keyword_group_id=str(keyword_group2.id)
+        )
+    )
+
+    # fill keywordgroups with keywords
+    keyword_client.create_keyword(
+        {
+            "group_id": keyword_group1.id,
+            "nl_keyword": "testwoord1group1",
+            "en_keyword": "english_testword",
+        }
+    )
+    keyword_client.create_keyword(
+        {
+            "group_id": keyword_group1.id,
+            "nl_keyword": "testwoord2group1",
+            "en_keyword": "english_testword",
+        }
+    )
+    keyword_client.create_keyword(
+        {
+            "group_id": keyword_group2.id,
+            "nl_keyword": "testwoord1group2",
+            "en_keyword": "english_testword",
+        }
+    )
+    keyword_client.create_keyword(
+        {
+            "group_id": keyword_group2.id,
+            "nl_keyword": "testwoord2group2",
+            "en_keyword": "english_testword",
+        }
+    )
+    return [facility1, facility2], [keyword_group1, keyword_group2]

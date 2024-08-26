@@ -31,7 +31,28 @@ class Keyword_GroupCreate(Keyword_GroupBase):
 
 class Keyword_GroupPublic(Keyword_GroupBase):
     id: uuid.UUID
-    keywords: list["Keyword"] = Relationship(back_populates="group")
+
+
+class Keyword_GroupPublicWithKeywords(Keyword_GroupPublic):
+    keywords: list["KeywordPublic"] = []
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "group_name_nl": "Sleutelwoord groep",
+                    "group_name_en": "Keyword group",
+                    "id": str(uuid.uuid4()),
+                    "keywords": [
+                        {
+                            "nl_keyword": "Sleutelwoord",
+                            "en_keyword": "Keyword",
+                            "id": str(uuid.uuid4()),
+                        }
+                    ],
+                }
+            ]
+        }
+    }
 
 
 class KeywordUpdate(SQLModel):
@@ -50,6 +71,10 @@ class KeywordBase(KeywordUpdate):
 class Keyword(KeywordBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     group: "Keyword_Group" = Relationship(back_populates="keywords")
+
+
+class KeywordPublic(KeywordUpdate):
+    id: uuid.UUID
 
 
 class KeywordURI:
