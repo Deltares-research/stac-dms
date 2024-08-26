@@ -77,8 +77,3 @@ async def test_delete_keyword(
     assert response.json() == {"message": "Keyword deleted"}
     keyword_json = await app_client.get(f"/keyword/{keyword.id}")
     assert keyword_json.status_code == 404
-
-
-# test get keywords by facility
-
-# test get keywords by keyword group

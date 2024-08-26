@@ -1,20 +1,20 @@
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 from uuid import UUID
 from fastapi import Path, Query
 from stac_fastapi.types.errors import NotFoundError, InvalidQueryParameter
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, lazyload, joinedload
 from sqlmodel import Session, select
 
 from dmsapi.database.models import (  # type: ignore
     Facility,
-    FacilityBase,
     FacilityCreate,
     FacilityKeywordGroupLink,
     FacilityList,
     Keyword,
     Keyword_Group,
     Keyword_GroupCreate,
+    Keyword_GroupPublicWithKeywords,
     KeywordBase,
     KeywordUpdate,
     OKResponse,
@@ -356,3 +356,67 @@ class KeywordClient:
             session.delete(result)
             session.commit()
             return OKResponse(message="Keyword deleted")
+
+    def get_keywords(
+        self,
+        facility_id: Annotated[
+            Optional[str],
+            Query(title="The ID of the facility to get keywords for"),
+        ] = None,
+        keyword_group_id: Annotated[
+            Optional[str],
+            Query(title="The ID of the group to get keywords for"),
+        ] = None,
+    ) -> list[Keyword_GroupPublicWithKeywords]:
+        """Retrieve all keywords from a keyword group or facility.
+
+        Args:
+            facility_id: ID of the facility to retrieve keywords for.
+            keyword_group_id: ID of the keyword group to retrieve the keywords for.
+
+        Returns:
+            filtered keyword groups with keywords.
+        """
+        try:
+            facility_uuid = UUID(facility_id) if facility_id else None
+        except ValueError:
+            raise InvalidQueryParameter(f"Facility ID {facility_id} invalid UUID")
+        try:
+            keyword_group_uuid = UUID(keyword_group_id) if keyword_group_id else None
+        except ValueError:
+            raise InvalidQueryParameter(
+                f"Keyword group ID {keyword_group_id} invalid UUID"
+            )
+
+        if not facility_id and not keyword_group_id:
+            raise InvalidQueryParameter(
+                "Either facility_id or keyword_group_id must be provided"
+            )
+        if facility_id and keyword_group_id:
+            raise InvalidQueryParameter(
+                "Only one of facility_id or keyword_group_id can be provided"
+            )
+
+        with Session(self.db_engine) as session:
+            if facility_id:
+                facility = session.exec(
+                    select(Facility)
+                    .where(Facility.id == facility_uuid)
+                    .options(
+                        lazyload(Facility.keyword_groups).joinedload(
+                            Keyword_Group.keywords
+                        )
+                    )
+                ).first()
+                if facility is None:
+                    raise NotFoundError(f"Facility with ID {facility_id} not found")
+                keyword_groups = facility.keyword_groups
+            else:
+                keyword_group = session.exec(
+                    select(Keyword_Group)
+                    .where(Keyword_Group.id == keyword_group_uuid)
+                    .options(joinedload(Keyword_Group.keywords))
+                ).first()
+                keyword_groups = [keyword_group]
+
+            return keyword_groups
