@@ -1,8 +1,9 @@
 """FastAPI application."""
 
+import logging
 import os
+from pathlib import Path
 
-from stac_fastapi.api.app import StacApi
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
 from stac_fastapi.core.core import (
     BulkTransactionsClient,
@@ -19,6 +20,7 @@ from stac_fastapi.extensions.core import (
     TokenPaginationExtension,
     TransactionExtension,
 )
+from stac_fastapi.types.config import Settings
 from stac_fastapi.extensions.third_party import BulkTransactionExtension
 from stac_fastapi.opensearch.database_logic import (
     DatabaseLogic,
@@ -27,13 +29,17 @@ from stac_fastapi.opensearch.database_logic import (
 )
 from fastapi_sso.sso.microsoft import MicrosoftSSO
 
-from authlib.jose import jwt, OctKey
-
+from dmsapi.core.stacdms import StacDmsApi
+from dmsapi.database.db import create_db_engine
+from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.config import DMSAPISettings
 
 settings = DMSAPISettings()
+Settings.set(settings)
+_LOGGER = logging.getLogger("uvicorn.default")
 session = Session.create_from_settings(settings)
+db_engine = create_db_engine(settings)
 
 sso_client = MicrosoftSSO(
     client_id=settings.azure_app_client_id,
@@ -69,14 +75,15 @@ extensions = [
     SortExtension(),
     TokenPaginationExtension(),
     filter_extension,
-    SSOAuthExtension(sso_client=sso_client, public_endpoints=[]),
+    KeywordExtension(db_engine=db_engine),
+    SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]),
 ]
 
 database_logic.extensions = [type(ext).__name__ for ext in extensions]
 
 post_request_model = create_post_request_model(extensions)
 
-api = StacApi(
+api = StacDmsApi(
     title=os.getenv("STAC_FASTAPI_TITLE", "stac-fastapi-opensearch"),
     description=os.getenv("STAC_FASTAPI_DESCRIPTION", "stac-fastapi-opensearch"),
     api_version=os.getenv("STAC_FASTAPI_VERSION", "2.1"),
@@ -91,11 +98,26 @@ api = StacApi(
 app = api.app
 app.root_path = os.getenv("STAC_FASTAPI_ROOT_PATH", "/api")
 
-# apply_sso_auth(api)
+
+def run_migrations():
+    from alembic.config import Config
+    from alembic import command
+
+    config_path = Path(__file__).parent.parent / "alembic.ini"
+    alembic_cfg = Config(config_path)
+    if settings.environment == "local":
+        _LOGGER.info(
+            f"Checking for unapplied DB migrations. Not running them. usingconfig at {config_path}"
+        )
+        command.check(alembic_cfg)
+    else:
+        _LOGGER.info("Running DB migrations")
+        # command.upgrade(alembic_cfg, "head")
 
 
 @app.on_event("startup")
 async def _startup_event() -> None:
+    # run_migrations()
     await create_index_templates()
     await create_collection_index()
 
