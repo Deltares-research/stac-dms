@@ -62,7 +62,14 @@ def exception_handler_factory(status_code: int) -> Callable:
     def handler(request: Request, exc: Exception):
         """I handle exceptions!!."""
         # logger.error(exc, exc_info=True)
-        description = exc.__dict__ if hasattr(exc, "__dict__") else str(exc)
+        description: str | dict = ""
+        if exc.args:
+            description = exc.args[0]
+        elif hasattr(exc, "__dict__"):
+            description = exc.__dict__
+        else:
+            description = str(exc)
+
         return JSONResponse(
             content=ErrorResponse(code=exc.__class__.__name__, description=description),
             status_code=status_code,
