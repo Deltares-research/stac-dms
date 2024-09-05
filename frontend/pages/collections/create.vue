@@ -5,6 +5,7 @@
       card-title="Create a new collection"
       @update="createCollection"
       :errors="errors"
+      collectionType="experimentalFacility"
     />
   </div>
 </template>
@@ -27,6 +28,7 @@ async function createCollection(emitedCollection: Collection) {
     id: emitedCollection.title,
     title: emitedCollection.title,
     description: emitedCollection.description,
+    keywords: [emitedCollection.collectionType],
     license: "proprietary",
     extent: {
       spatial: {

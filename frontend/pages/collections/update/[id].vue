@@ -7,6 +7,7 @@
       @update="updateCollection"
       :title="title"
       :description="description"
+      :collectionType="selectedCollectionType"
     />
   </div>
 </template>
@@ -22,6 +23,7 @@ const { $api } = useNuxtApp()
 const errors = ref("")
 const title = ref("")
 const description = ref("")
+const selectedCollectionType = ref("")
 
 const route = useRoute()
 const data = await $api("/collections/{collection_id}", {
@@ -31,7 +33,7 @@ const data = await $api("/collections/{collection_id}", {
 })
 title.value = data.title
 description.value = data.description
-
+selectedCollectionType.value = data.keywords[0]
 async function updateCollection(emitedCollection: Collection) {
   const updatedCollection = {
     type: "Collection",
@@ -39,6 +41,7 @@ async function updateCollection(emitedCollection: Collection) {
     id: data.id,
     title: emitedCollection.title,
     description: emitedCollection.description,
+    keywords: [emitedCollection.collectionType],
     license: "proprietary",
     extent: {
       spatial: {
