@@ -55,7 +55,7 @@
 import { cn } from "@/lib/utils"
 import { Check, ChevronsUpDown } from "lucide-vue-next"
 import { ref } from "vue"
-import type { DropDownOption } from "#build/lib/dropDownOption"
+import type { DropDownOption } from "@/lib/dropDownOption"
 
 interface Props {
   options: DropDownOption[]
