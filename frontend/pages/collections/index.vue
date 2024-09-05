@@ -25,6 +25,7 @@ import type { ColumnDef } from "@tanstack/vue-table"
 import type { components } from "#open-fetch-schemas/api"
 import { h, onMounted, ref } from "vue"
 import { useNuxtApp, useRouter } from "nuxt/app"
+import { collectionTypes } from "@/lib/collectionTypes"
 
 const router = useRouter()
 const { $api } = useNuxtApp()
@@ -78,7 +79,7 @@ const collectionColumns: ColumnDef<
         () => ["Title", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
       )
     },
-    cell: ({ row }) => h("div", { class: "lowercase" }, row.getValue("title")),
+    cell: ({ row }) => row.getValue("title"),
   },
   {
     accessorKey: "description",
@@ -93,7 +94,25 @@ const collectionColumns: ColumnDef<
       )
     },
     cell: ({ row }) => {
-      return h("div", { class: "lowercase" }, row.getValue("description"))
+      return row.getValue("description")
+    },
+  },
+  {
+    accessorKey: "keywords",
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
+        },
+        () => ["Collection type", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+    cell: ({ row }) => {
+      const key = row.getValue("keywords")[0]
+      const selectedItem = collectionTypes.find((item) => item.value == key)
+      return selectedItem.label
     },
   },
   {

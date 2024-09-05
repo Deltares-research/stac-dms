@@ -31,6 +31,14 @@
               readonly
             />
             <Textarea v-if="!readonly" id="description" v-model="description" />
+            <div class="flex flex-col space-y-1.5">
+              <Label for="description">Collection type</Label>
+              <CustomDropDownComponent
+                id="collectionType"
+                :options="collectionType"
+                v-model="selectedCollectionType"
+              />
+            </div>
           </div>
         </div>
       </form>
@@ -47,6 +55,8 @@
 
 <script setup lang="ts">
 import type { Collection } from "@/lib/collection"
+import { collectionTypes } from "@/lib/collectionTypes"
+import { ref } from "vue"
 
 const emit = defineEmits(["update"])
 
@@ -54,6 +64,7 @@ const props = defineProps({
   cardTitle: String,
   title: String,
   description: String,
+  collectionType: String,
   buttonTitle: String,
   errors: String,
   readonly: Boolean,
@@ -61,11 +72,15 @@ const props = defineProps({
 
 const name = ref(props.title ?? "")
 const description = ref(props.description ?? "")
+const selectedCollectionType = ref(props.collectionType)
+
+const collectionType = collectionTypes
 
 function emitChange() {
   const newCollection: Collection = {
     title: name.value,
     description: description.value,
+    collectionType: selectedCollectionType.value,
   }
   emit("update", newCollection)
 }
