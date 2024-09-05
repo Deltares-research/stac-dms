@@ -7,13 +7,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 
-import Container from "@/components/deltares/Container";
+import Container from "@/components/deltares/Container"
 
-import { TrashIcon, PencilIcon, PlusIcon } from "lucide-vue-next";
+import { TrashIcon, PencilIcon, PlusIcon } from "lucide-vue-next"
 
-let { data: items } = await useApi("/search");
+let { data: items } = await useApi("/search")
 </script>
 
 <template>

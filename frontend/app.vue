@@ -2,7 +2,11 @@
 import { User } from "lucide-vue-next"
 import { Button } from "@/components/ui/button"
 
-const { data, error: notAuthenticated, refresh } = await useApi("/auth/me")
+const {
+  data,
+  error: notAuthenticated,
+  refresh,
+} = await useApi("/auth/me", { credentials: "include" })
 
 async function logout() {
   await $fetch("/api/auth/logout")
