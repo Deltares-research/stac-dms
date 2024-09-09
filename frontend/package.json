@@ -23,6 +23,7 @@
     "@vueuse/core": "10.9.0",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.1",
+    "dateformat": "5.0.3",
     "embla-carousel": "8.0.4",
     "embla-carousel-vue": "8.0.4",
     "lucide-vue-next": "0.378.0",
