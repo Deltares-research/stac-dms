@@ -6,6 +6,7 @@
       @update="createCollection"
       :errors="errors"
       collectionType="experimentalFacility"
+      keywordFacility="No keywords"
     />
   </div>
 </template>
@@ -39,6 +40,14 @@ async function createCollection(emitedCollection: Collection) {
       },
     },
     links: [],
+  }
+  if (emitedCollection.keywordsFacility !== "No keywords") {
+    newCollection.links.push({
+      rel: "keywords",
+      href: "/facilities/" + emitedCollection.keywordsFacility,
+      type: "application/json",
+      id: emitedCollection.keywordsFacility,
+    })
   }
   try {
     errors.value = ""
