@@ -21,6 +21,7 @@ class KeywordExtension(ApiExtension):
 
     Manage facilities:
         POST /facility
+        PUT /facility/{facility_id}
         GET /facilities
         GET /facility/{facility_id}
         PUT /facility/{facility_id}
@@ -32,6 +33,7 @@ class KeywordExtension(ApiExtension):
 
     Manage keyword groups:
         POST /keywordgroup
+        PUT /keywordgroup/{keywordgroup_id}
         GET /keywordgroups
         GET /keywordgroup/{keywordgroup_id}
         DELETE /keywordgroup/{keywordgroup_id}
@@ -68,12 +70,14 @@ class KeywordExtension(ApiExtension):
         """
         self.router.prefix = app.state.router_prefix
         self.add_create_facility()
+        self.add_update_facility()
         self.add_get_facility()
         self.add_get_facilities()
         self.add_delete_facility()
         self.add_link_keyword_group_to_facility()
         self.add_unlink_keyword_group_from_facility()
         self.add_create_keyword_group()
+        self.add_update_keyword_group()
         self.add_get_keyword_group()
         self.add_get_keyword_groups()
         self.add_delete_keyword_group()
@@ -91,6 +95,35 @@ class KeywordExtension(ApiExtension):
             endpoint=self.client.create_facility,
             response_model=Facility,
             methods=["POST"],
+        )
+
+    def add_update_facility(self):
+        self.router.add_api_route(
+            name="Update Facility",
+            path="/facility/{facility_id}",
+            endpoint=self.client.update_facility,
+            response_model=Facility,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": Facility,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            methods=["PUT"],
         )
 
     def add_get_facility(self):
@@ -185,6 +218,15 @@ class KeywordExtension(ApiExtension):
             endpoint=self.client.create_keywordgroup,
             response_model=Keyword_GroupPublic,
             methods=["POST"],
+        )
+
+    def add_update_keyword_group(self):
+        self.router.add_api_route(
+            name="Update Keyword Group",
+            path="/keywordgroup/{keywordgroup_id}",
+            endpoint=self.client.update_keywordgroup,
+            response_model=Keyword_GroupPublic,
+            methods=["PUT"],
         )
 
     def add_get_keyword_group(self):
