@@ -47,34 +47,41 @@ onBeforeRouteUpdate((guard) => {
 <template>
   <div class="mx-auto grid grid-cols-2 gap-12">
     <div>
-      <Lister>
-        <ListerItem
-          v-for="facility in facilities"
-          :key="facility.id"
-          :to="`/keywords/facilities/${facility.id}`"
-        >
-          {{ facility.name }}
-        </ListerItem>
-      </Lister>
-
-      <hr class="my-8" />
-
-      <form
-        @submit="onSubmitCreateFacilityForm"
-        class="flex items-end gap-1.5 w-full"
+      <div
+        class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
       >
-        <FormField v-slot="{ componentField }" name="name">
-          <FormItem class="w-full">
-            <FormLabel>Add facility</FormLabel>
-            <FormControl>
-              <Input type="text" v-bind="componentField" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
+        Facilities
+      </div>
+      <div class="mt-3">
+        <Lister>
+          <ListerItem
+            v-for="facility in facilities"
+            :key="facility.id"
+            :to="`/keywords/facilities/${facility.id}`"
+          >
+            {{ facility.name }}
+          </ListerItem>
+        </Lister>
 
-        <Button type="submit" class="mt-3">Create</Button>
-      </form>
+        <hr class="my-8" />
+
+        <form
+          @submit="onSubmitCreateFacilityForm"
+          class="flex items-end gap-1.5 w-full"
+        >
+          <FormField v-slot="{ componentField }" name="name">
+            <FormItem class="w-full">
+              <FormLabel>Add facility</FormLabel>
+              <FormControl>
+                <Input type="text" v-bind="componentField" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <Button type="submit" class="mt-3">Create</Button>
+        </form>
+      </div>
     </div>
 
     <div>

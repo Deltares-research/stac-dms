@@ -1,13 +1,8 @@
 <script setup lang="ts">
-import { toTypedSchema } from "@vee-validate/zod"
-import { Trash2, X } from "lucide-vue-next"
-import { useForm, Form } from "vee-validate"
-import { z } from "zod"
 import DeleteFacility from "~/components/keywords/DeleteFacility.vue"
 import FacilityGroupLink from "~/components/keywords/FacilityGroupLink.vue"
 import LinkKeywordGroup from "~/components/keywords/LinkKeywordGroup.vue"
-import { Select } from "~/components/ui/select"
-import { toast } from "~/components/ui/toast"
+import UpdateFacility from "~/components/keywords/UpdateFacility.vue"
 
 let route = useRoute()
 
@@ -27,11 +22,14 @@ let { data: keywordgroups, refresh } = await useApi("/keywords", {
 </script>
 
 <template>
-  <div>
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">
-        {{ facility?.name }}
-      </h1>
+  <div v-if="facility">
+    <div
+      class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
+    >
+      Facility
+    </div>
+    <div class="mt-3 flex items-center justify-between gap-1.5">
+      <UpdateFacility :facility="facility" />
       <DeleteFacility :facility_id="facility_id" />
     </div>
 

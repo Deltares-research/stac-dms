@@ -4,6 +4,7 @@ import { useForm } from "vee-validate"
 import { z } from "zod"
 import DeleteKeywordGroup from "~/components/keywords/DeleteKeywordGroup.vue"
 import Keyword from "~/components/keywords/Keyword.vue"
+import UpdateKeywordGroup from "~/components/keywords/UpdateKeywordGroup.vue"
 import { toast } from "~/components/ui/toast"
 
 let route = useRoute()
@@ -53,10 +54,13 @@ let onSubmitCreateKeywordgoupForm = createKeywordForm.handleSubmit(
 
 <template>
   <div v-if="keywordsgroup">
-    <div class="flex items-center justify-between mb-4">
-      <h1 class="text-2xl font-bold">
-        {{ keywordsgroup.group_name_nl }}
-      </h1>
+    <div
+      class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
+    >
+      Keyword Group
+    </div>
+    <div class="mt-3 flex items-center justify-between mb-4 gap-1.5">
+      <UpdateKeywordGroup :group="keywordsgroup" />
       <DeleteKeywordGroup :keywordgroup_id="keywordsgroup.id" />
     </div>
     <ul class="flex flex-col">

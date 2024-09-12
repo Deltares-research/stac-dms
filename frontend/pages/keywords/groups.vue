@@ -48,43 +48,50 @@ onBeforeRouteUpdate((guard) => {
 
 <template>
   <div class="grid grid-cols-2 gap-12">
-    <div class="">
-      <Lister>
-        <ListerItem
-          v-for="keywordgroup in keywordgroups"
-          :key="keywordgroup.id"
-          :to="`/keywords/groups/${keywordgroup.id}`"
-        >
-          {{ keywordgroup.group_name_nl }}
-        </ListerItem>
-      </Lister>
+    <div>
+      <div
+        class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
+      >
+        Keyword Groups
+      </div>
+      <div class="mt-3">
+        <Lister>
+          <ListerItem
+            v-for="keywordgroup in keywordgroups"
+            :key="keywordgroup.id"
+            :to="`/keywords/groups/${keywordgroup.id}`"
+          >
+            {{ keywordgroup.group_name_nl }}
+          </ListerItem>
+        </Lister>
 
-      <hr class="my-8" />
+        <hr class="my-8" />
 
-      <h2 class="text font-medium">Create keyword group</h2>
-      <form @submit="onSubmitCreateKeywordgoupForm" class="mt-3">
-        <FormField v-slot="{ componentField }" name="group_name_nl">
-          <FormItem>
-            <FormLabel>Group name NL</FormLabel>
-            <FormControl>
-              <Input type="text" v-bind="componentField" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
+        <h2 class="text font-medium">Create keyword group</h2>
+        <form @submit="onSubmitCreateKeywordgoupForm" class="mt-3">
+          <FormField v-slot="{ componentField }" name="group_name_nl">
+            <FormItem>
+              <FormLabel>Group name NL</FormLabel>
+              <FormControl>
+                <Input type="text" v-bind="componentField" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <FormField v-slot="{ componentField }" name="group_name_en">
-          <FormItem>
-            <FormLabel>Group name EN</FormLabel>
-            <FormControl>
-              <Input type="text" v-bind="componentField" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
+          <FormField v-slot="{ componentField }" name="group_name_en">
+            <FormItem>
+              <FormLabel>Group name EN</FormLabel>
+              <FormControl>
+                <Input type="text" v-bind="componentField" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <Button type="submit" class="mt-5">Create</Button>
-      </form>
+          <Button type="submit" class="mt-5">Create</Button>
+        </form>
+      </div>
     </div>
 
     <div>
