@@ -26,6 +26,9 @@ async function logout() {
       <Button as-child v-if="!notAuthenticated" variant="link">
         <NuxtLink to="/admin">Admin</NuxtLink>
       </Button>
+      <Button as-child v-if="!notAuthenticated" variant="link">
+        <NuxtLink to="/keywords">Keywords</NuxtLink>
+      </Button>
       <Button as-child variant="link">
         <NuxtLink to="/main">Storage Finder</NuxtLink>
       </Button>
