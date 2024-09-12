@@ -30,29 +30,34 @@ let onSubmitCreateFacilityForm = createFacilityForm.handleSubmit(
     toast({
       title: "Facility created",
     })
+
+    refresh()
   },
 )
 
-let { data: facilities } = await useApi("/facilities")
+let { data: facilities, refresh } = await useApi("/facilities")
+
+onBeforeRouteUpdate((guard) => {
+  if (!guard.params.facility_id) {
+    refresh()
+  }
+})
 </script>
 
 <template>
   <div class="mx-auto grid grid-cols-2 gap-12">
     <div>
-      <h1 class="text-2xl font-semibold">Facilities</h1>
-      <ul class="flex flex-col gap-1.5 bg-gray-100 p-1.5 rounded h-fit">
-        <li v-for="facility in facilities" :key="facility.id">
-          <NuxtLink
-            :to="`/keywords/facilities/${facility.id}`"
-            active-class="bg-white shadow-sm "
-            class="rounded px-3 py-1.5 text-sm font-medium block"
-          >
-            {{ facility.name }}
-          </NuxtLink>
-        </li>
-      </ul>
+      <Lister>
+        <ListerItem
+          v-for="facility in facilities"
+          :key="facility.id"
+          :to="`/keywords/facilities/${facility.id}`"
+        >
+          {{ facility.name }}
+        </ListerItem>
+      </Lister>
 
-      <hr class="my-12" />
+      <hr class="my-8" />
 
       <form
         @submit="onSubmitCreateFacilityForm"

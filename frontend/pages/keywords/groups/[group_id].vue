@@ -2,6 +2,8 @@
 import { toTypedSchema } from "@vee-validate/zod"
 import { useForm } from "vee-validate"
 import { z } from "zod"
+import DeleteKeywordGroup from "~/components/keywords/DeleteKeywordGroup.vue"
+import Keyword from "~/components/keywords/Keyword.vue"
 import { toast } from "~/components/ui/toast"
 
 let route = useRoute()
@@ -50,13 +52,26 @@ let onSubmitCreateKeywordgoupForm = createKeywordForm.handleSubmit(
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-bold mb-4">{{ keywordsgroup?.group_name_nl }}</h1>
-    <ul>
-      <li v-for="keyword in keywordsgroup?.keywords" :key="keyword.id">
-        {{ keyword.nl_keyword }}
+  <div v-if="keywordsgroup">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-bold">
+        {{ keywordsgroup.group_name_nl }}
+      </h1>
+      <DeleteKeywordGroup :keywordgroup_id="keywordsgroup.id" />
+    </div>
+    <ul class="flex flex-col">
+      <li
+        v-for="keyword in keywordsgroup?.keywords"
+        :key="keyword.id"
+        class="border-b last:border-0 py-1.5"
+      >
+        <Keyword :keyword="keyword" @delete="refresh" @update="refresh" />
       </li>
     </ul>
+
+    <hr class="my-8" />
+
+    <h2 class="font-medium mb-4">Create keyword</h2>
 
     <form @submit="onSubmitCreateKeywordgoupForm">
       <FormField v-slot="{ componentField }" name="nl_keyword">
@@ -79,7 +94,7 @@ let onSubmitCreateKeywordgoupForm = createKeywordForm.handleSubmit(
         </FormItem>
       </FormField>
 
-      <Button type="submit">Create</Button>
+      <Button type="submit" class="mt-5">Create</Button>
     </form>
   </div>
 </template>

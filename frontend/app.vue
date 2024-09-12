@@ -42,6 +42,7 @@ async function logout() {
       </nav>
     </div>
   </div>
+
   <NuxtPage />
 
   <Toaster />

@@ -2,6 +2,7 @@
 import { toTypedSchema } from "@vee-validate/zod"
 import { useForm } from "vee-validate"
 import { z } from "zod"
+import Lister from "~/components/lister/Lister.vue"
 import { Button } from "~/components/ui/button"
 import { toast } from "~/components/ui/toast"
 
@@ -37,23 +38,31 @@ let onSubmitCreateKeywordgoupForm = createKeywordgroupForm.handleSubmit(
     refresh()
   },
 )
+
+onBeforeRouteUpdate((guard) => {
+  if (!guard.params.group_id) {
+    refresh()
+  }
+})
 </script>
 
 <template>
-  <div class="grid grid-cols-2">
+  <div class="grid grid-cols-2 gap-12">
     <div class="">
-      <h1>Keyword groups</h1>
-      <ul>
-        <li v-for="keywordgroup in keywordgroups" :key="keywordgroup.id">
-          <NuxtLink
-            :to="`/keywords/groups/${keywordgroup.id}`"
-            class="text-blue-400 underline"
-          >
-            {{ keywordgroup.group_name_nl }}
-          </NuxtLink>
-        </li>
-      </ul>
-      <form @submit="onSubmitCreateKeywordgoupForm">
+      <Lister>
+        <ListerItem
+          v-for="keywordgroup in keywordgroups"
+          :key="keywordgroup.id"
+          :to="`/keywords/groups/${keywordgroup.id}`"
+        >
+          {{ keywordgroup.group_name_nl }}
+        </ListerItem>
+      </Lister>
+
+      <hr class="my-8" />
+
+      <h2 class="text font-medium">Create keyword group</h2>
+      <form @submit="onSubmitCreateKeywordgoupForm" class="mt-3">
         <FormField v-slot="{ componentField }" name="group_name_nl">
           <FormItem>
             <FormLabel>Group name NL</FormLabel>
@@ -74,7 +83,7 @@ let onSubmitCreateKeywordgoupForm = createKeywordgroupForm.handleSubmit(
           </FormItem>
         </FormField>
 
-        <Button type="submit">Create</Button>
+        <Button type="submit" class="mt-5">Create</Button>
       </form>
     </div>
 
