@@ -7,6 +7,8 @@
       @update="updateCollection"
       :title="title"
       :description="description"
+      :collectionType="selectedCollectionType"
+      :keywordFacility="selectedKeywordsFacility"
     />
   </div>
 </template>
@@ -22,6 +24,8 @@ const { $api } = useNuxtApp()
 const errors = ref("")
 const title = ref("")
 const description = ref("")
+const selectedCollectionType = ref("")
+const selectedKeywordsFacility = ref("")
 
 const route = useRoute()
 const data = await $api("/collections/{collection_id}", {
@@ -31,6 +35,10 @@ const data = await $api("/collections/{collection_id}", {
 })
 title.value = data.title
 description.value = data.description
+selectedCollectionType.value = data.keywords[0]
+const keywordsLink = data.links.find((item) => item.rel == "keywords")
+selectedKeywordsFacility.value =
+  keywordsLink !== undefined ? keywordsLink.id : "No keywords"
 
 async function updateCollection(emitedCollection: Collection) {
   const updatedCollection = {
@@ -39,6 +47,7 @@ async function updateCollection(emitedCollection: Collection) {
     id: data.id,
     title: emitedCollection.title,
     description: emitedCollection.description,
+    keywords: [emitedCollection.collectionType],
     license: "proprietary",
     extent: {
       spatial: {
@@ -49,6 +58,14 @@ async function updateCollection(emitedCollection: Collection) {
       },
     },
     links: [],
+  }
+  if (emitedCollection.keywordsFacility !== "No keywords") {
+    updatedCollection.links.push({
+      rel: "keywords",
+      href: "/facilities/" + emitedCollection.keywordsFacility,
+      type: "application/json",
+      id: emitedCollection.keywordsFacility,
+    })
   }
   try {
     errors.value = ""

@@ -5,6 +5,8 @@
       card-title="Create a new collection"
       @update="createCollection"
       :errors="errors"
+      collectionType="experimentalFacility"
+      keywordFacility="No keywords"
     />
   </div>
 </template>
@@ -27,6 +29,7 @@ async function createCollection(emitedCollection: Collection) {
     id: emitedCollection.title,
     title: emitedCollection.title,
     description: emitedCollection.description,
+    keywords: [emitedCollection.collectionType],
     license: "proprietary",
     extent: {
       spatial: {
@@ -37,6 +40,14 @@ async function createCollection(emitedCollection: Collection) {
       },
     },
     links: [],
+  }
+  if (emitedCollection.keywordsFacility !== "No keywords") {
+    newCollection.links.push({
+      rel: "keywords",
+      href: "/facilities/" + emitedCollection.keywordsFacility,
+      type: "application/json",
+      id: emitedCollection.keywordsFacility,
+    })
   }
   try {
     errors.value = ""
