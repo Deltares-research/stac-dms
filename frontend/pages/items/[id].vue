@@ -51,7 +51,9 @@ const update = id !== "create"
 
 let feature = null
 if (update) {
-  let { data: item } = await useApi("/search?ids=" + id)
+  let { data: item } = await useApi("/search", {
+    query: { ids: id },
+  })
   feature = item.value.features[0]
   keywords.value = feature.properties.keywords
 }
@@ -207,7 +209,11 @@ const keywordsGroups = computedAsync(async () => {
     (item) => (item.rel = "keywords" && item.id),
   )
   const facilityId = keywordsLink.id
-  return await $api("/api/keywords?facility_id=" + facilityId)
+  return await $api("/api/keywords", {
+    query: {
+      facility_id: facilityId,
+    },
+  })
 }, [])
 
 let onSubmit = form.handleSubmit(async (values) => {
