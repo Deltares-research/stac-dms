@@ -5,14 +5,8 @@ import { nanoid } from "nanoid"
 import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
 import { DateFormatter, parseDate } from "@internationalized/date"
 import dateFormat from "dateformat"
-import { toDate } from "radix-vue/date"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-
-const df = new DateFormatter("en-US", {
-  dateStyle: "long",
-})
-
-import { Calendar as CalendarIcon, XIcon } from "lucide-vue-next"
+import { Calendar as CalendarIcon } from "lucide-vue-next"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
 
@@ -26,9 +20,29 @@ import { zu } from "@infra-blocks/zod-utils"
 import { FormField, FormItem } from "~/components/ui/form"
 import { useForm } from "vee-validate"
 import { useToast } from "~/components/ui/toast"
+import { computedAsync } from "@vueuse/core"
 
 const route = useRoute()
 const id = route.params.id
+
+let keywords = ref([])
+
+function handleChange(e) {
+  const index = keywords.value.findIndex((item) => item.id == e.id)
+  if (index == -1) {
+    keywords.value.push(e)
+  } else {
+    keywords.value.splice(index, 1)
+  }
+}
+
+function isSelected(e) {
+  return keywords.value.find((item) => item.id == e.id) !== undefined
+}
+
+const df = new DateFormatter("en-US", {
+  dateStyle: "long",
+})
 
 let { data: collectionsResponse, error } = await useApi("/collections", {
   server: true,
@@ -37,8 +51,11 @@ const update = id !== "create"
 
 let feature = null
 if (update) {
-  let { data: item } = await useApi("/search?ids=" + id)
+  let { data: item } = await useApi("/search", {
+    query: { ids: id },
+  })
   feature = item.value.features[0]
+  keywords.value = feature.properties.keywords
 }
 const title = update ? "Update an existing registration" : "Register a new item"
 
@@ -181,16 +198,37 @@ let form = useForm({
   validationSchema: formSchema,
 })
 
+const keywordsGroups = computedAsync(async () => {
+  const collectionId = update ? feature.collection : form.values.collectionId
+  const collection = await $api("/collections/{collection_id}", {
+    path: {
+      collection_id: collectionId,
+    },
+  })
+  const keywordsLink = collection.links.find(
+    (item) => (item.rel = "keywords" && item.id),
+  )
+  const facilityId = keywordsLink.id
+  return await $api("/api/keywords", {
+    query: {
+      facility_id: facilityId,
+    },
+  })
+}, [])
+
 let onSubmit = form.handleSubmit(async (values) => {
   try {
     let url = "/collections/{collection_id}/items"
     if (update) url = url + "/" + feature.id
+
+    const newItem = {
+      ...values.requestBody,
+      collection: update ? feature.collection : values.collectionId,
+    }
+    newItem.properties.keywords = keywords.value
     let data = await $api(url, {
       method: update ? "put" : "post",
-      body: {
-        ...values.requestBody,
-        collection: update ? feature.collection : values.collectionId,
-      },
+      body: newItem,
       headers: {
         "Content-Type": "application/json",
       },
@@ -223,6 +261,7 @@ let datetimeValue = computed({
   },
   set: (val) => val,
 })
+
 function getDisplayTime() {
   if (!datetimeValue.value && update) {
     return dateFormat(new Date(feature.properties.datetime), "yyyy-mm-dd")
@@ -265,12 +304,12 @@ function getDisplayTime() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card v-if="update || form.values.collectionId">
           <CardHeader>
             <CardTitle class="text-lg">General information</CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="max-w-96 flex flex-col gap-5">
+            <div class="max-w-196 flex flex-col gap-5">
               <FormField
                 v-slot="{ componentField }"
                 name="requestBody.properties.projectNumber"
@@ -372,12 +411,46 @@ function getDisplayTime() {
             </div>
           </CardContent>
         </Card>
+        <div class="grid grid-cols-3 gap-1">
+          <Card v-for="group in keywordsGroups">
+            <CardHeader>
+              <CardTitle class="text-lg">{{ group.group_name_en }}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                v-for="item in group.keywords"
+                v-slot="{ value }"
+                :key="item"
+                type="checkbox"
+                :value="item.nl_keyword"
+                :ch
+                :unchecked-value="false"
+                name="items"
+              >
+                <FormItem class="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      @update:checked="handleChange(item)"
+                      :checked="isSelected(item)"
+                    />
+                  </FormControl>
+                  <FormLabel class="font-normal">
+                    {{ item.nl_keyword }}
+                  </FormLabel>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </CardContent>
+          </Card>
+        </div>
       </div>
       <div class="flex justify-between px-6 pb-6 mt-4">
         <Button as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
-        <Button type="submit">Publish project data</Button>
+        <Button type="submit" v-if="update || form.values.collectionId"
+          >Publish project data</Button
+        >
       </div>
     </form>
   </Container>
