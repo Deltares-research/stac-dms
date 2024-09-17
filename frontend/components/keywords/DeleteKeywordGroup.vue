@@ -29,7 +29,7 @@ let onSubmit = deleteForm.handleSubmit(async () => {
 
 <template>
   <form @submit="onSubmit">
-    <Button variant="destructive" size="icon" type="submit" class="w-8 h-8">
+    <Button variant="outline" size="icon" type="submit" class="w-8 h-8">
       <Trash2 class="w-4 h-4" />
     </Button>
   </form>
