@@ -22,6 +22,7 @@ import { useForm } from "vee-validate"
 import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
 import { FeatureCollection } from "geojson"
+import { bbox } from "turf"
 
 const route = useRoute()
 const id = route.params.id
@@ -245,7 +246,7 @@ let onSubmit = form.handleSubmit(async (values) => {
       newItem.geometry = updatedGeometry.value?.features[0]
         ? updatedGeometry.value?.features[0].geometry
         : feature?.geometry
-      newItem.bbox = [1, 1, 1, 1]
+      newItem.bbox = bbox(newItem.geometry)
     }
     let data = await $api(url, {
       method: update ? "put" : "post",
@@ -265,6 +266,7 @@ let onSubmit = form.handleSubmit(async (values) => {
     // TODO: data is typed unknown
     await navigateTo(`/items`)
   } catch (error) {
+    console.log(error)
     toast({
       title: "Something went wrong!",
       variant: "destructive",
