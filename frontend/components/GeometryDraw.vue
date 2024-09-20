@@ -23,6 +23,12 @@ let drawEnable = ref(false)
 let drawType = ref<"Polygon" | "Point" | "Circle">("Polygon")
 
 let drawend = (event) => {
+  let map = vectorRef.value.source
+  let allFeatures = map.getFeatures()
+  allFeatures.forEach((feature) => {
+    if (feature === event.feature) return
+    map.removeFeature(feature)
+  })
   drawEnable.value = false
 }
 
@@ -74,18 +80,18 @@ function selectDrawType(type: "Point" | "Polygon" | "Circle") {
           <MapPin class="w-4 h-4" />
         </Button>
 
-        <Button
-          variant="outline"
-          size="icon"
-          type="button"
-          @click="() => selectDrawType('Circle')"
-          :class="{
-            'bg-gray-100': drawType === 'Circle' && drawEnable,
-            'rounded-none border-y-0': true,
-          }"
-        >
-          <Circle class="w-4 h-4" />
-        </Button>
+        <!--        <Button-->
+        <!--          variant="outline"-->
+        <!--          size="icon"-->
+        <!--          type="button"-->
+        <!--          @click="() => selectDrawType('Circle')"-->
+        <!--          :class="{-->
+        <!--            'bg-gray-100': drawType === 'Circle' && drawEnable,-->
+        <!--            'rounded-none border-y-0': true,-->
+        <!--          }"-->
+        <!--        >-->
+        <!--          <Circle class="w-4 h-4" />-->
+        <!--        </Button>-->
         <Button
           variant="outline"
           size="icon"
