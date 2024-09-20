@@ -21,6 +21,7 @@ import { FormField, FormItem } from "~/components/ui/form"
 import { useForm } from "vee-validate"
 import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
+import { FeatureCollection } from "geojson"
 
 const route = useRoute()
 const id = route.params.id
@@ -34,6 +35,16 @@ function handleChange(e) {
   } else {
     keywords.value.splice(index, 1)
   }
+}
+
+let updatedGeometry = ref<FeatureCollection>()
+let geometry = ref<FeatureCollection>({
+  type: "FeatureCollection",
+  features: [],
+})
+
+function setValue(updateGeometry) {
+  updatedGeometry.value = updateGeometry
 }
 
 function isSelected(e) {
@@ -56,6 +67,10 @@ if (update) {
   })
   feature = item.value.features[0]
   keywords.value = feature.properties.keywords
+  if (feature.geometry) {
+    geometry.value.features.push(feature.geometry)
+    updatedGeometry.value = geometry.value
+  }
 }
 const title = update ? "Update an existing registration" : "Register a new item"
 
@@ -226,6 +241,12 @@ let onSubmit = form.handleSubmit(async (values) => {
       collection: update ? feature.collection : values.collectionId,
     }
     newItem.properties.keywords = keywords.value
+    if (updatedGeometry.value?.features[0]) {
+      newItem.geometry = updatedGeometry.value?.features[0]
+        ? updatedGeometry.value?.features[0].geometry
+        : feature?.geometry
+      newItem.bbox = [1, 1, 1, 1]
+    }
     let data = await $api(url, {
       method: update ? "put" : "post",
       body: newItem,
@@ -279,7 +300,6 @@ function getDisplayTime() {
           <input type="hidden" name="requestBody.type" value="Feature" />
         </FormControl>
       </FormField>
-
       <div class="mt-8 grid grid-flow-row gap-5">
         <Card>
           <CardHeader>
@@ -411,6 +431,19 @@ function getDisplayTime() {
             </div>
           </CardContent>
         </Card>
+        <Card v-if="update || form.values.collectionId">
+          <CardHeader>Geometry</CardHeader>
+          <CardContent>
+            <div class="container mx-auto">
+              <ClientOnly>
+                <GeometryDraw
+                  :initialValue="geometry"
+                  @valueChange="setValue"
+                />
+              </ClientOnly>
+            </div>
+          </CardContent>
+        </Card>
         <div class="grid grid-cols-3 gap-1">
           <Card v-for="group in keywordsGroups">
             <CardHeader>
@@ -449,8 +482,8 @@ function getDisplayTime() {
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
         <Button type="submit" v-if="update || form.values.collectionId"
-          >Publish project data</Button
-        >
+          >Publish project data
+        </Button>
       </div>
     </form>
   </Container>
