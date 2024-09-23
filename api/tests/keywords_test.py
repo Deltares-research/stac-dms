@@ -62,7 +62,7 @@ async def test_get_keywords_by_facility_and_keywordgroup_invalid(
     )
 
 
-# test get keywords invalid no parameters
+# test get keywords without filters
 @pytest.mark.asyncio
 async def test_get_keywords_unfiltered(
     app_client: AsyncClient,
