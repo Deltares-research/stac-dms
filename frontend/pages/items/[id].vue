@@ -21,8 +21,8 @@ import { FormField, FormItem } from "~/components/ui/form"
 import { useForm } from "vee-validate"
 import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
-import { FeatureCollection } from "geojson"
-import { bbox } from "turf"
+import type { FeatureCollection } from "geojson"
+import { bbox } from "@turf/turf"
 
 const route = useRoute()
 const id = route.params.id
@@ -244,9 +244,10 @@ let onSubmit = form.handleSubmit(async (values) => {
     newItem.properties.keywords = keywords.value
     if (updatedGeometry.value?.features[0]) {
       newItem.geometry = updatedGeometry.value?.features[0]
-        ? updatedGeometry.value?.features[0].geometry
+        ? updatedGeometry.value?.features[0]
         : feature?.geometry
-      newItem.bbox = bbox(newItem.geometry)
+
+      newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
     }
     let data = await $api(url, {
       method: update ? "put" : "post",
