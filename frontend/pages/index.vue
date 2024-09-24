@@ -6,20 +6,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { MapboxMap } from "@studiometa/vue-mapbox-gl"
 import { ref } from "vue"
 import dateFormat from "dateformat"
 import DateRangePicker from "~/components/DateRangePicker.vue"
 import type { DateRange } from "radix-vue"
 import Input from "~/components/ui/input/Input.vue"
-
-const mapCenter = ref([0, 0])
-const accesToken =
-  "pk.eyJ1IjoicGlldGVyZ3JpanplMTIzIiwiYSI6ImNreGc2emtjcjNtYmkycm81czF3M3Zpa3YifQ.ZJEb13EmlPZwXY5PCp80sw"
+import MapBrowser from "~/components/MapBrowser.vue"
+import type { Extent } from "ol/extent"
 
 let route = useRoute()
 
 let daterange = ref<DateRange>()
+let bbox = ref<Extent>()
 
 let datetime = computed(() => {
   let { start, end } = route.query
@@ -28,16 +26,21 @@ let datetime = computed(() => {
   }
 })
 
+function onChangeBbox(newBox: Extent) {
+  bbox.value = newBox
+}
+
 let keywordIds = (
   Array.isArray(route.query.keywords)
     ? route.query.keywords
     : [route.query.keywords]
 ).filter(Boolean)
 
-let { data: searchResults, error } = useApi("/search", {
+let { data: searchResults, refresh } = useApi("/search", {
   method: "post",
   body: {
-    datetime: datetime.value,
+    datetime: datetime,
+    bbox: bbox,
     filter: {
       op: "and",
       args: [
@@ -50,7 +53,7 @@ let { data: searchResults, error } = useApi("/search", {
                 {
                   property: "properties.title",
                 },
-                `%${route.query.q}%`,
+                `%${route.query.q ?? ""}%`,
               ],
             },
             {
@@ -59,7 +62,7 @@ let { data: searchResults, error } = useApi("/search", {
                 {
                   property: "properties.description",
                 },
-                `%${route.query.q}%`,
+                `%${route.query.q ?? ""}%`,
               ],
             },
           ],
@@ -129,13 +132,12 @@ let { data: searchResults, error } = useApi("/search", {
     </div>
 
     <div class="relative h-full">
-      <MapboxMap
-        :access-token="accesToken"
-        map-style="mapbox://styles/mapbox/streets-v11"
-        :center="mapCenter"
-        :zoom="1"
-        class="h-full w-full"
-      />
+      <ClientOnly>
+        <MapBrowser
+          :feature-collection="searchResults"
+          @change-bbox="onChangeBbox"
+        />
+      </ClientOnly>
     </div>
   </div>
 </template>
