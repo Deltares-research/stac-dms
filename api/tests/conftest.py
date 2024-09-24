@@ -62,9 +62,6 @@ Settings.set(settings)
 
 database = DatabaseLogic()
 settings = Settings.get()
-db_engine = create_db_engine(settings)
-SQLModel.metadata.drop_all(db_engine)
-SQLModel.metadata.create_all(db_engine)
 
 
 @pytest.fixture
@@ -82,13 +79,22 @@ def bulk_txn_client():
     return BulkTransactionsClient(database=database, session=None, settings=settings)
 
 
-@pytest.fixture(scope="session")
-def keyword_client():
+@pytest.fixture(scope="function")
+def db_engine():
+    db_engine = create_db_engine(settings)
+    SQLModel.metadata.drop_all(db_engine)
+    SQLModel.metadata.create_all(db_engine)
+    yield db_engine
+    SQLModel.metadata.drop_all(db_engine)
+
+
+@pytest.fixture(scope="function")
+def keyword_client(db_engine):
     return KeywordExtension(db_engine=db_engine).client
 
 
-@pytest_asyncio.fixture(scope="session")
-async def app():
+@pytest_asyncio.fixture(scope="function")
+async def app(db_engine):
     settings = Settings.get()
     session = Session.create_from_settings(settings)
     filter_extension = FilterExtension(client=EsAsyncBaseFiltersClient())
@@ -127,7 +133,7 @@ async def app():
     ).app
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def app_client(app):
     # await create_index_templates()
     # await create_collection_index()
