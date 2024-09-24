@@ -40,11 +40,7 @@ function toggleKeyword(keyword: string) {
   }
 }
 
-let { data: keywordGroups } = await useApi("/keywords", {
-  query: {
-    keyword_group_id: "1465e337-ec72-46a5-92f6-67c56549230d",
-  },
-})
+let { data: keywordGroups } = await useApi("/keywords")
 
 let keywordsById = keywordGroups.value?.reduce(
   (acc, group) => {
