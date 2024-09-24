@@ -42,14 +42,16 @@ function toggleKeyword(keyword: string) {
 
 let { data: keywordGroups } = await useApi("/keywords")
 
-let keywordsById = keywordGroups.value?.reduce(
-  (acc, group) => {
-    group.keywords.forEach((keyword) => {
-      acc[keyword.id] = keyword
-    })
-    return acc
-  },
-  {} as Record<string, any>,
+let keywordsById = computed(() =>
+  keywordGroups.value?.reduce(
+    (acc, group) => {
+      group.keywords.forEach((keyword) => {
+        acc[keyword.id] = keyword
+      })
+      return acc
+    },
+    {} as Record<string, any>,
+  ),
 )
 </script>
 
