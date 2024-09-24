@@ -434,7 +434,7 @@ class KeywordClient:
             keyword_group_id: ID of the keyword group to retrieve the keywords for.
 
         Returns:
-            filtered keyword groups with keywords.
+            keyword groups with keywords, optionally filtered by facility or keyword group.
         """
         try:
             facility_uuid = UUID(facility_id) if facility_id else None
@@ -447,10 +447,6 @@ class KeywordClient:
                 f"Keyword group ID {keyword_group_id} invalid UUID"
             )
 
-        if not facility_id and not keyword_group_id:
-            raise InvalidQueryParameter(
-                "Either facility_id or keyword_group_id must be provided"
-            )
         if facility_id and keyword_group_id:
             raise InvalidQueryParameter(
                 "Only one of facility_id or keyword_group_id can be provided"
@@ -458,6 +454,7 @@ class KeywordClient:
 
         with Session(self.db_engine) as session:
             if facility_id:
+                # get all keyword groups for the facility
                 facility = session.exec(
                     select(Facility)
                     .where(Facility.id == facility_uuid)
@@ -471,11 +468,13 @@ class KeywordClient:
                     raise NotFoundError(f"Facility with ID {facility_id} not found")
                 keyword_groups = facility.keyword_groups
             else:
-                keyword_group = session.exec(
-                    select(Keyword_Group)
-                    .where(Keyword_Group.id == keyword_group_uuid)
-                    .options(joinedload(Keyword_Group.keywords))
-                ).first()
-                keyword_groups = [keyword_group]
+                statement = select(Keyword_Group).options(
+                    joinedload(Keyword_Group.keywords)
+                )
+                # filter by keyword group if provided
+                if keyword_group_id:
+                    statement = statement.where(Keyword_Group.id == keyword_group_uuid)
+                keyword_groups = session.exec(statement).unique().all()
+                # keyword_groups = [keyword_group]
 
             return keyword_groups
