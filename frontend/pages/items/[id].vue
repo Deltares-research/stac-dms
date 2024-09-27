@@ -6,13 +6,14 @@ import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
 import { DateFormatter, parseDate } from "@internationalized/date"
 import dateFormat from "dateformat"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Calendar as CalendarIcon } from "lucide-vue-next"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "@/components/ui/button"
-
+import { PlusIcon } from "@radix-icons/vue"
 import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
+import { Calendar as CalendarIcon, XIcon } from "lucide-vue-next"
+import { CaretSortIcon } from "@radix-icons/vue"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
@@ -26,8 +27,21 @@ import { bbox } from "turf"
 
 const route = useRoute()
 const id = route.params.id
+const showAssets = ref(false)
 
 let keywords = ref([])
+
+let assets = ref({
+  [nanoid()]: {},
+})
+
+function addAsset() {
+  assets.value[nanoid()] = {}
+}
+
+function removeAsset(id: string | number) {
+  delete assets.value[id]
+}
 
 function handleChange(e) {
   const index = keywords.value.findIndex((item) => item.id == e.id)
@@ -72,6 +86,7 @@ if (update) {
     geometry.value.features.push(feature.geometry)
     updatedGeometry.value = geometry.value
   }
+  assets.value = feature.assets
 }
 const title = update ? "Update an existing registration" : "Register a new item"
 
@@ -167,7 +182,7 @@ let formSchema = toTypedSchema(
             roles: z.array(z.string()).nullable().optional(),
           }),
         )
-        .default({}),
+        .default(assets.value),
       links: z
         .record(
           z.object({
@@ -475,6 +490,93 @@ function getDisplayTime() {
                   <FormMessage />
                 </FormItem>
               </FormField>
+            </CardContent>
+          </Card>
+        </div>
+        <div>
+          <Card v-if="update || form.values.collectionId">
+            <CardHeader>
+              <div class="flex items-center justify-between space-x-4 px-4">
+                <CardTitle>Assets</CardTitle>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <div class="flex flex-col">
+                <div
+                  v-for="(_asset, id) in assets"
+                  class="border-b border-border last:border-none flex flex-col gap-3 pb-8 pt-6"
+                >
+                  <FormField
+                    v-slot="{ componentField }"
+                    :name="`requestBody.assets.${id}.title`"
+                  >
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input type="text" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+                  <FormField
+                    v-slot="{ componentField }"
+                    :name="`requestBody.assets.${id}.description`"
+                  >
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Input type="text" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+                  <FormField
+                    v-slot="{ componentField }"
+                    :name="`requestBody.assets.${id}.href`"
+                  >
+                    <FormItem>
+                      <FormLabel>Link</FormLabel>
+                      <FormControl>
+                        <Input type="text" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+                  <FormField
+                    v-slot="{ componentField }"
+                    :name="`requestBody.assets.${id}.type`"
+                  >
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <FormControl>
+                        <Input type="text" v-bind="componentField" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+
+                  <Button
+                    type="button"
+                    @click="removeAsset(id)"
+                    variant="outline"
+                  >
+                    <XIcon class="w-4 h-4 mr-2" />
+                    Remove
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Button
+                  @click="addAsset"
+                  variant="outline"
+                  class="mt-5"
+                  type="button"
+                >
+                  <PlusIcon class="w-4 h-4 mr-2" />
+                  Add Asset
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
