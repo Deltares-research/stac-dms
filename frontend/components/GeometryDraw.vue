@@ -7,12 +7,17 @@ import { Circle, MapPin, Pentagon, Spline, Trash2 } from "lucide-vue-next"
 
 let geoJson = new GeoJSON()
 
+let projection = ref("EPSG:3857")
+
 let { onValueChange, initialValue } = defineProps<{
   onValueChange?: (newValue: FeatureCollection) => void
   initialValue?: FeatureCollection
 }>()
 
-let initialFeatures = geoJson.readFeatures(initialValue)
+let initialFeatures = geoJson.readFeatures(initialValue, {
+  featureProjection: "EPSG:4326",
+  dataProjection: "EPSG:3857",
+})
 
 let center = ref([0, 0])
 let zoom = ref(1)
@@ -40,7 +45,10 @@ function featureSelected(event) {
 
 function onChange(event) {
   let features = event.target.getFeatures()
-  let featureCollection = geoJson.writeFeaturesObject(features)
+  let featureCollection = geoJson.writeFeaturesObject(features, {
+    dataProjection: "EPSG:4326",
+    featureProjection: "EPSG:3857",
+  })
   onValueChange?.(featureCollection)
 }
 
@@ -122,7 +130,13 @@ function selectDrawType(type: "Point" | "Polygon" | "Circle") {
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
     >
-      <Map.OlView ref="view" :center="center" :zoom="zoom" />
+      <Map.OlView
+        :projection="projection"
+        :rotation="0"
+        ref="view"
+        :center="center"
+        :zoom="zoom"
+      />
 
       <Layers.OlTileLayer>
         <Sources.OlSourceOsm />

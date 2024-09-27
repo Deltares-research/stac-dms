@@ -6,24 +6,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { MapboxMap } from "@studiometa/vue-mapbox-gl"
 import { ref } from "vue"
 import dateFormat from "dateformat"
-import { DateFormatter } from "@internationalized/date"
 import DateRangePicker from "~/components/DateRangePicker.vue"
 import type { DateRange } from "radix-vue"
-
-const mapCenter = ref([0, 0])
-const accesToken =
-  "pk.eyJ1IjoicGlldGVyZ3JpanplMTIzIiwiYSI6ImNreGc2emtjcjNtYmkycm81czF3M3Zpa3YifQ.ZJEb13EmlPZwXY5PCp80sw"
+import Input from "~/components/ui/input/Input.vue"
+import MapBrowser from "~/components/MapBrowser.vue"
+import type { Extent } from "ol/extent"
 
 let route = useRoute()
 
-const df = new DateFormatter("en-US", {
-  dateStyle: "long",
-})
-
 let daterange = ref<DateRange>()
+let bbox = ref<Extent>()
 
 let datetime = computed(() => {
   let { start, end } = route.query
@@ -32,20 +26,84 @@ let datetime = computed(() => {
   }
 })
 
-let { data: searchResults } = useApi("/search", {
-  query: {
-    datetime: datetime.value,
+function onChangeBbox(newBox: Extent) {
+  bbox.value = newBox
+}
+
+let keywordIds = (
+  Array.isArray(route.query.keywords)
+    ? route.query.keywords
+    : [route.query.keywords]
+).filter(Boolean)
+
+let { data: searchResults, refresh } = useApi("/search", {
+  method: "post",
+  body: {
+    datetime: datetime,
+    bbox: bbox,
+    filter: {
+      op: "and",
+      args: [
+        {
+          op: "or",
+          args: [
+            {
+              op: "like",
+              args: [
+                {
+                  property: "properties.title",
+                },
+                `%${route.query.q ?? ""}%`,
+              ],
+            },
+            {
+              op: "like",
+              args: [
+                {
+                  property: "properties.description",
+                },
+                `%${route.query.q ?? ""}%`,
+              ],
+            },
+          ],
+        },
+        route.query.keywords
+          ? {
+              op: "in",
+              args: [
+                {
+                  property: "properties.keywords.id",
+                },
+                keywordIds,
+              ],
+            }
+          : undefined,
+      ].filter(Boolean),
+    },
+    "filter-lang": "cql2-json",
   },
 })
 </script>
 
 <template>
-  <div class="grid grid-cols-2 justify-center">
+  <div class="grid grid-cols-2 justify-center h-full">
     <div class="p-5">
-      <form class="flex items-center gap-1.5" method="get">
+      <form class="flex flex-col gap-1.5" method="get">
+        <Input
+          name="q"
+          placeholder="Search title or description..."
+          :model-value="route.query.q as string"
+        />
+
         <input name="start" type="hidden" :value="daterange?.start" />
         <input name="end" type="hidden" :value="daterange?.end" />
         <DateRangePicker v-model="daterange" />
+
+        <KeywordsCombobox
+          name="keywords"
+          placeholder="Keywords"
+          :model-value="keywordIds"
+        />
         <Button>Search</Button>
       </form>
 
@@ -73,15 +131,13 @@ let { data: searchResults } = useApi("/search", {
       </div>
     </div>
 
-    <div>
-      <MapboxMap
-        id="map"
-        style="height: 500px; width: 700px"
-        :access-token="accesToken"
-        map-style="mapbox://styles/mapbox/streets-v11"
-        :center="mapCenter"
-        :zoom="1"
-      />
+    <div class="relative h-full">
+      <ClientOnly>
+        <MapBrowser
+          :feature-collection="searchResults"
+          @change-bbox="onChangeBbox"
+        />
+      </ClientOnly>
     </div>
   </div>
 </template>

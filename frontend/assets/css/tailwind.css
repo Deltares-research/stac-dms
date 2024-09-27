@@ -76,3 +76,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+body,html,#__nuxt {
+  @apply h-full;
+}
