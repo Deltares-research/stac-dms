@@ -82,9 +82,11 @@ import type { DropDownOption } from "@lib/lib/dropDownOption"
 const emit = defineEmits(["update"])
 
 let { data: keywords } = await useApi("/facilities")
-let keywordsFacilities: DropDownOption[] = keywords.value.map((item) => {
-  return { value: item.id, label: item.name }
-})
+console.log({ keywords })
+let keywordsFacilities: DropDownOption[] =
+  keywords.value?.map((item) => {
+    return { value: item.id, label: item.name }
+  }) ?? []
 keywordsFacilities.unshift({ value: "No keywords", label: "No keywords" })
 
 const props = defineProps({
@@ -101,7 +103,7 @@ const props = defineProps({
 const name = ref(props.title ?? "")
 const description = ref(props.description ?? "")
 const selectedCollectionTypeId = ref(props.collectionType)
-const selectedKeywordFacility = keywords.value.find(
+const selectedKeywordFacility = keywords.value?.find(
   (item) => item.id == props.keywordFacility,
 )
 const selectedCollectionType = collectionTypes.find(
