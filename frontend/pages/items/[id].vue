@@ -27,7 +27,6 @@ import { bbox } from "turf"
 
 const route = useRoute()
 const id = route.params.id
-const showAssets = ref(false)
 
 let keywords = ref([])
 
