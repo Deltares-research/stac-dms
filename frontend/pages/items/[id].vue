@@ -25,11 +25,15 @@ import type { FeatureCollection } from "geojson"
 import { bbox } from "@turf/turf"
 
 const route = useRoute()
+const router = useRouter()
 const id = route.params.id
+
+const readOnly = route.query.readonly ? "readonly" : ""
 
 let keywords = ref([])
 
 function handleChange(e) {
+  if (readOnly) return
   const index = keywords.value.findIndex((item) => item.id == e.id)
   if (index == -1) {
     keywords.value.push(e)
@@ -73,7 +77,10 @@ if (update) {
     updatedGeometry.value = geometry.value
   }
 }
-const title = update ? "Update an existing registration" : "Register a new item"
+const createOrUpdateTitle = update
+  ? "Update an existing registration"
+  : "Register a new item"
+const title = readOnly ? "View registration" : createOrUpdateTitle
 
 let collections = collectionsResponse.value?.collections ?? []
 const selectedCollection = update
@@ -340,7 +347,17 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Project number</FormLabel>
                   <FormControl>
-                    <Input type="text" v-bind="componentField" />
+                    <Input
+                      v-if="readOnly"
+                      readonly
+                      type="text"
+                      v-bind="componentField"
+                    />
+                    <Input
+                      v-if="!readOnly"
+                      type="text"
+                      v-bind="componentField"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -353,7 +370,17 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Project title</FormLabel>
                   <FormControl>
-                    <Input type="text" v-bind="componentField" />
+                    <Input
+                      v-if="readOnly"
+                      readonly
+                      type="text"
+                      v-bind="componentField"
+                    />
+                    <Input
+                      v-if="!readOnly"
+                      type="text"
+                      v-bind="componentField"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -366,6 +393,7 @@ function getDisplayTime() {
                     <PopoverTrigger as-child>
                       <FormControl>
                         <Button
+                          v-if="!readOnly"
                           variant="outline"
                           :class="
                             cn(
@@ -377,6 +405,7 @@ function getDisplayTime() {
                           <span>{{ getDisplayTime() }}</span>
                           <CalendarIcon class="ms-auto h-4 w-4 opacity-50" />
                         </Button>
+                        <Label v-if="readOnly">{{ getDisplayTime() }}</Label>
                         <input hidden />
                       </FormControl>
                     </PopoverTrigger>
@@ -414,7 +443,17 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea type="text" v-bind="componentField" />
+                    <Textarea
+                      v-if="!readOnly"
+                      type="text"
+                      v-bind="componentField"
+                    />
+                    <Textarea
+                      v-if="readOnly"
+                      readonly
+                      type="text"
+                      v-bind="componentField"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -426,7 +465,17 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Storage location</FormLabel>
                   <FormControl>
-                    <Input type="text" v-bind="componentField" />
+                    <Input
+                      v-if="!readOnly"
+                      type="text"
+                      v-bind="componentField"
+                    />
+                    <Input
+                      v-if="readOnly"
+                      readonly
+                      type="text"
+                      v-bind="componentField"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -481,10 +530,18 @@ function getDisplayTime() {
         </div>
       </div>
       <div class="flex justify-between px-6 pb-6 mt-4">
-        <Button as-child variant="outline">
+        <Button v-if="!readOnly" as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
-        <Button type="submit" v-if="update || form.values.collectionId"
+        <Button
+          v-if="readOnly"
+          variant="outline"
+          @click.stop.prevent="$router.back()"
+          >Back to search
+        </Button>
+        <Button
+          type="submit"
+          v-if="!readOnly && (update || form.values.collectionId)"
           >Publish project data
         </Button>
       </div>
