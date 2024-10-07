@@ -29,6 +29,11 @@ class Keyword_GroupCreate(Keyword_GroupBase):
     pass
 
 
+class Keyword_GroupUpdate(SQLModel, table=False):
+    group_name_nl: str | None = Field(min_length=1, max_length=100, default=None)
+    group_name_en: str | None = Field(min_length=1, max_length=100, default=None)
+
+
 class Keyword_GroupPublic(Keyword_GroupBase):
     id: uuid.UUID
 

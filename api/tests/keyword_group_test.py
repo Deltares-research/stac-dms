@@ -27,6 +27,25 @@ async def test_create_keywordgroup_invalid(
 
 
 @pytest.mark.asyncio
+async def test_update_keywordgroup(
+    app_client: AsyncClient, keyword_group: Keyword_Group
+):
+    keyword_group_json = await app_client.get(f"/keywordgroup/{keyword_group.id}")
+    assert keyword_group is not None
+    keyword_group_obj = Keyword_Group(**keyword_group_json.json())
+    assert keyword_group_obj.group_name_nl == "test"
+    assert keyword_group_obj.group_name_en == "engelse_test"
+
+    response = await app_client.put(
+        f"/keywordgroup/{keyword_group.id}",
+        json={"group_name_nl": "updated_test", "group_name_en": "updated_engelse_test"},
+    )
+    assert response.status_code == 200
+    assert response.json()["group_name_nl"] == "updated_test"
+    assert response.json()["group_name_en"] == "updated_engelse_test"
+
+
+@pytest.mark.asyncio
 async def test_get_keywordgroup(app_client: AsyncClient, keyword_group: Keyword_Group):
     keyword_group_json = await app_client.get(f"/keywordgroup/{keyword_group.id}")
     assert keyword_group is not None

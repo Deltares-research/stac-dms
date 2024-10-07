@@ -25,6 +25,21 @@ async def test_create_facility_invalid(app_client: AsyncClient):
 
 # test get facility
 @pytest.mark.asyncio
+async def test_update_facility(app_client: AsyncClient, facility: Facility):
+    response = await app_client.get(f"/facility/{facility.id}")
+    assert response.status_code == 200
+    facility_obj = Facility(**response.json())
+    assert facility_obj.name == "test_facility"
+    update_response = await app_client.put(
+        f"/facility/{facility.id}", json={"name": "updated_facility"}
+    )
+    assert update_response.status_code == 200
+    updated_facility_obj = Facility(**update_response.json())
+    assert updated_facility_obj.name == "updated_facility"
+
+
+# test get facility
+@pytest.mark.asyncio
 async def test_get_facility(app_client: AsyncClient, facility: Facility):
     response = await app_client.get(f"/facility/{facility.id}")
     assert response.status_code == 200
