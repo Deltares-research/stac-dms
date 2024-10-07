@@ -2,7 +2,11 @@
 import { User } from "lucide-vue-next"
 import { Button } from "@/components/ui/button"
 
-const { data, error: notAuthenticated, refresh } = await useApi("/auth/me")
+const {
+  data,
+  error: notAuthenticated,
+  refresh,
+} = await useApi("/auth/me", { credentials: "include" })
 
 async function logout() {
   await $fetch("/api/auth/logout")
@@ -22,6 +26,9 @@ async function logout() {
       <Button as-child v-if="!notAuthenticated" variant="link">
         <NuxtLink to="/admin">Admin</NuxtLink>
       </Button>
+      <Button as-child v-if="!notAuthenticated" variant="link">
+        <NuxtLink to="/keywords">Keywords</NuxtLink>
+      </Button>
       <Button as-child variant="link">
         <NuxtLink to="/main">Storage Finder</NuxtLink>
       </Button>
@@ -38,6 +45,7 @@ async function logout() {
       </nav>
     </div>
   </div>
+
   <NuxtPage />
 
   <Toaster />

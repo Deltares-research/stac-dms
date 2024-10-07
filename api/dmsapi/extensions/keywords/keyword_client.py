@@ -15,6 +15,7 @@ from dmsapi.database.models import (  # type: ignore
     Keyword_Group,
     Keyword_GroupCreate,
     Keyword_GroupPublicWithKeywords,
+    Keyword_GroupUpdate,
     KeywordBase,
     KeywordUpdate,
     OKResponse,
@@ -45,6 +46,34 @@ class KeywordClient:
             session.commit()
             session.refresh(db_facility)
             return db_facility
+
+    def update_facility(
+        self, facility_id: str, facility_update: FacilityCreate
+    ) -> Facility:
+        """Update a facility by ID.
+
+        Args:
+            facility_id: ID of the facility to update.
+            facility: facility to update.
+        Returns:
+            updated facility.
+        """
+        try:
+            uuid = UUID(facility_id)
+        except ValueError:
+            raise InvalidQueryParameter(f"Facility ID {facility_id} invalid UUID")
+        with Session(self.db_engine) as session:
+            facility = session.get(Facility, uuid)
+            if facility is None:
+                raise NotFoundError(f"Facility with ID {facility_id} not found")
+
+            for key, value in facility_update.model_dump().items():
+                if value:
+                    setattr(facility, key, value)
+            session.add(facility)
+            session.commit()
+            session.refresh(facility)
+            return facility
 
     def get_facility(
         self, facility_id: Annotated[str, Path(title="The ID of the facility to get")]
@@ -201,6 +230,36 @@ class KeywordClient:
             session.commit()
             session.refresh(db_keywordgroup)
             return db_keywordgroup
+
+    def update_keywordgroup(
+        self,
+        keywordgroup_id: Annotated[str, Path(title="The ID of the group to update")],
+        keywordgroup_update: Keyword_GroupUpdate,
+    ):
+        """Update an existing keyword group.
+
+        Args:
+            keywordgroup: updated keyword group.
+            keywordgroup_id: ID of the keyword group to update.
+        """
+        try:
+            uuid = UUID(keywordgroup_id)
+        except ValueError:
+            raise InvalidQueryParameter(
+                f"Keywordgroup ID {keywordgroup_id} invalid UUID"
+            )
+        with Session(self.db_engine) as session:
+            keywordgroup = session.get(Keyword_Group, uuid)
+            if keywordgroup is None:
+                raise NotFoundError(f"Keywordgroup ID {keywordgroup_id} not found")
+
+            for key, value in keywordgroup_update.model_dump().items():
+                if value:
+                    setattr(keywordgroup, key, value)
+            session.add(keywordgroup)
+            session.commit()
+            session.refresh(keywordgroup)
+            return keywordgroup
 
     def get_keyword_group(
         self, keywordgroup_id: Annotated[str, Path(title="The ID of the group to get")]
@@ -375,7 +434,7 @@ class KeywordClient:
             keyword_group_id: ID of the keyword group to retrieve the keywords for.
 
         Returns:
-            filtered keyword groups with keywords.
+            keyword groups with keywords, optionally filtered by facility or keyword group.
         """
         try:
             facility_uuid = UUID(facility_id) if facility_id else None
@@ -388,10 +447,6 @@ class KeywordClient:
                 f"Keyword group ID {keyword_group_id} invalid UUID"
             )
 
-        if not facility_id and not keyword_group_id:
-            raise InvalidQueryParameter(
-                "Either facility_id or keyword_group_id must be provided"
-            )
         if facility_id and keyword_group_id:
             raise InvalidQueryParameter(
                 "Only one of facility_id or keyword_group_id can be provided"
@@ -399,6 +454,7 @@ class KeywordClient:
 
         with Session(self.db_engine) as session:
             if facility_id:
+                # get all keyword groups for the facility
                 facility = session.exec(
                     select(Facility)
                     .where(Facility.id == facility_uuid)
@@ -412,11 +468,13 @@ class KeywordClient:
                     raise NotFoundError(f"Facility with ID {facility_id} not found")
                 keyword_groups = facility.keyword_groups
             else:
-                keyword_group = session.exec(
-                    select(Keyword_Group)
-                    .where(Keyword_Group.id == keyword_group_uuid)
-                    .options(joinedload(Keyword_Group.keywords))
-                ).first()
-                keyword_groups = [keyword_group]
+                statement = select(Keyword_Group).options(
+                    joinedload(Keyword_Group.keywords)
+                )
+                # filter by keyword group if provided
+                if keyword_group_id:
+                    statement = statement.where(Keyword_Group.id == keyword_group_uuid)
+                keyword_groups = session.exec(statement).unique().all()
+                # keyword_groups = [keyword_group]
 
             return keyword_groups

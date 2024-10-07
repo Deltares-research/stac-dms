@@ -1,6 +1,8 @@
+from pydantic import TypeAdapter
+from pydantic_core import from_json
 import pytest
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
-from dmsapi.database.models import Keyword, Keyword_Group  # type: ignore
+from dmsapi.database.models import Keyword, Keyword_Group, Keyword_GroupPublicWithKeywords  # type: ignore
 from httpx import AsyncClient
 
 
@@ -48,7 +50,6 @@ async def test_get_keywords_by_facility_and_keywordgroup_invalid(
     facilities, keywordgroups = filled_db
     facility1, facility2 = facilities
     keywordgroup1, keywordgroup2 = keywordgroups
-
     response = await app_client.get(
         f"/keywords?facility_id={facility1.id}&keyword_group_id={keywordgroup2.id}"
     )
@@ -61,16 +62,20 @@ async def test_get_keywords_by_facility_and_keywordgroup_invalid(
     )
 
 
-# test get keywords invalid no parameters
+# test get keywords without filters
 @pytest.mark.asyncio
-async def test_get_keywords_no_parameters_invalid(
+async def test_get_keywords_unfiltered(
     app_client: AsyncClient,
+    filled_db,
 ):
+    facilities, keywordgroups = filled_db
+    keywordgroup1, keywordgroup2 = keywordgroups
+    KeywordGroupList = TypeAdapter(list[Keyword_GroupPublicWithKeywords])
+
     response = await app_client.get(f"/keywords")
-    assert response.status_code == 400
-    response_data = response.json()
-    assert response_data["code"] == "InvalidQueryParameter"
-    assert (
-        response_data["description"]
-        == "Either facility_id or keyword_group_id must be provided"
-    )
+    assert response.status_code == 200
+
+    result = KeywordGroupList.validate_json(response.content)
+    assert len(result) == 2
+    assert keywordgroup1.id in [group.id for group in result]
+    assert keywordgroup2.id in [group.id for group in result]

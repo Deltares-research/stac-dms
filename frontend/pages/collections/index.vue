@@ -30,7 +30,7 @@ import { collectionTypes } from "@/lib/collectionTypes"
 const router = useRouter()
 const { $api } = useNuxtApp()
 const collections = ref([])
-
+let { data: keywords } = await useApi("/facilities")
 onMounted(async () => {
   await new Promise((r) => setTimeout(r, 1000))
   let retrievedCollections = []
@@ -113,6 +113,28 @@ const collectionColumns: ColumnDef<
       const key = row.getValue("keywords")[0]
       const selectedItem = collectionTypes.find((item) => item.value == key)
       return selectedItem.label
+    },
+  },
+  {
+    accessorKey: "links",
+    header: ({ column }) => {
+      return h(
+        Button,
+        {
+          variant: "ghost",
+          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
+        },
+        () => ["Keywords", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+      )
+    },
+    cell: ({ row }) => {
+      const links = row.original.links.find((item) => item.rel == "keywords")
+      if (links === undefined) return "No keywords"
+      const keywordDescription = keywords.value.find(
+        (item) => item.id == links.id,
+      )
+      if (keywordDescription === undefined) return "No keywords"
+      return keywordDescription.name
     },
   },
   {
