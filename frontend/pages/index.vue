@@ -121,6 +121,9 @@ let { data: searchResults, refresh } = useApi("/search", {
             <CardDescription>{{ item.properties.description }}</CardDescription>
           </CardHeader>
           <CardContent v-if="item.properties.datetime">
+            <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
+              >View details</NuxtLink
+            >
             <div class="text-xs text-muted-foreground">
               {{
                 dateFormat(new Date(item.properties.datetime), "mmmm dS, yyyy")
