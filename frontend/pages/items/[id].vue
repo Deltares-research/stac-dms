@@ -29,6 +29,7 @@ const router = useRouter()
 const id = route.params.id
 
 const readOnly = route.query.readonly ? "readonly" : ""
+const readOnlyTag = readOnly ? "readOnly" : undefined
 
 let keywords = ref([])
 
@@ -348,13 +349,7 @@ function getDisplayTime() {
                   <FormLabel>Project number</FormLabel>
                   <FormControl>
                     <Input
-                      v-if="readOnly"
-                      readonly
-                      type="text"
-                      v-bind="componentField"
-                    />
-                    <Input
-                      v-if="!readOnly"
+                      :readonly="readOnlyTag"
                       type="text"
                       v-bind="componentField"
                     />
@@ -371,13 +366,7 @@ function getDisplayTime() {
                   <FormLabel>Project title</FormLabel>
                   <FormControl>
                     <Input
-                      v-if="readOnly"
-                      readonly
-                      type="text"
-                      v-bind="componentField"
-                    />
-                    <Input
-                      v-if="!readOnly"
+                      :readonly="readOnlyTag"
                       type="text"
                       v-bind="componentField"
                     />
@@ -444,13 +433,7 @@ function getDisplayTime() {
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
-                      v-if="!readOnly"
-                      type="text"
-                      v-bind="componentField"
-                    />
-                    <Textarea
-                      v-if="readOnly"
-                      readonly
+                      :readonly="readOnlyTag"
                       type="text"
                       v-bind="componentField"
                     />
@@ -466,13 +449,7 @@ function getDisplayTime() {
                   <FormLabel>Storage location</FormLabel>
                   <FormControl>
                     <Input
-                      v-if="!readOnly"
-                      type="text"
-                      v-bind="componentField"
-                    />
-                    <Input
-                      v-if="readOnly"
-                      readonly
+                      :readonly="readOnlyTag"
                       type="text"
                       v-bind="componentField"
                     />
