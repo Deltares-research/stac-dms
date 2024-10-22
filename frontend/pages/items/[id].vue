@@ -13,7 +13,6 @@ import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
 import { Calendar as CalendarIcon, XIcon } from "lucide-vue-next"
-import { CaretSortIcon } from "@radix-icons/vue"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
@@ -24,6 +23,7 @@ import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
 import type { FeatureCollection } from "geojson"
 import { bbox } from "@turf/turf"
+import spatialReferenceSystemRaw from "../../lib/spatialReferenceSystem.txt?raw"
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +31,15 @@ const id = route.params.id
 
 const readOnly = route.query.readonly ? "readonly" : ""
 const readOnlyTag = readOnly ? "readOnly" : undefined
+
+let crsArray = spatialReferenceSystemRaw.split("\n")
+let spatialReferenceSystem = crsArray.sort().map((item) => {
+  return { label: item, value: item }
+})
+spatialReferenceSystem.unshift({
+  label: "not applicable",
+  value: "not applicable",
+})
 
 let keywords = ref([])
 
@@ -92,6 +101,9 @@ if (update) {
   }
   assets.value = feature.assets
 }
+
+let { data: userData } = await useApi("/api/auth/me")
+
 const createOrUpdateTitle = update
   ? "Update an existing registration"
   : "Register a new item"
@@ -106,6 +118,26 @@ const collectionOptions = collections.map((collection) => ({
   value: collection.id,
   label: collection.description,
 }))
+
+const languages = [
+  { value: "eng", label: "English" },
+  { value: "dut", label: "Dutch" },
+  { value: "ger", label: "German" },
+  { value: "fre", label: "French" },
+]
+
+const legalRestrictionsOptions = [
+  { value: "copyright", label: "copyright" },
+  { value: "patent", label: "patent" },
+  { value: "patentPending", label: "patent pending" },
+  { value: "trademark ", label: "trademark" },
+  { value: "license", label: "license" },
+  {
+    value: "intellectualPropertyRights ",
+    label: "intellectual property rights",
+  },
+  { value: "restricted ", label: "Prohibition of distribution and use" },
+]
 
 let { $api } = useNuxtApp()
 
@@ -152,6 +184,31 @@ let formSchema = toTypedSchema(
             .transform((v) => {
               return new Date(v).toISOString()
             }),
+          spatialReferenceSystem: z.string(),
+          dataQualityInfoStatement: z.string(),
+          dataQualitInfoScore: z.string().default("dataSet"),
+          dateType: z.string().optional().default("publication"),
+          legalRestrictions: z.string().default("license"),
+          restrictionsOfUse: z.string().default(""),
+          metadataStandardName: z.string().default("ISO 19115"),
+          metadataStandardVersion: z.string().default("2.1.0"),
+          progressCode: z.string().optional().default("completed"),
+          language: z.string().default("eng"),
+          hierarchyLevel: z.string().default("dataSet"),
+          originatorDataEmail: z.string(),
+          originatorDataRoleCode: z.string().default("originator"),
+          originatorDataOrganisation: z.string().default("Deltares"),
+          originatorMetaDataOrganisation: z
+            .string()
+            .optional()
+            .default("Deltares"),
+          originatorMetaDataEmail: z.string().default(userData.value.email),
+          originatorMetaDataRoleCode: z
+            .string()
+            .optional()
+            .default("originator"),
+          metaDataLanguage: z.string().default("eng"),
+          metaDataDateTime: z.date().default(new Date()),
           storagelocation: z
             .string()
             .default(feature?.properties.storagelocation),
@@ -271,6 +328,7 @@ let onSubmit = form.handleSubmit(async (values) => {
 
       newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
     }
+    console.log(newItem)
     let data = await $api(url, {
       method: update ? "put" : "post",
       body: newItem,
@@ -391,7 +449,14 @@ function getDisplayTime() {
 
               <FormField name="requestBody.properties.datetime">
                 <FormItem class="flex flex-col">
-                  <FormLabel>Date</FormLabel>
+                  <FormLabel>
+                    <NuxtLink
+                      target="_blank"
+                      external
+                      to="https://docs.geostandaarden.nl/md/mdprofiel-iso19115/#datum-type-van-de-bron"
+                      >Publication date</NuxtLink
+                    ></FormLabel
+                  >
                   <Popover>
                     <PopoverTrigger as-child>
                       <FormControl>
@@ -457,10 +522,135 @@ function getDisplayTime() {
               </FormField>
               <FormField
                 v-slot="{ componentField }"
-                name="requestBody.properties.storagelocation"
+                name="requestBody.properties.language"
+              >
+                <FormItem class="flex flex-col gap-1">
+                  <FormLabel>Language</FormLabel>
+                  <CustomDropDownComponent
+                    v-if="!readOnly"
+                    :options="languages"
+                    v-bind="componentField"
+                  />
+                  <FormControl></FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.legalRestrictions"
+              >
+                <FormItem class="flex flex-col gap-1">
+                  <div>
+                    <FormLabel>
+                      <NuxtLink
+                        target="_blank"
+                        external
+                        to="https://docs.geostandaarden.nl/md/mdprofiel-iso19115/#juridische-toegangsrestricties"
+                        >Legal restrictions</NuxtLink
+                      >
+                    </FormLabel>
+                  </div>
+                  <CustomDropDownComponent
+                    v-if="!readOnly"
+                    :options="legalRestrictionsOptions"
+                    v-bind="componentField"
+                  />
+                  <FormControl></FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.restrictionsOfUse"
+              >
+                <FormItem class="flex flex-col">
+                  <div class="flex items-start">
+                    <FormLabel>
+                      <NuxtLink
+                        target="_blank"
+                        external
+                        to="https://docs.geostandaarden.nl/md/mdprofiel-iso19115/#gebruiksbeperkingen"
+                        >Applications for which this data set is not
+                        suitable</NuxtLink
+                      >
+                    </FormLabel>
+                  </div>
+                  <Textarea
+                    :readonly="readOnlyTag"
+                    type="text"
+                    v-bind="componentField"
+                  />
+                  <FormControl></FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.spatialReferenceSystem"
+              >
+                <FormItem class="flex flex-col gap-1">
+                  <FormLabel
+                    >Spatial reference system (choose one from the list or
+                    define a custom one)</FormLabel
+                  >
+                  <div class="flex flex-row space-x-4">
+                    <CustomDropDownComponent
+                      :options="spatialReferenceSystem"
+                      v-bind="componentField"
+                    />
+                    <Input
+                      :readonly="readOnlyTag"
+                      type="text"
+                      v-bind="componentField"
+                    />
+                  </div>
+                  <FormControl></FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </div>
+          </CardContent>
+        </Card>
+        <Card v-if="update || form.values.collectionId">
+          <CardHeader>
+            <CardTitle class="text-lg">Data quality</CardTitle>
+            <CardContent>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.dataQualityInfoStatement"
               >
                 <FormItem>
-                  <FormLabel>Storage location</FormLabel>
+                  <FormLabel>
+                    <NuxtLink
+                      target="_blank"
+                      external
+                      to="https://docs.geostandaarden.nl/md/mdprofiel-iso19115/#algemene-beschrijving-herkomst"
+                      >Description of the origin of this data set</NuxtLink
+                    >
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      :readonly="readOnlyTag"
+                      type="text"
+                      v-bind="componentField"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </CardContent>
+          </CardHeader>
+        </Card>
+        <Card v-if="update || form.values.collectionId">
+          <CardHeader>
+            <CardTitle class="text-lg">Originator data set</CardTitle>
+            <CardContent>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.originatorDataOrganisation"
+              >
+                <FormItem>
+                  <FormLabel>Organisation</FormLabel>
                   <FormControl>
                     <Input
                       :readonly="readOnlyTag"
@@ -471,8 +661,56 @@ function getDisplayTime() {
                   <FormMessage />
                 </FormItem>
               </FormField>
-            </div>
-          </CardContent>
+
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.originatorDataEmail"
+              >
+                <FormItem>
+                  <FormLabel>E-mail</FormLabel>
+                  <FormControl>
+                    <Input
+                      :readonly="readOnlyTag"
+                      type="text"
+                      v-bind="componentField"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </CardContent>
+          </CardHeader>
+        </Card>
+        <Card v-if="update || form.values.collectionId">
+          <CardHeader>
+            <CardTitle class="text-lg">Originator meta data</CardTitle>
+            <CardContent>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.originatorMetaDataOrganisation"
+              >
+                <FormItem>
+                  <FormLabel>Organisation</FormLabel>
+                  <FormControl>
+                    <Input readonly type="text" v-bind="componentField" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.originatorMetaDataEmail"
+              >
+                <FormItem>
+                  <FormLabel>E-mail</FormLabel>
+                  <FormControl>
+                    <Input readonly type="text" v-bind="componentField" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </CardContent>
+          </CardHeader>
         </Card>
         <Card v-if="update || form.values.collectionId">
           <CardHeader>Geometry</CardHeader>
@@ -523,7 +761,7 @@ function getDisplayTime() {
           <Card v-if="update || form.values.collectionId">
             <CardHeader>
               <div class="flex items-center justify-between space-x-4 px-4">
-                <CardTitle>Assets</CardTitle>
+                <CardTitle>Storage location data set</CardTitle>
               </div>
             </CardHeader>
 
@@ -600,7 +838,7 @@ function getDisplayTime() {
                   type="button"
                 >
                   <PlusIcon class="w-4 h-4 mr-2" />
-                  Add Asset
+                  Add
                 </Button>
               </div>
             </CardContent>
