@@ -13,6 +13,8 @@ import type { DateRange } from "radix-vue"
 import Input from "~/components/ui/input/Input.vue"
 import MapBrowser from "~/components/MapBrowser.vue"
 import type { Extent } from "ol/extent"
+import KeywordsCombobox from "~/components/keywords/KeywordsCombobox.vue"
+import CollectionCombobox from "~/components/collections/CollectionCombobox.vue"
 
 let route = useRoute()
 
@@ -34,11 +36,22 @@ let keywordIds = (
   Array.isArray(route.query.keywords)
     ? route.query.keywords
     : [route.query.keywords]
-).filter(Boolean)
+)
+  .map((id) => id?.toString())
+  .filter(Boolean) as string[]
+
+let collectionIds = (
+  Array.isArray(route.query.collections)
+    ? route.query.collections
+    : [route.query.collections]
+)
+  .map((id) => id?.toString())
+  .filter(Boolean) as string[]
 
 let { data: searchResults, refresh } = useApi("/search", {
   method: "post",
   body: {
+    collections: collectionIds,
     datetime: datetime,
     bbox: bbox,
     filter: {
@@ -104,6 +117,13 @@ let { data: searchResults, refresh } = useApi("/search", {
           placeholder="Keywords"
           :model-value="keywordIds"
         />
+
+        <CollectionCombobox
+          name="collections"
+          placeholder="Collections"
+          :model-value="collectionIds"
+        />
+
         <Button>Search</Button>
       </form>
 
@@ -121,6 +141,9 @@ let { data: searchResults, refresh } = useApi("/search", {
             <CardDescription>{{ item.properties.description }}</CardDescription>
           </CardHeader>
           <CardContent v-if="item.properties.datetime">
+            <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
+              >View details</NuxtLink
+            >
             <div class="text-xs text-muted-foreground">
               {{
                 dateFormat(new Date(item.properties.datetime), "mmmm dS, yyyy")
