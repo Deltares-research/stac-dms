@@ -4,18 +4,9 @@
       Admin
     </h3>
     <p class="text-sm text-muted-foreground">
-      Administration of catalogues, collections and permissions.
+      Administration of collections and permissions.
     </p>
-    <div class="grid grid-cols-3 gap-4 pt-8">
-      <Card class="flex flex-col">
-        <CardHeader>
-          <CardTitle>Catalogue</CardTitle>
-          <CardDescription>Administration of catalogues</CardDescription>
-        </CardHeader>
-        <CardFooter class="mt-auto">
-          <Button>Admin catalogue</Button>
-        </CardFooter>
-      </Card>
+    <div class="grid grid-cols-2 gap-4 pt-8">
       <Card class="flex flex-col">
         <CardHeader>
           <CardTitle>Collections</CardTitle>

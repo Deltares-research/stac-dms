@@ -7,16 +7,17 @@ import { Circle, MapPin, Pentagon, Spline, Trash2 } from "lucide-vue-next"
 
 let geoJson = new GeoJSON()
 
-let projection = ref("EPSG:3857")
+let projection = ref("EPSG:4326")
 
 let { onValueChange, initialValue } = defineProps<{
   onValueChange?: (newValue: FeatureCollection) => void
   initialValue?: FeatureCollection
+  readOnly: Boolean
 }>()
 
 let initialFeatures = geoJson.readFeatures(initialValue, {
   featureProjection: "EPSG:4326",
-  dataProjection: "EPSG:3857",
+  dataProjection: "EPSG:4326",
 })
 
 let center = ref([0, 0])
@@ -47,7 +48,7 @@ function onChange(event) {
   let features = event.target.getFeatures()
   let featureCollection = geoJson.writeFeaturesObject(features, {
     dataProjection: "EPSG:4326",
-    featureProjection: "EPSG:3857",
+    featureProjection: "EPSG:4326",
   })
   onValueChange?.(featureCollection)
 }
@@ -76,6 +77,7 @@ function selectDrawType(type: "Point" | "Polygon" | "Circle") {
     <div class="absolute top-0 right-0 z-10 p-3 flex flex-col gap-2">
       <div class="flex flex-col">
         <Button
+          v-if="!readOnly"
           variant="outline"
           size="icon"
           type="button"
@@ -101,6 +103,7 @@ function selectDrawType(type: "Point" | "Polygon" | "Circle") {
         <!--          <Circle class="w-4 h-4" />-->
         <!--        </Button>-->
         <Button
+          v-if="!readOnly"
           variant="outline"
           size="icon"
           type="button"
