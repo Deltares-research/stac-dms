@@ -3,11 +3,9 @@ name: "Terraform Infrastructure Change Management Pipeline with GitHub Actions"
 on:
   push:
     branches:
-      - main
       - prod
   pull_request:
     branches:
-      - main
       - prod
 
 env:
