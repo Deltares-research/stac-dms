@@ -184,34 +184,39 @@ let formSchema = toTypedSchema(
             .transform((v) => {
               return new Date(v).toISOString()
             }),
-          spatialReferenceSystem: z.string(),
-          dataQualityInfoStatement: z.string(),
-          dataQualitInfoScore: z.string().default("dataSet"),
+          spatialReferenceSystem: z
+            .string()
+            .default(feature?.properties.spatialReferenceSystem),
+          dataQualityInfoStatement: z
+            .string()
+            .default(feature?.properties.dataQualityInfoStatement),
+          dataQualityInfoScore: z.string().default("dataSet"),
           dateType: z.string().optional().default("publication"),
-          legalRestrictions: z.string().default("license"),
-          restrictionsOfUse: z.string().default(""),
+          legalRestrictions: z
+            .string()
+            .default(
+              feature ? feature.properties.legalRestrictions : "license",
+            ),
+          restrictionsOfUse: z
+            .string()
+            .default(feature?.properties.restrictionsOfUse),
           metadataStandardName: z.string().default("ISO 19115"),
           metadataStandardVersion: z.string().default("2.1.0"),
-          progressCode: z.string().optional().default("completed"),
-          language: z.string().default("eng"),
+          progressCode: z.string().default("completed"),
+          language: z
+            .string()
+            .default(feature ? feature.properties.language : "eng"),
           hierarchyLevel: z.string().default("dataSet"),
-          originatorDataEmail: z.string(),
+          originatorDataEmail: z
+            .string()
+            .default(feature?.properties.originatorDataEmail),
           originatorDataRoleCode: z.string().default("originator"),
           originatorDataOrganisation: z.string().default("Deltares"),
-          originatorMetaDataOrganisation: z
-            .string()
-            .optional()
-            .default("Deltares"),
+          originatorMetaDataOrganisation: z.string().default("Deltares"),
           originatorMetaDataEmail: z.string().default(userData.value.email),
-          originatorMetaDataRoleCode: z
-            .string()
-            .optional()
-            .default("originator"),
+          originatorMetaDataRoleCode: z.string().default("originator"),
           metaDataLanguage: z.string().default("eng"),
           metaDataDateTime: z.date().default(new Date()),
-          storagelocation: z
-            .string()
-            .default(feature?.properties.storagelocation),
           created: z.string().nullable().optional(),
           updated: z.string().nullable().optional(),
           start_datetime: z.string().nullable().optional(),
@@ -328,7 +333,6 @@ let onSubmit = form.handleSubmit(async (values) => {
 
       newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
     }
-    console.log(newItem)
     let data = await $api(url, {
       method: update ? "put" : "post",
       body: newItem,
@@ -718,6 +722,7 @@ function getDisplayTime() {
             <div class="container mx-auto">
               <ClientOnly>
                 <GeometryDraw
+                  :read-only="readOnly != ''"
                   :initialValue="geometry"
                   @valueChange="setValue"
                 />
@@ -821,6 +826,7 @@ function getDisplayTime() {
                   </FormField>
 
                   <Button
+                    v-if="!readOnly"
                     type="button"
                     @click="removeAsset(id)"
                     variant="outline"
@@ -832,6 +838,7 @@ function getDisplayTime() {
               </div>
               <div>
                 <Button
+                  v-if="!readOnly"
                   @click="addAsset"
                   variant="outline"
                   class="mt-5"
