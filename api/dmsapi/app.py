@@ -32,6 +32,7 @@ from fastapi_sso.sso.microsoft import MicrosoftSSO
 from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.database.db import create_db_engine
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
+from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.config import DMSAPISettings
 
@@ -76,6 +77,7 @@ extensions = [
     TokenPaginationExtension(),
     filter_extension,
     KeywordExtension(db_engine=db_engine),
+    RBACExtension(db_engine=db_engine),
     SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]),
 ]
 

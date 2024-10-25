@@ -1,7 +1,7 @@
 import uuid
 from sqlmodel import SQLModel, Field, Relationship
 from fastapi import Path
-
+from typing import Optional, List
 
 class FacilityKeywordGroupLink(SQLModel, table=True):
     facility_id: uuid.UUID = Field(foreign_key="facility.id", primary_key=True)
@@ -104,6 +104,65 @@ class Facility(FacilityBase, table=True):
         back_populates="facilities", link_model=FacilityKeywordGroupLink
     )
 
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str
+    email: str
+
+    groups: List["GroupUserLink"] = Relationship(back_populates="user")
+
+
+class UserCreate(SQLModel):
+    pass
+
+
+class UserList(SQLModel):
+    id: uuid.UUID
+
+
+class Group(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    description: Optional[str] = None
+
+    users: List["GroupUserLink"] = Relationship(back_populates="group")
+    permissions: List["Permission"] = Relationship(back_populates="group")
+
+
+class GroupCreate(SQLModel):
+    pass
+
+
+class GroupList(SQLModel):
+    id: uuid.UUID
+
+
+class Role(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+
+
+class RoleList(SQLModel):
+    id: uuid.UUID
+
+
+class Permission(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    object: str
+    role_id: int = Field(foreign_key="role.id")
+    group_id: int = Field(foreign_key="group.id")
+
+    role: Role = Relationship()
+    group: Group = Relationship(back_populates="permissions")
+
+
+class GroupUserLink(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    group_id: int = Field(foreign_key="group.id")
+    user_id: int = Field(foreign_key="user.id")
+
+    group: Group = Relationship(back_populates="users")
+    user: User = Relationship(back_populates="groups")
 
 class ErrorResponse(SQLModel):
     code: str
