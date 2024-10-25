@@ -1,34 +1,34 @@
 variable "aws_region" {
-    type = string
-    default = "eu-west-1"
+  type    = string
+  default = "eu-west-1"
 }
-variable "security_options_enabled" { 
-  type = bool
+variable "security_options_enabled" {
+  type    = bool
   default = false
 }
 variable "volume_type" {
-  type = string
+  type    = string
   default = "gp3"
 }
 variable "throughput" {
-  type = number
+  type    = number
   default = 125
 }
 variable "ebs_enabled" {
-  type = bool
+  type    = bool
   default = true
 }
 variable "ebs_volume_size" {
-  type = number
+  type    = number
   default = 10
 }
-variable "instance_type" { 
-    type = string
-    default = "t3.small.search"
+variable "instance_type" {
+  type    = string
+  default = "t3.small.search"
 }
-variable "instance_count" { 
-    type = number
-    default = 1
+variable "instance_count" {
+  type    = number
+  default = 1
 }
 variable "dedicated_master_enabled" {
   type    = bool
@@ -47,7 +47,7 @@ variable "zone_awareness_enabled" {
   default = false
 }
 variable "engine_version" {
-  type = string
+  type    = string
   default = "2.15"
 }
 variable "harbor_url" {
