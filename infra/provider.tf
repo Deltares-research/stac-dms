@@ -5,6 +5,11 @@ terraform {
       version = "5.31.0"
     }
   }
+  backend "s3" {
+    bucket = "stac-dms-terraform-state"
+    key    = "stac-dms.tfstate"
+    region = "eu-west-1"
+  }
 }
 
 provider "aws" {
