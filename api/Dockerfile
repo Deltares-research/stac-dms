@@ -84,12 +84,15 @@ COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
 RUN --mount=type=cache,target=/root/.cache \
     poetry install --with=dev
 
+COPY ./dmsapi /app/dmsapi/
+COPY alembic.ini /app/alembic.ini
+
 # will become mountpoint of our code
 WORKDIR /app
 
 EXPOSE 8000
-CMD ["python", "-m", "dmsapi.app"]
 
+CMD ["sh", "-c", "alembic upgrade head && python -m dmsapi.app"]
 
 ################################
 # PRODUCTION
@@ -98,6 +101,6 @@ CMD ["python", "-m", "dmsapi.app"]
 FROM python-base as production
 ENV FASTAPI_ENV=production
 COPY --from=builder-base $PYSETUP_PATH $PYSETUP_PATH
-COPY ./app /app/
+COPY ./dmsapi /app/dmsapi/
 WORKDIR /app
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "dmsapi.app:app"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "dmsapi.app"]
