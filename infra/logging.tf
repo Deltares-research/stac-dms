@@ -25,7 +25,7 @@ resource "aws_cloudwatch_log_group" "opensearch_log_group_index_slow_logs" {
   name_prefix       = "/aws/es/${terraform.workspace}"
   retention_in_days = 1
   kms_key_id        = aws_kms_key.log_group_key.arn
-  
+
 }
 
 # Create a Log group for opensearch
