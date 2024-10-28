@@ -15,7 +15,7 @@ from dmsapi.database.models import (  # type: ignore
 )
 
 
-class KeywordExtension(ApiExtension):
+class RBACExtension(ApiExtension):
     """Extension for managing and retrieving permissions/users
 
     The keyword extension adds the ability to create, retrieve, update, and delete keywords:
@@ -296,7 +296,7 @@ class KeywordExtension(ApiExtension):
     def add_get_roles(self):
         self.router.add_api_route(
             name="Get Roles",
-            path="/roles/",
+            path="/roles",
             endpoint=self.client.get_roles,
             response_model=list[Role],
             methods=["GET"]
@@ -346,5 +346,5 @@ class KeywordExtension(ApiExtension):
             path="/permissions/group/{group_id}/",
             endpoint=self.client.check_permission,
             response_model=Permission,
-            methodes=["POST"]
+            methods=["POST"]
         )
