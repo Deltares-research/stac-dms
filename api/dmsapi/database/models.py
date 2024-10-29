@@ -104,41 +104,47 @@ class Facility(FacilityBase, table=True):
         back_populates="facilities", link_model=FacilityKeywordGroupLink
     )
 
-class User(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    username: str
-    email: str
 
+class UserBase(SQLModel):
+    username: str = Field(min_length=1, max_length=100)
+    email: str = Field(min_length=1, max_length=100)
+
+
+class User(UserBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     groups: List["GroupUserLink"] = Relationship(back_populates="user")
 
 
-class UserCreate(SQLModel):
+class UserCreate(UserBase):
     pass
 
 
-class UserList(SQLModel):
+class UserList(UserBase):
     id: uuid.UUID
 
 
-class Group(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
-    description: Optional[str] = None
+class GroupBase(SQLModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str = Field(min_length=1, max_length=100)
+
+
+class Group(GroupBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     users: List["GroupUserLink"] = Relationship(back_populates="group")
     permissions: List["Permission"] = Relationship(back_populates="group")
 
 
-class GroupCreate(SQLModel):
+class GroupCreate(GroupBase):
     pass
 
 
-class GroupList(SQLModel):
+class GroupList(GroupBase):
     id: uuid.UUID
 
 
 class Role(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str
 
 
@@ -147,19 +153,19 @@ class RoleList(SQLModel):
 
 
 class Permission(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     object: str
-    role_id: int = Field(foreign_key="role.id")
-    group_id: int = Field(foreign_key="group.id")
+    role_id: uuid.UUID = Field(foreign_key="role.id")
+    group_id: uuid.UUID = Field(foreign_key="group.id")
 
     role: Role = Relationship()
     group: Group = Relationship(back_populates="permissions")
 
 
 class GroupUserLink(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    group_id: int = Field(foreign_key="group.id")
-    user_id: int = Field(foreign_key="user.id")
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    group_id: uuid.UUID = Field(foreign_key="group.id")
+    user_id: uuid.UUID = Field(foreign_key="user.id")
 
     group: Group = Relationship(back_populates="users")
     user: User = Relationship(back_populates="groups")

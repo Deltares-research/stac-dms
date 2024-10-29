@@ -1,10 +1,11 @@
-from typing import Annotated, List, Optional
+from typing import Annotated, List, List
 from uuid import UUID
 from fastapi import Path, Query
 from stac_fastapi.types.errors import NotFoundError, InvalidQueryParameter
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import selectinload, lazyload, joinedload
 from sqlmodel import Session, select
+from pydantic import BaseModel, UUID4
 
 from dmsapi.database.models import (  # type: ignore
     User,
@@ -19,6 +20,16 @@ from dmsapi.database.models import (  # type: ignore
     GroupUserLink,
     OKResponse,
 )
+
+class GroupUserRequest(BaseModel):
+    user_ids: List[str]
+    group_id: str
+
+class PermissionRequest(BaseModel):
+    group_id: str
+    object: str
+    role_name: str
+
 
 class RBACClient:
     """Client for managing and retrieving users/permissions."""
@@ -38,6 +49,7 @@ class RBACClient:
         Returns:
             created user.
         """
+        print(user)
         with Session(self.db_engine) as session:
             db_user = User.model_validate(user)
             session.add(db_user)
@@ -92,7 +104,6 @@ class RBACClient:
             result = session.exec(
                 select(User)
                 .where(User.id == uuid)
-                .options(selectinload(User.keyword_groups))
             ).first()
             if result is None:
                 raise NotFoundError(f"User with ID {user_id} not found")
@@ -195,7 +206,6 @@ class RBACClient:
             result = session.exec(
                 select(Group)
                 .where(Group.id == uuid)
-                .options(selectinload(Group.keyword_groups))
             ).first()
             if result is None:
                 raise NotFoundError(f"Group with ID {group_id} not found")
@@ -235,9 +245,12 @@ class RBACClient:
             session.commit()
             return OKResponse(message="Group deleted")
 
-    def add_users_to_group(self, user_ids: list[int], group_id: int) -> bool:
+    def add_users_to_group(self, request: GroupUserRequest) -> bool:
         """Add multiple users to a group."""
         with Session(self.db_engine) as session:
+            group_id = UUID(request.group_id)
+            user_ids = [UUID(user_id) for user_id in request.user_ids]
+            
             # Check existing links to avoid duplicates
             existing_links = session.exec(
                 select(GroupUserLink)
@@ -245,20 +258,30 @@ class RBACClient:
             ).all()
             existing_user_ids = {link.user_id for link in existing_links}
 
-            # Add users that are not already in the group
-            new_links = [
-                GroupUserLink(user_id=user_id, group_id=group_id)
-                for user_id in user_ids if user_id not in existing_user_ids
-            ]
+            print(f"Existing user ids: {existing_user_ids}")
+            try:
+                # Add users that are not already in the group
+                new_links = [
+                    GroupUserLink(user_id=user_id, group_id=group_id)
+                    for user_id in user_ids if user_id not in existing_user_ids
+                ]
 
-            if new_links:
-                session.add_all(new_links)
-                session.commit()
-                return True
-            return False
+                print(f"new links: {new_links}")
 
-    def remove_users_from_group(self, user_ids: list[int], group_id: int) -> bool:
+                if len(new_links) != 0:
+                    session.add_all(new_links)
+                    session.commit()
+                    return OKResponse(message="Users added")
+                return OKResponse(message="Users not added")
+            except Exception as err:
+                print(err)
+
+    def remove_users_from_group(self, request: GroupUserRequest) -> bool:
         """Remove multiple users from a group."""
+
+        group_id = UUID(request.group_id)
+        user_ids = [UUID(user_id) for user_id in request.user_ids]
+        
         with Session(self.db_engine) as session:
             links_to_remove = session.exec(
                 select(GroupUserLink)
@@ -269,8 +292,8 @@ class RBACClient:
                 for link in links_to_remove:
                     session.delete(link)
                 session.commit()
-                return True
-            return False
+                return OKResponse(message="Users deleted from group")
+            return OKResponse(message="Users not deleted from group")
     
     def get_roles(self) -> List[RoleList]:
         """Retrieve all roles.
@@ -282,30 +305,43 @@ class RBACClient:
             results = session.exec(select(Role))
             return list(results.all())
 
-    def assign_permission_to_collection(self, group_id: int, role_name: str, obj: str) -> bool:
+    def assign_permission_to_collection(self, request: PermissionRequest) -> bool:
         """Assign a role to a group for a specific object."""
+        group_id = UUID(request.group_id)
+
         with Session(self.db_engine) as session:
-            role = session.exec(select(Role).where(Role.name == role_name)).first()
+            role = session.exec(select(Role).where(Role.name == request.role_name)).first()
+
             if role:
-                permission = Permission(group_id=group_id, role_id=role.id, object=obj)
+                existing_permission = session.exec(
+                select(Permission)
+                .where(Permission.group_id == group_id, Permission.role_id == role.id, Permission.object == request.object)
+                ).first()
+
+                if existing_permission:
+                    return OKResponse(message="Permission already exists for this group, role, and object combination.")
+
+                permission = Permission(group_id=group_id, role_id=role.id, object=request.object)
+                print(permission)
                 session.add(permission)
                 session.commit()
-                return True
-        return False
+                return OKResponse(message="Group permission added for collection")
+        return OKResponse(message="Group permission not added for collection")
 
-    def remove_permission_from_collection(self, group_id: int, role_name: str, obj: str) -> bool:
+    def remove_permission_from_collection(self, request: PermissionRequest) -> bool:
         """Remove a role from a group for a specific object."""
+        group_id = UUID(request.group_id)
         with Session(self.db_engine) as session:
-            role = session.exec(select(Role).where(Role.name == role_name)).first()
+            role = session.exec(select(Role).where(Role.name == request.role_name)).first()
             permission = session.exec(
-                select(Permission).where(Permission.group_id == group_id, Permission.role_id == role.id, Permission.object == obj)
+                select(Permission).where(Permission.group_id == group_id, Permission.role_id == role.id, Permission.object == request.object)
             ).first()
 
             if permission:
                 session.delete(permission)
                 session.commit()
-                return True
-        return False
+                return OKResponse(message="Group permission removed for collection")
+        return OKResponse(message="Group permission not removed for collection")
 
     def check_permission(self, user_id: int, obj: str, role_name: str) -> bool:
         """Check if a user has a specific role for a given object."""
