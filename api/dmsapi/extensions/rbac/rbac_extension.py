@@ -82,6 +82,7 @@ class RBACExtension(ApiExtension):
         self.add_add_group_permission_to_object()
         self.add_delete_group_permission_to_object()
         self.add_check_group_permission_to_object()
+        app.include_router(self.router, tags=["RBAC Extension"])
 
     def add_create_user(self):
         self.router.add_api_route(
@@ -309,7 +310,6 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.add_users_to_group,
             response_model=OKResponse,
             methods=["POST"]
-
         )
 
     def add_delete_users_from_group(self):
