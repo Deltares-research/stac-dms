@@ -143,6 +143,15 @@ class GroupList(GroupBase):
     id: uuid.UUID
 
 
+class GroupUserLink(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    group_id: uuid.UUID = Field(foreign_key="group.id")
+    user_id: uuid.UUID = Field(foreign_key="user.id")
+
+    group: Optional[Group] = Relationship(back_populates="users")
+    user: Optional[User] = Relationship(back_populates="groups")
+
+
 class Role(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str
@@ -161,14 +170,6 @@ class Permission(SQLModel, table=True):
     role: Role = Relationship()
     group: Group = Relationship(back_populates="permissions")
 
-
-class GroupUserLink(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID = Field(foreign_key="group.id")
-    user_id: uuid.UUID = Field(foreign_key="user.id")
-
-    group: Group = Relationship(back_populates="users")
-    user: User = Relationship(back_populates="groups")
 
 class ErrorResponse(SQLModel):
     code: str
