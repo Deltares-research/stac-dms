@@ -79,8 +79,10 @@ class RBACExtension(ApiExtension):
         self.add_get_roles()
         self.add_add_users_to_group()
         self.add_delete_users_from_group()
+        self.add_get_users_from_group()
         self.add_add_group_permission_to_object()
         self.add_delete_group_permission_to_object()
+        self.add_get_groups_with_permission_to_object()
         self.add_check_group_permission_to_object()
         app.include_router(self.router, tags=["RBAC Extension"])
 
@@ -321,6 +323,15 @@ class RBACExtension(ApiExtension):
             methods=["DELETE"]
         )
 
+    def add_get_users_from_group(self):
+        self.router.add_api_route(
+            name="Get users from group",
+            path="/groups_users/{group_id}",
+            endpoint=self.client.get_users_from_group,
+            response_model=list[User],
+            methods=["POST"]
+        )
+
     def add_add_group_permission_to_object(self):
         self.router.add_api_route(
             name="Set group permissions on collection",
@@ -339,12 +350,21 @@ class RBACExtension(ApiExtension):
             methods=["DELETE"]
         )
 
+    def add_get_groups_with_permission_to_object(self):
+        self.router.add_api_route(
+            name="Get groups/permissions of object",
+            path="/permissions/{obj}",
+            endpoint=self.client.get_permissions,
+            response_model=list[Permission],
+            methods=["POST"]
+        )
+
     # Review if next to add or not
     def add_check_group_permission_to_object(self):
         self.router.add_api_route(
             name="Check if group has permission to collection",
-            path="/permissions/group/{group_id}/",
+            path="/permissions_check",
             endpoint=self.client.check_permission,
-            response_model=Permission,
+            response_model=bool,
             methods=["POST"]
         )
