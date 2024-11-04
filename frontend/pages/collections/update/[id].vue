@@ -1,5 +1,5 @@
 <template>
-  <div class="justify-end">
+  <div class="grid grid-cols-2 gap-12">
     <CollectionCardForm
       card-title="Edit collection"
       button-title="update"
@@ -10,6 +10,52 @@
       :collectionType="selectedCollectionType"
       :keywordFacility="selectedKeywordsFacility"
     />
+
+    <div class="mt-12 flex flex-col space-y-1.5">
+      <h2 class="text-lg font-semibold">Permissions</h2>
+
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableHead>Group</TableHead>
+            <TableHead>Role</TableHead>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          <TableRow v-for="permission in permissions" :key="permission.id">
+            <TableCell>{{ permission.group_id }}</TableCell>
+            <TableCell>{{ permission.role_name }}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+
+      <form
+        @submit="onSubmitAddPermissionForm"
+        class="mt-12 flex items-end gap-1.5 w-full"
+      >
+        <FormField v-slot="{ componentField }" name="group_ids">
+          <FormItem class="w-full">
+            <FormLabel>Group</FormLabel>
+            <FormControl>
+              <GroupCombobox v-bind="componentField" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ componentField }" name="role_name">
+          <FormItem class="w-full">
+            <FormLabel>Role</FormLabel>
+            <FormControl>
+              <Input v-bind="componentField" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <Button type="submit" class="mt-3">Add</Button>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -18,6 +64,11 @@ import type { Collection } from "@/lib/collection"
 import CollectionCardForm from "@/components/collections/CollectionCardForm.vue"
 import { useNuxtApp, useRoute, useRouter } from "nuxt/app"
 import { ref } from "vue"
+import GroupCombobox from "~/components/rbac/GroupCombobox.vue"
+import { toast } from "@/components/ui/toast"
+import { toTypedSchema } from "@vee-validate/zod"
+import { z } from "zod"
+import { useForm } from "vee-validate"
 
 const { $api } = useNuxtApp()
 
@@ -26,8 +77,50 @@ const title = ref("")
 const description = ref("")
 const selectedCollectionType = ref("")
 const selectedKeywordsFacility = ref("")
+const selectedGroups = ref([])
 
 const route = useRoute()
+
+const collectionId = route.params.id as string
+
+let addPermissionSchema = toTypedSchema(
+  z.object({
+    group_ids: z.array(z.string()),
+    role_name: z.string(),
+  }),
+)
+
+let addPermissionForm = useForm({
+  validationSchema: addPermissionSchema,
+})
+
+let onSubmitAddPermissionForm = addPermissionForm.handleSubmit(
+  async (values) => {
+    let response = await $api("/permissions", {
+      method: "post",
+      body: {
+        ...values,
+        group_id: values.group_ids[0],
+        object: collectionId,
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+
+    toast({
+      title: response.message,
+    })
+
+    addPermissionForm.resetForm()
+  },
+)
+
+const { data: permissions } = await useApi("/permissions/{obj}", {
+  method: "post",
+  path: { obj: collectionId },
+})
+
 const data = await $api("/collections/{collection_id}", {
   path: {
     collection_id: route.params.id,
