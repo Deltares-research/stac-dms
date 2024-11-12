@@ -23,6 +23,7 @@ let props = defineProps<{
   items: T[]
   titleProperty: keyof T
   subtitleProperty?: keyof T
+  placeholder: string
   trigger: string
   commandEmpty: string
   modelValue?: string[]
@@ -99,7 +100,7 @@ let itemsById = computed(() =>
       </PopoverTrigger>
       <PopoverContent class="p-0 PopoverContent">
         <Command>
-          <CommandInput class="h-9" placeholder="Search collection..." />
+          <CommandInput class="h-9" :placeholder="placeholder" />
           <CommandEmpty>{{ commandEmpty }}</CommandEmpty>
           <CommandList>
             <CommandGroup>
