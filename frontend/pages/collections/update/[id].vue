@@ -19,12 +19,27 @@
           <TableRow>
             <TableHead>Group</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Actions</TableHead>
           </TableRow>
         </TableHead>
         <TableBody>
           <TableRow v-for="permission in permissions" :key="permission.id">
+            <!-- TODO: Replace with group name -->
             <TableCell>{{ permission.group_id }}</TableCell>
-            <TableCell>{{ permission.role_name }}</TableCell>
+            <TableCell>
+              {{ roles?.find((r) => r.id === permission.role_id)?.name }}
+            </TableCell>
+            <TableCell>
+              <DeletePermission
+                @deleted="refreshPermissions"
+                :group_id="permission.group_id"
+                :object="permission.object"
+                :role_name="
+                  // TODO: Replace with role name
+                  roles?.find((r) => r.id === permission.role_id)?.name
+                "
+              />
+            </TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -84,6 +99,7 @@ import { toast } from "@/components/ui/toast"
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
 import { useForm } from "vee-validate"
+import DeletePermission from "~/components/rbac/DeletePermission.vue"
 
 const { $api } = useNuxtApp()
 
@@ -144,15 +160,12 @@ const { data: permissions, refresh: refreshPermissions } = await useApi(
   },
 )
 
-watchEffect(() => {
-  console.log(permissions.value)
-})
-
 const data = await $api("/collections/{collection_id}", {
   path: {
     collection_id: route.params.id,
   },
 })
+
 title.value = data.title
 description.value = data.description
 selectedCollectionType.value = data.keywords[0]
