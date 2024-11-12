@@ -57,7 +57,7 @@
                   <SelectItem
                     v-for="role in roles"
                     :key="role.id"
-                    :value="role.id"
+                    :value="role.name"
                   >
                     {{ role.name }}
                   </SelectItem>
@@ -127,19 +127,25 @@ let onSubmitAddPermissionForm = addPermissionForm.handleSubmit(
       },
     })
 
-    console.log(response)
-
     toast({
       title: response.message,
     })
 
     addPermissionForm.resetForm()
+    refreshPermissions()
   },
 )
 
-const { data: permissions } = await useApi("/permissions/{obj}", {
-  method: "post",
-  path: { obj: collectionId },
+const { data: permissions, refresh: refreshPermissions } = await useApi(
+  "/permissions/{obj}",
+  {
+    method: "post",
+    path: { obj: collectionId },
+  },
+)
+
+watchEffect(() => {
+  console.log(permissions.value)
 })
 
 const data = await $api("/collections/{collection_id}", {
