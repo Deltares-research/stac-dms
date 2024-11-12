@@ -18,6 +18,8 @@ import CollectionCombobox from "~/components/collections/CollectionCombobox.vue"
 
 let route = useRoute()
 
+let selectedItemId = ref<string>()
+
 let daterange = ref<DateRange>()
 let bbox = ref<Extent>()
 
@@ -133,7 +135,11 @@ let { data: searchResults, refresh } = useApi("/search", {
           {{ searchResults?.features.length === 1 ? "Result" : "Results" }}
         </h1>
 
-        <Card v-for="item of searchResults?.features" :key="item.id">
+        <Card
+          v-for="item of searchResults?.features"
+          :key="item.id"
+          :class="selectedItemId === item.id ? 'border-emerald-500' : ''"
+        >
           <CardHeader>
             <CardTitle class="text-xl">
               {{ item.properties.title ?? item.id }}
@@ -159,6 +165,7 @@ let { data: searchResults, refresh } = useApi("/search", {
         <MapBrowser
           :feature-collection="searchResults"
           @change-bbox="onChangeBbox"
+          @hover-item="selectedItemId = $event"
         />
       </ClientOnly>
     </div>
