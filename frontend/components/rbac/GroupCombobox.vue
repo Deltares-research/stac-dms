@@ -19,6 +19,7 @@ let { data: groups } = await useApi("/groups")
     :items="groups ?? []"
     title-property="name"
     subtitle-property="description"
+    placeholder="Search groups"
     trigger="Add group"
     command-empty="No groups found"
     :model-value="modelValue"

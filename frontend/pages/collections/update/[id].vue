@@ -46,9 +46,24 @@
         <FormField v-slot="{ componentField }" name="role_name">
           <FormItem class="w-full">
             <FormLabel>Role</FormLabel>
-            <FormControl>
-              <Input v-bind="componentField" />
-            </FormControl>
+            <Select v-bind="componentField">
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem
+                    v-for="role in roles"
+                    :key="role.id"
+                    :value="role.id"
+                  >
+                    {{ role.name }}
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -83,6 +98,10 @@ const route = useRoute()
 
 const collectionId = route.params.id as string
 
+const { data: roles } = await useApi("/roles", {
+  method: "get",
+})
+
 let addPermissionSchema = toTypedSchema(
   z.object({
     group_ids: z.array(z.string()),
@@ -99,7 +118,7 @@ let onSubmitAddPermissionForm = addPermissionForm.handleSubmit(
     let response = await $api("/permissions", {
       method: "post",
       body: {
-        ...values,
+        role_name: values.role_name,
         group_id: values.group_ids[0],
         object: collectionId,
       },
@@ -107,6 +126,8 @@ let onSubmitAddPermissionForm = addPermissionForm.handleSubmit(
         "Content-Type": "application/json",
       },
     })
+
+    console.log(response)
 
     toast({
       title: response.message,
