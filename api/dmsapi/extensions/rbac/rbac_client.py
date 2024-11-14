@@ -385,7 +385,7 @@ class RBACClient:
                 if existing_permission:
                     return OKResponse(message="Permission already exists for this group, role, and object combination.")
 
-                permission = Permission(group_id=group_id, role_id=role.id, object=request.object)
+                permission = Permission(group_id=group_id, role_id=role.id, object=request.object.lower())
                 session.add(permission)
                 session.commit()
                 return OKResponse(message="Group permission added for collection")
