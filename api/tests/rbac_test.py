@@ -10,7 +10,9 @@ from httpx import AsyncClient
 async def test_create_user(app_client: AsyncClient, rbac_client: RBACClient):
     username = "test_user"
     email = "test.test@deltares.nl"
-    response = await app_client.post("/users", json={"username": username, "email": email})
+    response = await app_client.post(
+        "/users", json={"username": username, "email": email}
+    )
     assert response.status_code == 200
     assert response.json()["username"] == username
     assert response.json()["email"] == email
@@ -32,13 +34,13 @@ async def test_update_user(app_client: AsyncClient, user: User):
     response = await app_client.get(f"/users/{user.id}")
     assert response.status_code == 200
     user_obj = User(**response.json())
-    assert user_obj.name == "test_user"
+    assert user_obj.username == "test_user"
     update_response = await app_client.put(
         f"/users/{user.id}", json={"username": "updated_user"}
     )
     assert update_response.status_code == 200
     updated_obj = User(**update_response.json())
-    assert updated_obj.name == "updated_user"
+    assert updated_obj.username == "updated_user"
 
 
 # test get user
@@ -62,12 +64,12 @@ async def test_get_users(app_client: AsyncClient, user: User):
 
 # test get user by name
 @pytest.mark.asyncio
-async def test_get_user(app_client: AsyncClient, rbac_client: RBACClient):
-    username = "test_user"
-    email = "test@deltares.nl"
-    user = rbac_client.create_user({"username": username, "email": email})
+async def test_get_user_by_email(user: User, rbac_client: RBACClient):
+    # username = "test_user"
+    # email = "test@deltares.nl"
+    # user = rbac_client.create_user({"username": username, "email": email})
 
-    user_obj = rbac_client.get_user_by_name(email)
+    user_obj = rbac_client.get_user_by_email(user.email)
     assert user_obj.username == "test_user"
 
 
@@ -95,7 +97,9 @@ async def test_delete_user(app_client: AsyncClient, rbac_client: RBACClient):
 async def test_create_group(app_client: AsyncClient, rbac_client: RBACClient):
     name = "test_group"
     description = "Test group"
-    response = await app_client.post("/groups", json={"name": name, "description": description})
+    response = await app_client.post(
+        "/groups", json={"name": name, "description": description}
+    )
     assert response.status_code == 200
     assert response.json()["name"] == name
     assert response.json()["description"] == description
@@ -119,7 +123,8 @@ async def test_update_group(app_client: AsyncClient, group: Group):
     group_obj = Group(**response.json())
     assert group_obj.name == "test_group"
     update_response = await app_client.put(
-        f"/groups/{group.id}", json={"name": "updated_group", "description": "updated_description"}
+        f"/groups/{group.id}",
+        json={"name": "updated_group", "description": "updated_description"},
     )
     assert update_response.status_code == 200
     updated_obj = Group(**update_response.json())
@@ -144,7 +149,7 @@ async def test_get_groups(app_client: AsyncClient, group: Group):
     assert response.status_code == 200
     assert len(response.json()) > 0
     group_obj = Group(**response.json()[0])
-    assert group_obj.username == "test_group"
+    assert group_obj.name == "test_group"
     assert group_obj.description == "test_description"
 
 
@@ -170,10 +175,10 @@ async def test_delete_group(app_client: AsyncClient, rbac_client: RBACClient):
 # test get all roles
 @pytest.mark.asyncio
 async def test_get_roles(app_client: AsyncClient):
-    response = await app_client.get(f"/roles")
+    response = await app_client.get("/roles")
     assert response.status_code == 200
     assert len(response.json()) > 0
-    #group_obj = Role(**response.json()[0])
+    # group_obj = Role(**response.json()[0])
 
 
 # test add users to group
@@ -205,14 +210,19 @@ async def test_add_users_to_group(app_client: AsyncClient, rbac_client: RBACClie
     assert response.status_code == 200
 
     # add users to group
-    response = await app_client.post("/groups_users_link", json={"user_ids": [user.id, user_2.id], "group_id": group.id})
+    response = await app_client.post(
+        "/groups_users_link",
+        json={"user_ids": [str(user.id), str(user_2.id)], "group_id": str(group.id)},
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Users added"}
 
 
 # test add users to group invalid
 @pytest.mark.asyncio
-async def test_add_users_to_group_invalid(app_client: AsyncClient, rbac_client: RBACClient):
+async def test_add_users_to_group_invalid(
+    app_client: AsyncClient, rbac_client: RBACClient
+):
     # create users
     username = "test_user_1"
     email = "test_1@deltares.nl"
@@ -230,13 +240,19 @@ async def test_add_users_to_group_invalid(app_client: AsyncClient, rbac_client: 
     assert response.status_code == 200
 
     # add users to group
-    response = await app_client.post("/groups_users_link", json={"user_ids": [user.id, user_2.id], "group_id": ""})
+    response = await app_client.post(
+        "/groups_users_link",
+        json={"user_ids": [str(user.id), str(user_2.id)], "group_id": ""},
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Users not added"}
 
+
 # test remove users from group
 @pytest.mark.asyncio
-async def test_remove_users_from_group(app_client: AsyncClient, rbac_client: RBACClient):
+async def test_remove_users_from_group(
+    app_client: AsyncClient, rbac_client: RBACClient
+):
     # create users
     username = "test_user_to_delete_1"
     email = "test_1@deltares.nl"
@@ -263,14 +279,19 @@ async def test_remove_users_from_group(app_client: AsyncClient, rbac_client: RBA
     assert response.status_code == 200
 
     # add users to group
-    response = await app_client.delete("/groups_users_unlink", json={"user_ids": [user.id, user_2.id], "group_id": group.id})
+    response = await app_client.delete(
+        "/groups_users_unlink",
+        json={"user_ids": [user.id, user_2.id], "group_id": group.id},
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Users deleted from group"}
 
 
 # test remove users from group invalid
 @pytest.mark.asyncio
-async def test_remove_users_from_group_invalid(app_client: AsyncClient, rbac_client: RBACClient):
+async def test_remove_users_from_group_invalid(
+    app_client: AsyncClient, rbac_client: RBACClient
+):
     # create users
     username = "test_user_1"
     email = "test_1@deltares.nl"
@@ -288,14 +309,18 @@ async def test_remove_users_from_group_invalid(app_client: AsyncClient, rbac_cli
     assert response.status_code == 200
 
     # add users to group
-    response = await app_client.delete("/groups_users_unlink", json={"user_ids": [user.id, user_2.id], "group_id": ""})
+    response = await app_client.delete(
+        "/groups_users_unlink", json={"user_ids": [user.id, user_2.id], "group_id": ""}
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Users not deleted from group"}
 
 
 # test assign group permissions to a collection
 @pytest.mark.asyncio
-async def test_assign_permission_to_collection(app_client: AsyncClient, rbac_client: RBACClient):
+async def test_assign_permission_to_collection(
+    app_client: AsyncClient, rbac_client: RBACClient
+):
     # create group
     name = "test_group"
     description = "test_description"
@@ -307,21 +332,31 @@ async def test_assign_permission_to_collection(app_client: AsyncClient, rbac_cli
 
     obj = "test-collection"
     role_name = "admin"
-    response = await app_client.get(f"/permissions", json={"object": obj, "role_name": role_name, "group_id": group.id})
+    response = await app_client.get(
+        f"/permissions",
+        json={"object": obj, "role_name": role_name, "group_id": group.id},
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Group permission added for collection"}
 
+
 # test assign group permissions to a collection invalid
 @pytest.mark.asyncio
-async def test_assign_permission_to_collection_invalid(app_client: AsyncClient, rbac_client: RBACClient):
-    response = await app_client.get(f"/permissions", json={"object": "", "role_name": "", "group_id": ""})
+async def test_assign_permission_to_collection_invalid(
+    app_client: AsyncClient, rbac_client: RBACClient
+):
+    response = await app_client.get(
+        f"/permissions", json={"object": "", "role_name": "", "group_id": ""}
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Group permission not added for collection"}
 
 
 # test remove group permissions to a collection
 @pytest.mark.asyncio
-async def test_remove_permission_to_collection(app_client: AsyncClient, rbac_client: RBACClient):
+async def test_remove_permission_to_collection(
+    app_client: AsyncClient, rbac_client: RBACClient
+):
     # create group
     name = "test_group"
     description = "test_description"
@@ -333,14 +368,21 @@ async def test_remove_permission_to_collection(app_client: AsyncClient, rbac_cli
 
     obj = "test-collection"
     role_name = "admin"
-    response = await app_client.delete(f"/permissions", json={"object": obj, "role_name": role_name, "group_id": group.id})
+    response = await app_client.delete(
+        f"/permissions",
+        json={"object": obj, "role_name": role_name, "group_id": group.id},
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Group permission added for collection"}
 
 
 # test remove group permissions to a collection invalid
 @pytest.mark.asyncio
-async def test_remove_permission_to_collection_invalid(app_client: AsyncClient, rbac_client: RBACClient):
-    response = await app_client.delete(f"/permissions", json={"object": "", "role_name": "", "group_id": ""})
+async def test_remove_permission_to_collection_invalid(
+    app_client: AsyncClient, rbac_client: RBACClient
+):
+    response = await app_client.delete(
+        f"/permissions", json={"object": "", "role_name": "", "group_id": ""}
+    )
     assert response.status_code == 200
     assert response.json() == {"message": "Group permission not removed for collection"}

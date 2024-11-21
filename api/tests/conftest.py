@@ -2,6 +2,8 @@ import os
 
 from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
+from dmsapi.extensions.rbac.rbac_client import RBACClient
+from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from sqlmodel import SQLModel
 
 ## This part is gross but it's the only way to get the settings to load withouth changing to much in the underlying package
@@ -114,6 +116,7 @@ async def app(db_engine):
         TokenPaginationExtension(),
         filter_extension,
         KeywordExtension(db_engine=db_engine),
+        RBACExtension(db_engine=db_engine),
     ]
     SQLModel.metadata.create_all(db_engine)
 
@@ -140,6 +143,11 @@ async def app_client(app):
 
     async with AsyncClient(app=app, base_url="http://test-server") as c:
         yield c
+
+
+@pytest.fixture(scope="function")
+def rbac_client(db_engine):
+    return RBACExtension(db_engine=db_engine).client
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -251,3 +259,33 @@ async def filled_db(keyword_client: KeywordClient):
         }
     )
     return [facility1, facility2], [keyword_group1, keyword_group2]
+
+
+@pytest_asyncio.fixture(scope="function")
+async def user(rbac_client: RBACClient):
+    user = rbac_client.create_user(
+        {
+            "username": "test_user",
+            "email": "test.test@deltares.nl",
+        }
+    )
+    yield user
+    try:
+        rbac_client.delete_user(str(user.id))
+    except Exception:
+        pass
+
+
+@pytest_asyncio.fixture(scope="function")
+async def group(rbac_client: RBACClient):
+    group = rbac_client.create_group(
+        {
+            "name": "test_group",
+            "description": "test_description",
+        }
+    )
+    yield group
+    try:
+        rbac_client.delete_group(str(group.id))
+    except Exception:
+        pass
