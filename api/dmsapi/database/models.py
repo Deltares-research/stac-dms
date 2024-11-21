@@ -3,6 +3,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from fastapi import Path
 from typing import Optional, List
 
+
 class FacilityKeywordGroupLink(SQLModel, table=True):
     facility_id: uuid.UUID = Field(foreign_key="facility.id", primary_key=True)
     keyword_group_id: uuid.UUID = Field(
@@ -117,6 +118,11 @@ class User(UserBase, table=True):
 
 class UserCreate(UserBase):
     pass
+
+
+class UserUpdate(SQLModel):
+    username: str | None = Field(min_length=1, max_length=100, default=None)
+    email: str | None = Field(min_length=1, max_length=100, default=None)
 
 
 class UserList(UserBase):
