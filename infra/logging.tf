@@ -22,6 +22,7 @@ resource "aws_cloudwatch_log_resource_policy" "elasticsearch-log-publishing-poli
 
 # Create a Log group for opensearch
 resource "aws_cloudwatch_log_group" "opensearch_log_group_index_slow_logs" {
+  depends_on = [aws_kms_key.log_group_key]
   name_prefix       = "/aws/es/${terraform.workspace}"
   retention_in_days = 1
   kms_key_id        = aws_kms_key.log_group_key.arn
@@ -30,6 +31,7 @@ resource "aws_cloudwatch_log_group" "opensearch_log_group_index_slow_logs" {
 
 # Create a Log group for opensearch
 resource "aws_cloudwatch_log_group" "opensearch_log_group_search_slow_logs" {
+  depends_on = [aws_kms_key.log_group_key]
   name_prefix       = "/aws/es/${terraform.workspace}"
   retention_in_days = 1
   kms_key_id        = aws_kms_key.log_group_key.arn
@@ -37,6 +39,7 @@ resource "aws_cloudwatch_log_group" "opensearch_log_group_search_slow_logs" {
 
 # Create a Log group for opensearch
 resource "aws_cloudwatch_log_group" "opensearch_log_group_es_application_logs" {
+  depends_on = [aws_kms_key.log_group_key]
   name_prefix       = "/aws/es/${terraform.workspace}"
   retention_in_days = 1
   kms_key_id        = aws_kms_key.log_group_key.arn
@@ -44,6 +47,7 @@ resource "aws_cloudwatch_log_group" "opensearch_log_group_es_application_logs" {
 
 # Create a Log group for ecs
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
+  depends_on = [aws_kms_key.log_group_key]
   name_prefix       = "/aws/vendedlogs/states/ecs-${terraform.workspace}-"
   retention_in_days = 1
   kms_key_id        = aws_kms_key.log_group_key.arn

@@ -22,7 +22,7 @@ resource "aws_ecs_task_definition" "frontend" {
   container_definitions = jsonencode([
     {
       name  = "frontend"
-      image = "${var.harbor_url}/${var.harbor_project}/frontend:latest"
+      image = "${var.harbor_url}/${var.harbor_project}/frontend:${terraform.workspace}"
       repositoryCredentials = {
         credentialsParameter = aws_secretsmanager_secret.harbor_login.arn
       }
@@ -36,13 +36,6 @@ resource "aws_ecs_task_definition" "frontend" {
           protocol      = "tcp"
         }
       ]
-      # mountPoints = [
-      #   {
-      #     sourceVolume  = "task-storage"
-      #     containerPath = "/dms-data"
-      #     readOnly      = false
-      #   }
-      # ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -166,7 +159,7 @@ resource "aws_ecs_task_definition" "backend" {
   container_definitions = jsonencode([
     {
       name  = "backend"
-      image = "${var.harbor_url}/${var.harbor_project}/stac-fastapi-os:latest"
+      image = "${var.harbor_url}/${var.harbor_project}/stac-fastapi-os:${terraform.workspace}"
       repositoryCredentials = {
         credentialsParameter = aws_secretsmanager_secret.harbor_login.arn
       }
@@ -180,13 +173,6 @@ resource "aws_ecs_task_definition" "backend" {
           protocol      = "tcp"
         }
       ]
-      # mountPoints = [
-      #   {
-      #     sourceVolume  = "task-storage"
-      #     containerPath = "/dms-data"
-      #     readOnly      = false
-      #   }
-      # ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -195,6 +181,98 @@ resource "aws_ecs_task_definition" "backend" {
           awslogs-stream-prefix = "ecs-backend"
         }
       }
+      environment = [
+        {
+          name  = "ES_HOST"
+          value = "true"
+        },
+        {
+          name  = "ES_USER"
+          value = "${local.master_user}"
+        },
+        {
+          name  = "ES_PORT"
+          value = "443"
+        },
+        {
+          name  = "ES_USE_SSL"
+          value = "true"
+        },
+        {
+          name  = "ES_VERIFY_CERTS"
+          value = "true"
+        },
+        {
+          name  = "APP_DOMAIN"
+          value = "${var.app_domain}"
+        },
+        {
+          name  = "STAC_FASTAPI_TITLE"
+          value = "Deltares Data Management Suite STAC API"
+        },
+        {
+          name  = "STAC_FASTAPI_DESCRIPTION"
+          value = "A STAC API containing Deltares datasets"
+        },
+        {
+          name  = "STAC_FASTAPI_VERSION"
+          value = "3.0.0a2"
+        },
+        {
+          name  = "APP_HOST"
+          value = "0.0.0.0"
+        },
+        {
+          name  = "APP_PORT"
+          value = "8000"
+        },
+        {
+          name  = "STAC_FASTAPI_DESCRIPTION"
+          value = "A STAC API containing Deltares datasets"
+        },
+        {
+          name  = "STAC_FASTAPI_DESCRIPTION"
+          value = "A STAC API containing Deltares datasets"
+        },
+        {
+          name  = "BACKEND"
+          value = "opensearch"
+        },
+        {
+          name  = "ENVIRONMENT"
+          value = "local"
+        },
+        {
+          name  = "WEB_CONCURRENCY"
+          value = "10"
+        },
+        {
+          name  = "DB_CONNECTION_URL"
+          value = "postgresql+psycopg://${aws_db_instance.dms.address}:${tostring(aws_db_instance.dms.port)}/postgres"
+        },
+      ]
+      secrets = [
+        {
+          name = "AZURE_APP_CLIENT_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_client_secret.arn}:azure_app_client_secret::"
+        },
+        {
+          name = "AZURE_APP_CLIENT_ID"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_client_id.arn}:azure_app_client_id::"
+        },
+        {
+          name = "AZURE_TENANT_ID"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_tenant_id.arn}:azure_app_tenant_id::"
+        },
+        {
+          name = "APP_SECRET_KEY"
+          valueFrom = "${aws_secretsmanager_secret.app_secret_key.arn}:app_secret_key::"
+        },
+        {
+          name = "ES_PASS"
+          valueFrom = "${aws_secretsmanager_secret.opensearch_credentials.arn}:password::"
+        },
+      ]
     }
   ])
 }
