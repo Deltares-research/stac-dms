@@ -177,6 +177,15 @@ class Permission(SQLModel, table=True):
     group: Group = Relationship(back_populates="permissions")
 
 
+class PermissionResponse(SQLModel):
+    id: uuid.UUID
+    object: str
+    role_id: uuid.UUID
+    role_name: str
+    group_id: uuid.UUID
+    group_name: str
+
+
 class ErrorResponse(SQLModel):
     code: str
     description: str

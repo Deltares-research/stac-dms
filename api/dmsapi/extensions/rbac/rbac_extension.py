@@ -5,6 +5,7 @@ from sqlalchemy.engine import Engine
 from stac_fastapi.types.extension import ApiExtension
 
 from dmsapi.database.models import (  # type: ignore
+    PermissionResponse,
     User,
     Group,
     Role,
@@ -355,7 +356,7 @@ class RBACExtension(ApiExtension):
             name="Get groups/permissions of object",
             path="/permissions/{obj}",
             endpoint=self.client.get_permissions,
-            response_model=list[Permission],
+            response_model=list[PermissionResponse],
             methods=["POST"]
         )
 

@@ -13,6 +13,8 @@ from dmsapi.schemas.requests import (
 )
 
 from dmsapi.database.models import (  # type: ignore
+    ErrorResponse,
+    PermissionResponse,
     User,
     UserCreate,
     UserList,
@@ -259,7 +261,7 @@ class RBACClient:
             session.commit()
             return OKResponse(message="Group deleted")
 
-    def add_users_to_group(self, request: GroupUserRequest) -> bool:
+    def add_users_to_group(self, request: GroupUserRequest) -> OKResponse:
         """Add multiple users to a group.
 
         Args:
@@ -300,7 +302,7 @@ class RBACClient:
                 return OKResponse(message="Users not added")
             except Exception as err:
                 print(err)
-                return False
+                return ErrorResponse(code="500", description="Internal server error")
 
     def remove_users_from_group(self, request: GroupUserRequest) -> bool:
         """Remove multiple users from a group.
@@ -419,13 +421,20 @@ class RBACClient:
                 return OKResponse(message="Group permission removed for collection")
         return OKResponse(message="Group permission not removed for collection")
 
-    def get_permissions(self, obj: str) -> List[Permission]:
+    def get_permissions(self, obj: str) -> List[PermissionResponse]:
         with Session(self.db_engine) as session:
             permissions = session.exec(
                 select(Permission).where(Permission.object == obj.lower())
             )
-
-            return permissions.all()
+            # add group name to the permission response as separate field
+            return [
+                PermissionResponse(
+                    **permission.model_dump(),
+                    role_name=permission.role.name,
+                    group_name=permission.group.name,
+                )
+                for permission in permissions.all()
+            ]
 
     @staticmethod
     def check_permission(db_engine, email: str, role_name: str, obj: str) -> bool:
