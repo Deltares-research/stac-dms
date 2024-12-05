@@ -15,6 +15,8 @@ import MapBrowser from "~/components/MapBrowser.vue"
 import type { Extent } from "ol/extent"
 import KeywordsCombobox from "~/components/keywords/KeywordsCombobox.vue"
 import CollectionCombobox from "~/components/collections/CollectionCombobox.vue"
+import Label from "~/components/ui/label/Label.vue"
+import { bboxPolygon } from "@turf/turf"
 
 let route = useRoute()
 
@@ -32,6 +34,89 @@ function onChangeBbox(newBox: Extent) {
   bbox.value = newBox
 }
 
+let bboxAsPolygon = computed(() => {
+  if (!bbox.value)
+    return {
+      type: "Polygon",
+      coordinates: [
+        [
+          [-214.1047111774557, -80.10370486246764],
+          [145.8952888225443, -80.10370486246764],
+          [145.8952888225443, 85.05112877980659],
+          [-214.1047111774557, 85.05112877980659],
+          [-214.1047111774557, -80.10370486246764],
+        ],
+      ],
+    }
+
+  return bboxPolygon(bbox.value).geometry
+})
+
+let filter = computed(() => {
+  return {
+    op: "and",
+    args: [
+      // within bbox
+      // {
+      //   op: "or",
+      //   args: [
+      // {
+      //   op: "s_intersects",
+      //   args: [
+      //     {
+      //       property: "geometry",
+      //     },
+      //     bboxAsPolygon.value,
+      //   ],
+      // },
+      {
+        op: "isNull",
+        args: [
+          {
+            property: "geometry",
+          },
+        ],
+      },
+      //   ],
+      // },
+      // {
+      //   op: "or",
+      //   args: [
+      //     {
+      //       op: "like",
+      //       args: [
+      //         {
+      //           property: "properties.title",
+      //         },
+      //         `%${route.query.q ?? ""}%`,
+      //       ],
+      //     },
+      //     {
+      //       op: "like",
+      //       args: [
+      //         {
+      //           property: "properties.description",
+      //         },
+      //         `%${route.query.q ?? ""}%`,
+      //       ],
+      //     },
+      //   ],
+      // },
+      // route.query.keywords
+      //   ? {
+      //       op: "in",
+      //       args: [
+      //         {
+      //           property: "properties.keywords.id",
+      //         },
+      //         keywordIds,
+      //       ],
+      //     }
+      //   : undefined,
+    ],
+  }
+})
+
 let keywordIds = (
   Array.isArray(route.query.keywords)
     ? route.query.keywords
@@ -48,54 +133,22 @@ let collectionIds = (
   .map((id) => id?.toString())
   .filter(Boolean) as string[]
 
-let { data: searchResults, refresh } = useApi("/search", {
+let {
+  data: searchResults,
+  refresh,
+  error,
+} = useApi("/search", {
   method: "post",
   body: {
-    collections: collectionIds,
-    datetime: datetime,
-    bbox: bbox,
-    filter: {
-      op: "and",
-      args: [
-        {
-          op: "or",
-          args: [
-            {
-              op: "like",
-              args: [
-                {
-                  property: "properties.title",
-                },
-                `%${route.query.q ?? ""}%`,
-              ],
-            },
-            {
-              op: "like",
-              args: [
-                {
-                  property: "properties.description",
-                },
-                `%${route.query.q ?? ""}%`,
-              ],
-            },
-          ],
-        },
-        route.query.keywords
-          ? {
-              op: "in",
-              args: [
-                {
-                  property: "properties.keywords.id",
-                },
-                keywordIds,
-              ],
-            }
-          : undefined,
-      ].filter(Boolean),
-    },
-    "filter-lang": "cql2-json",
+    // collections: collectionIds,
+    // datetime: datetime,
+    // bbox: bbox,
+    filter,
+    "filter-lang": "cql-json",
   },
 })
+
+console.log(error)
 </script>
 
 <template>
@@ -123,6 +176,11 @@ let { data: searchResults, refresh } = useApi("/search", {
           placeholder="Collections"
           :model-value="collectionIds"
         />
+
+        <Label class="py-1.5 flex items-center gap-1.5">
+          <Checkbox name="includeItemsWithoutLocation" />
+          Include items without location
+        </Label>
 
         <Button>Search</Button>
       </form>
