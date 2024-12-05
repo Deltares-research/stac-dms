@@ -22,12 +22,12 @@ export default defineNuxtConfig({
   openFetch: {
     clients: {
       api: {
-        schema: "https://deltares-fairdata.com/api/api",
+        schema: process.env.API_URL + "/api",
         baseURL: "/api",
       },
     },
   },
   routeRules: {
-    "/api/**": { proxy: "https://deltares-fairdata.com/api/**" },
+    "/api/**": { proxy: process.env.API_URL + "/api/**" },
   },
 })
