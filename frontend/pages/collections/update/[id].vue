@@ -25,19 +25,14 @@
         <TableBody>
           <TableRow v-for="permission in permissions" :key="permission.id">
             <!-- TODO: Replace with group name -->
-            <TableCell>{{ permission.group_id }}</TableCell>
-            <TableCell>
-              {{ roles?.find((r) => r.id === permission.role_id)?.name }}
-            </TableCell>
+            <TableCell>{{ permission.group_name }}</TableCell>
+            <TableCell>{{ permission.role_name }}</TableCell>
             <TableCell>
               <DeletePermission
                 @deleted="refreshPermissions"
                 :group_id="permission.group_id"
                 :object="permission.object"
-                :role_name="
-                  // TODO: Replace with role name
-                  roles?.find((r) => r.id === permission.role_id)?.name
-                "
+                :role_name="permission.role_name"
               />
             </TableCell>
           </TableRow>
