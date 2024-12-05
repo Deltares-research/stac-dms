@@ -253,23 +253,23 @@ resource "aws_ecs_task_definition" "backend" {
       ]
       secrets = [
         {
-          name = "AZURE_APP_CLIENT_SECRET"
+          name      = "AZURE_APP_CLIENT_SECRET"
           valueFrom = "${aws_secretsmanager_secret.azure_app_client_secret.arn}:azure_app_client_secret::"
         },
         {
-          name = "AZURE_APP_CLIENT_ID"
+          name      = "AZURE_APP_CLIENT_ID"
           valueFrom = "${aws_secretsmanager_secret.azure_app_client_id.arn}:azure_app_client_id::"
         },
         {
-          name = "AZURE_TENANT_ID"
+          name      = "AZURE_TENANT_ID"
           valueFrom = "${aws_secretsmanager_secret.azure_app_tenant_id.arn}:azure_app_tenant_id::"
         },
         {
-          name = "APP_SECRET_KEY"
+          name      = "APP_SECRET_KEY"
           valueFrom = "${aws_secretsmanager_secret.app_secret_key.arn}:app_secret_key::"
         },
         {
-          name = "ES_PASS"
+          name      = "ES_PASS"
           valueFrom = "${aws_secretsmanager_secret.opensearch_credentials.arn}:password::"
         },
       ]
