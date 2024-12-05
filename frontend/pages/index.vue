@@ -70,6 +70,7 @@ let filter = computed(() => {
                 ],
               }
             : undefined,
+          // The isNull operator does not work. The below is a workaround. It includes items that have no geometry by intersecting with a Polygon that covers the entire world.
           route.query.includeEmptyGeometry === "on"
             ? {
                 op: "not",
