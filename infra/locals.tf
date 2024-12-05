@@ -9,7 +9,7 @@ locals {
   }
 
   aws_account_id = data.aws_caller_identity.current_account.account_id
-  domain         = "dms-engine"
+  domain         = "dms-engine-${terraform.workspace}"
   custom_domain  = data.aws_route53_zone.opensearch.name
   master_user    = "dms-masteruser"
 }
