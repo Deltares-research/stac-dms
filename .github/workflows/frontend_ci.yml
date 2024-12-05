@@ -42,7 +42,7 @@ jobs:
         - name: Checkout the repository to the runner
           uses: actions/checkout@v2
         - name: Create .env file
-          run: echo "API_URL=${{ env.API_URL }}" > .env 
+          run: echo "API_URL=${{ env.API_URL }}" > frontend/.env 
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
         - name: Set up Docker Buildx
