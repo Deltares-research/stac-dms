@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - prod
+      - main
   pull_request:
     branches:
       - prod
+      - main
 
 env:
   # verbosity setting for Terraform logs
