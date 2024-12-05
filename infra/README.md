@@ -4,7 +4,7 @@ This guide outlines the steps to deploy the infrastructure components for the Fa
 
 - Front-end and back-end containers are deployed in an ECS (Elastic Container Service) service.
 - Back-end connects to a Postgres database in RDS (Relational Database Service).
-- Both services connect to an Opensearch database.
+- Back-end connects to an Opensearch database.
 
 # Prerequisites
 
@@ -30,17 +30,13 @@ Follow these steps to deploy the Amazon EKS cluster:
     cd <repository-directory>
     ```
 
-3. **Update Terraform Backend Configuration:**
-
-   Edit the ``provider.tf`` file and replace ``your-bucket-name`` with your S3 bucket name. Ensure that the bucket is already created, and a DynamoDB table is set up for state locking.
-
-4. **Initialize Terraform:**
+3. **Initialize Terraform:**
 
     ```bash
     terraform init
     ```
 
-5. **Deploy the Infrastructure:**
+4. **Deploy the Infrastructure:**
 
     ```bash
     terraform apply
