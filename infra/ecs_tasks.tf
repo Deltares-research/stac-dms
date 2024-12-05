@@ -248,7 +248,7 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "DB_CONNECTION_URL"
-          value = "postgresql+psycopg://${aws_db_instance.dms.username}:${aws_db_instance.dms.password}@${aws_db_instance.dms.endpoint}:${tostring(aws_db_instance.dms.port)}/postgres"
+          value = "postgresql+psycopg://${aws_db_instance.dms.username}:${aws_db_instance.dms.password}@${aws_db_instance.dms.address}:${tostring(aws_db_instance.dms.port)}/postgres"
         },
       ]
       secrets = [
