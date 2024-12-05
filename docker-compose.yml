@@ -64,6 +64,8 @@ services:
     build:
       context: ./frontend
       target: run-dev
+    env_file:
+      - ./frontend/.env
     ports:
       - 24678:24678
       - 3000:3000
