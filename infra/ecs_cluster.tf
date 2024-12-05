@@ -54,7 +54,7 @@ data "aws_iam_policy_document" "get_secrets_policy" {
     ]
 
     resources = [
-      aws_secretsmanager_secret.harbor_login.arn
+      "*"
     ]
   }
 }
