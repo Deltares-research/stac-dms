@@ -33,6 +33,7 @@ env:
   HARBOR_PROJECT: fair-data
   TAG: ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
   TARGET: ${{ github.ref == 'refs/heads/prod' && 'run-prod' || 'run-dev' }}
+  API_URL: ${{ github.ref == 'refs/heads/prod' && 'https://deltares-fairdata.com' || 'https://test.deltares-fairdata.com' }}
 
 jobs:
     build-image:
@@ -40,6 +41,8 @@ jobs:
         steps:
         - name: Checkout the repository to the runner
           uses: actions/checkout@v2
+        - name: Create .env file
+          run: echo "API_URL=${{ env.API_URL }}" > .env 
         - name: Set up QEMU
           uses: docker/setup-qemu-action@v3
         - name: Set up Docker Buildx
@@ -56,7 +59,7 @@ jobs:
             context: frontend
             cache-from: type=gha
             cache-to: type=gha,mode=max
-            target: ${{ env.TARGET }}
+            target: run-prod
             push: ${{ github.event_name != 'pull_request'}} # Don't push on pull requests, only on push
             tags: |
               ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/frontend:${{ github.sha }}
