@@ -15,10 +15,10 @@ import MapBrowser from "~/components/MapBrowser.vue"
 import type { Extent } from "ol/extent"
 import KeywordsCombobox from "~/components/keywords/KeywordsCombobox.vue"
 import CollectionCombobox from "~/components/collections/CollectionCombobox.vue"
-import { bboxPolygon } from "@turf/turf"
-import { Loader2 } from "lucide-vue-next"
 
 let route = useRoute()
+
+let selectedItemId = ref<string>()
 
 let daterange = ref<DateRange>()
 let bbox = ref<Extent>([180, 90, -180, -90])
@@ -199,33 +199,28 @@ let { data: searchResults, status } = useApi("/search", {
           <Button>Search</Button>
         </form>
 
-        <div class="mt-5 flex flex-col gap-5">
-          <h1 class="text-2xl font-semibold">
-            {{ searchResults?.features.length }}
-            {{ searchResults?.features.length === 1 ? "Result" : "Results" }}
-          </h1>
-
-          <Card v-for="item of searchResults?.features" :key="item.id">
-            <CardHeader>
-              <CardTitle class="text-xl">
-                {{ item.properties.title ?? item.id }}
-              </CardTitle>
-              <CardDescription>{{
-                item.properties.description
-              }}</CardDescription>
-            </CardHeader>
-            <CardContent v-if="item.properties.datetime">
-              <div class="text-xs text-muted-foreground">
-                {{
-                  dateFormat(
-                    new Date(item.properties.datetime),
-                    "mmmm dS, yyyy",
-                  )
-                }}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card
+          v-for="item of searchResults?.features"
+          :key="item.id"
+          :class="selectedItemId === item.id ? 'border-emerald-500' : ''"
+        >
+          <CardHeader>
+            <CardTitle class="text-xl">
+              {{ item.properties.title ?? item.id }}
+            </CardTitle>
+            <CardDescription>{{ item.properties.description }}</CardDescription>
+          </CardHeader>
+          <CardContent v-if="item.properties.datetime">
+            <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
+              >View details</NuxtLink
+            >
+            <div class="text-xs text-muted-foreground">
+              {{
+                dateFormat(new Date(item.properties.datetime), "mmmm dS, yyyy")
+              }}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
 
@@ -234,6 +229,7 @@ let { data: searchResults, status } = useApi("/search", {
         <MapBrowser
           :feature-collection="searchResults"
           @change-bbox="onChangeBbox"
+          @hover-item="selectedItemId = $event"
         />
       </ClientOnly>
     </div>
