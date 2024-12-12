@@ -89,8 +89,8 @@ let collectionsById = computed(() =>
       </PopoverTrigger>
       <PopoverContent class="p-0 PopoverContent">
         <Command>
-          <CommandInput class="h-9" placeholder="Search framework..." />
-          <CommandEmpty>No framework found.</CommandEmpty>
+          <CommandInput class="h-9" placeholder="Search collection..." />
+          <CommandEmpty>No collections found.</CommandEmpty>
           <CommandList>
             <CommandGroup>
               <CommandItem
