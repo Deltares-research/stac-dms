@@ -1,15 +1,14 @@
 from typing import Annotated, List
 from uuid import UUID
-from fastapi import Path, Query
+from fastapi import Path
 from stac_fastapi.types.errors import NotFoundError, InvalidQueryParameter
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import selectinload, lazyload, joinedload
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 from fastapi.encoders import jsonable_encoder
 from dmsapi.schemas.requests import (
     GroupUserRequest,
     PermissionRequest,
-    PermissionCheckRequest,
 )
 
 from dmsapi.database.models import (  # type: ignore
@@ -275,7 +274,7 @@ class RBACClient:
             group_id = UUID(request.group_id)
             user_ids = [UUID(user_id) for user_id in request.user_ids]
         except ValueError:
-            raise InvalidQueryParameter(f"Group ID or User IDs {group_id} invalid UUID")
+            raise InvalidQueryParameter("Group ID or User IDs invalid UUID")
 
         with Session(self.db_engine) as session:
             # Check existing links to avoid duplicates
@@ -302,7 +301,7 @@ class RBACClient:
                 return OKResponse(message="Users not added")
             except Exception as err:
                 print(err)
-                return ErrorResponse(code="500", description="Internal server error")
+                return ErrorResponse(code="500", message="Internal server error")
 
     def remove_users_from_group(self, request: GroupUserRequest) -> bool:
         """Remove multiple users from a group.
@@ -394,7 +393,8 @@ class RBACClient:
                 session.add(permission)
                 session.commit()
                 return OKResponse(message="Group permission added for collection")
-        return OKResponse(message="Group permission not added for collection")
+            else:
+                return ErrorResponse(code="404", message="Role not found")
 
     def remove_permission_from_collection(self, request: PermissionRequest) -> bool:
         """Remove a role from a group for a specific object."""
@@ -437,7 +437,7 @@ class RBACClient:
             ]
 
     @staticmethod
-    def check_permission(db_engine, email: str, role_name: str, obj: str) -> bool:
+    def has_permission(db_engine, email: str, role_name: str, obj: str) -> bool:
         """Check if a user has a specific role for a given object."""
 
         with Session(db_engine) as session:
@@ -453,9 +453,8 @@ class RBACClient:
                     select(Permission).where(
                         Permission.group_id.in_(group_ids),
                         Permission.role_id == role.id,
-                        Permission.object == obj,
+                        Permission.object == obj.lower(),
                     )
                 ).first()
-
                 return permission is not None
         return False
