@@ -1,5 +1,5 @@
 from dmsapi.extensions.rbac.rbac_client import RBACClient
-from fastapi import APIRouter, FastAPI, Path
+from fastapi import APIRouter, FastAPI
 from stac_pydantic.shared import MimeTypes
 from sqlalchemy.engine import Engine
 from stac_fastapi.types.extension import ApiExtension
@@ -9,8 +9,6 @@ from dmsapi.database.models import (  # type: ignore
     User,
     Group,
     Role,
-    Permission,
-    GroupUserLink,
     ErrorResponse,
     OKResponse,
 )
@@ -32,14 +30,14 @@ class RBACExtension(ApiExtension):
         POST /groups
         PUT /groups/{group_id}
         DELETE /groups/{group_id}
-    
+
         POST /groups/user {group_id, user_id}
         DELETE /groups/user {group_id, user_id}
-    
+
         GET /groups/{group_id}/users
-        
+
         GET /roles (return fixed list of roles)
-    
+
     Manage permissions:
         POST /permissions/{group_id, object, role} check role is applicable for object
         DELETE /permissions/{group_id, object, role} remove role from group
@@ -153,14 +151,14 @@ class RBACExtension(ApiExtension):
             },
             methods=["GET"],
         )
-    
+
     def add_get_users(self):
         self.router.add_api_route(
             name="Get Users",
             path="/users",
             endpoint=self.client.get_users,
             response_model=list[User],
-            methods=["GET"]
+            methods=["GET"],
         )
 
     def add_delete_user(self):
@@ -189,7 +187,7 @@ class RBACExtension(ApiExtension):
                     "model": ErrorResponse,
                 },
             },
-            methods=["DELETE"]
+            methods=["DELETE"],
         )
 
     def add_create_group(self):
@@ -258,14 +256,14 @@ class RBACExtension(ApiExtension):
             },
             methods=["GET"],
         )
-    
+
     def add_get_groups(self):
         self.router.add_api_route(
             name="Get Groups",
             path="/groups",
             endpoint=self.client.get_groups,
             response_model=list[Group],
-            methods=["GET"]
+            methods=["GET"],
         )
 
     def add_delete_group(self):
@@ -294,7 +292,7 @@ class RBACExtension(ApiExtension):
                     "model": ErrorResponse,
                 },
             },
-            methods=["DELETE"]
+            methods=["DELETE"],
         )
 
     def add_get_roles(self):
@@ -303,7 +301,7 @@ class RBACExtension(ApiExtension):
             path="/roles",
             endpoint=self.client.get_roles,
             response_model=list[Role],
-            methods=["GET"]
+            methods=["GET"],
         )
 
     def add_add_users_to_group(self):
@@ -312,7 +310,7 @@ class RBACExtension(ApiExtension):
             path="/groups_users_link",
             endpoint=self.client.add_users_to_group,
             response_model=OKResponse,
-            methods=["POST"]
+            methods=["POST"],
         )
 
     def add_delete_users_from_group(self):
@@ -321,7 +319,7 @@ class RBACExtension(ApiExtension):
             path="/groups_users_unlink",
             endpoint=self.client.remove_users_from_group,
             response_model=OKResponse,
-            methods=["DELETE"]
+            methods=["DELETE"],
         )
 
     def add_get_users_from_group(self):
@@ -330,7 +328,7 @@ class RBACExtension(ApiExtension):
             path="/groups_users/{group_id}",
             endpoint=self.client.get_users_from_group,
             response_model=list[User],
-            methods=["POST"]
+            methods=["POST"],
         )
 
     def add_add_group_permission_to_object(self):
@@ -339,7 +337,7 @@ class RBACExtension(ApiExtension):
             path="/permissions",
             endpoint=self.client.assign_permission_to_collection,
             response_model=OKResponse,
-            methods=["POST"]
+            methods=["POST"],
         )
 
     def add_delete_group_permission_to_object(self):
@@ -348,7 +346,7 @@ class RBACExtension(ApiExtension):
             path="/permissions",
             endpoint=self.client.remove_permission_from_collection,
             response_model=OKResponse,
-            methods=["DELETE"]
+            methods=["DELETE"],
         )
 
     def add_get_groups_with_permission_to_object(self):
@@ -357,7 +355,7 @@ class RBACExtension(ApiExtension):
             path="/permissions/{obj}",
             endpoint=self.client.get_permissions,
             response_model=list[PermissionResponse],
-            methods=["POST"]
+            methods=["POST"],
         )
 
     # Review if next to add or not
@@ -365,7 +363,7 @@ class RBACExtension(ApiExtension):
         self.router.add_api_route(
             name="Check if group has permission to collection",
             path="/permissions_check",
-            endpoint=self.client.check_permission,
+            endpoint=self.client.has_permission,
             response_model=bool,
-            methods=["POST"]
+            methods=["POST"],
         )

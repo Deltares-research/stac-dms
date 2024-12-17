@@ -1,9 +1,16 @@
+import datetime
 import os
 
+from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
+from fastapi_sso import OpenID
+from sqlalchemy import Engine
+from starlette.middleware import Middleware
+from authlib.jose import jwt, OctKey
 from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
+from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 from sqlmodel import SQLModel
 
 ## This part is gross but it's the only way to get the settings to load withouth changing to much in the underlying package
@@ -16,14 +23,14 @@ if "ES_PORT" not in os.environ:
 from dmsapi.config import DMSAPISettings
 from dmsapi.database.db import create_db_engine
 import dmsapi.database.models
-from dmsapi.database.models import Facility, FacilityKeywordGroupLink, Keyword_Group  # type: ignore
+from dmsapi.database.models import Facility, FacilityKeywordGroupLink, Keyword_Group, Role, User  # type: ignore
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from stac_fastapi.core.session import Session
-
+from sqlmodel import Session as SQLModelSession
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
 from stac_fastapi.core.core import (
     BulkTransactionsClient,
@@ -120,6 +127,10 @@ async def app(db_engine):
     ]
     SQLModel.metadata.create_all(db_engine)
 
+    middlewares = [
+        Middleware(AuthorizationMiddleware, db_engine=db_engine, settings=settings)
+    ]
+
     post_request_model = create_post_request_model(extensions)
 
     return StacDmsApi(
@@ -131,6 +142,7 @@ async def app(db_engine):
             post_request_model=post_request_model,
         ),
         extensions=extensions,
+        middlewares=middlewares,
         search_get_request_model=create_get_request_model(extensions),
         search_post_request_model=post_request_model,
     ).app
@@ -289,3 +301,29 @@ async def group(rbac_client: RBACClient):
         rbac_client.delete_group(str(group.id))
     except Exception:
         pass
+
+
+@pytest_asyncio.fixture(scope="function")
+async def editor_role(db_engine: Engine):
+    with SQLModelSession(db_engine) as session:
+        role = Role(name="editor")
+        session.add(role)
+        session.commit()
+        session.refresh(role)
+        yield role
+        session.delete(role)
+        session.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def token(user: User):
+    """Create a test JWT token for the given user."""
+    user_openid = OpenID(
+        id=str(user.id),
+        email=user.email,
+        name=user.username,
+    )
+    date, token = SSOAuthExtension.create_token(
+        user_openid, OctKey.import_key(settings.app_secret_key)
+    )
+    return token

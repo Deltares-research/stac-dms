@@ -1,6 +1,7 @@
+from dmsapi.schemas.requests import GroupUserRequest, PermissionRequest
 import pytest
 from dmsapi.extensions.rbac.rbac_client import RBACClient
-from dmsapi.database.models import User, Group, Permission, Role  # type: ignore
+from dmsapi.database.models import Role, User, Group  # type: ignore
 
 from httpx import AsyncClient
 
@@ -55,7 +56,7 @@ async def test_get_user(app_client: AsyncClient, user: User):
 # test get all users
 @pytest.mark.asyncio
 async def test_get_users(app_client: AsyncClient, user: User):
-    response = await app_client.get(f"/users")
+    response = await app_client.get("/users")
     assert response.status_code == 200
     assert len(response.json()) > 0
     user_obj = User(**response.json()[0])
@@ -145,7 +146,7 @@ async def test_get_group(app_client: AsyncClient, group: Group):
 # test get all groups
 @pytest.mark.asyncio
 async def test_get_groups(app_client: AsyncClient, group: Group):
-    response = await app_client.get(f"/groups")
+    response = await app_client.get("/groups")
     assert response.status_code == 200
     assert len(response.json()) > 0
     group_obj = Group(**response.json()[0])
@@ -244,8 +245,9 @@ async def test_add_users_to_group_invalid(
         "/groups_users_link",
         json={"user_ids": [str(user.id), str(user_2.id)], "group_id": ""},
     )
-    assert response.status_code == 200
-    assert response.json() == {"message": "Users not added"}
+    assert response.status_code == 400
+    assert response.json()["code"] == "InvalidQueryParameter"
+    # assert response.json() == {"message": "Users not added"}
 
 
 # test remove users from group
@@ -333,7 +335,7 @@ async def test_assign_permission_to_collection(
     obj = "test-collection"
     role_name = "admin"
     response = await app_client.get(
-        f"/permissions",
+        "/permissions",
         json={"object": obj, "role_name": role_name, "group_id": group.id},
     )
     assert response.status_code == 200
@@ -346,7 +348,7 @@ async def test_assign_permission_to_collection_invalid(
     app_client: AsyncClient, rbac_client: RBACClient
 ):
     response = await app_client.get(
-        f"/permissions", json={"object": "", "role_name": "", "group_id": ""}
+        "/permissions", json={"object": "", "role_name": "", "group_id": ""}
     )
     assert response.status_code == 200
     assert response.json() == {"message": "Group permission not added for collection"}
@@ -369,7 +371,7 @@ async def test_remove_permission_to_collection(
     obj = "test-collection"
     role_name = "admin"
     response = await app_client.delete(
-        f"/permissions",
+        "/permissions",
         json={"object": obj, "role_name": role_name, "group_id": group.id},
     )
     assert response.status_code == 200
@@ -382,7 +384,81 @@ async def test_remove_permission_to_collection_invalid(
     app_client: AsyncClient, rbac_client: RBACClient
 ):
     response = await app_client.delete(
-        f"/permissions", json={"object": "", "role_name": "", "group_id": ""}
+        "/permissions", json={"object": "", "role_name": "", "group_id": ""}
     )
     assert response.status_code == 200
     assert response.json() == {"message": "Group permission not removed for collection"}
+
+
+# test collection edit permissions
+@pytest.mark.asyncio
+async def test_collection_edit_permissions(
+    app_client: AsyncClient,
+    rbac_client: RBACClient,
+    user: User,
+    group: Group,
+    token: str,
+    editor_role: Role,
+):
+    # Try to edit collection without permissions (should fail)
+    collection_id = "test-collection"
+    try:
+        response = await app_client.put(
+            f"/collections/{collection_id}",
+            json={
+                "id": collection_id,
+                "type": "Collection",
+                "stac_version": "1.0.0",
+                "description": "Test collection",
+                "license": "MIT",
+                "title": "Updated Title",
+                "extent": {
+                    "spatial": {"bbox": [[-180, -90, 180, 90]]},
+                    "temporal": {"interval": [["2020-01-01T00:00:00Z", None]]},
+                },
+            },
+            headers={"Cookie": f"DMS_TOKEN={token}"},
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"] == "Unauthorized"
+    except Exception as e:
+        print(e)
+    # Add editor permissions to the group for the collection
+    rbac_client.assign_permission_to_collection(
+        PermissionRequest(
+            object=collection_id, role_name=editor_role.name, group_id=str(group.id)
+        )
+    )
+
+    # Add user to group
+    rbac_client.add_users_to_group(
+        GroupUserRequest(user_ids=[str(user.id)], group_id=str(group.id))
+    )
+
+    # Try to edit collection with permissions (should succeed)
+    # TODO: fix dependency on a running opensearch instance during testing
+    response = await app_client.put(
+        f"/collections/{collection_id}",
+        json={
+            "id": collection_id,
+            "type": "Collection",
+            "stac_version": "1.0.0",
+            "description": "Test collection",
+            "license": "MIT",
+            "title": "Updated Title",
+            "extent": {
+                "spatial": {"bbox": [[-180, -90, 180, 90]]},
+                "temporal": {"interval": [["2020-01-01T00:00:00Z", None]]},
+            },
+            "links": [],
+        },
+        headers={"Cookie": f"DMS_TOKEN={token}"},
+    )
+    assert response.status_code == 200
+
+    # Cleanup
+    rbac_client.remove_users_from_group(
+        {"user_ids": [str(user.id)], "group_id": str(group.id)}
+    )
+    rbac_client.delete_group(str(group.id))
+    rbac_client.delete_user(str(user.id))

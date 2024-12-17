@@ -188,7 +188,7 @@ class PermissionResponse(SQLModel):
 
 class ErrorResponse(SQLModel):
     code: str
-    description: str
+    message: str
 
 
 class OKResponse(SQLModel):
