@@ -3,6 +3,8 @@
 import logging
 import os
 from pathlib import Path
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
 
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
 from stac_fastapi.core.core import (
@@ -32,8 +34,10 @@ from fastapi_sso.sso.microsoft import MicrosoftSSO
 from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.database.db import create_db_engine
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
+from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.config import DMSAPISettings
+from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 
 settings = DMSAPISettings()
 Settings.set(settings)
@@ -76,7 +80,12 @@ extensions = [
     TokenPaginationExtension(),
     filter_extension,
     KeywordExtension(db_engine=db_engine),
+    RBACExtension(db_engine=db_engine),
     SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]),
+]
+
+middlewares = [
+    Middleware(AuthorizationMiddleware, db_engine=db_engine, settings=settings)
 ]
 
 database_logic.extensions = [type(ext).__name__ for ext in extensions]
@@ -89,6 +98,7 @@ api = StacDmsApi(
     api_version=os.getenv("STAC_FASTAPI_VERSION", "2.1"),
     settings=settings,
     extensions=extensions,
+    middlewares=middlewares,
     client=CoreClient(
         database=database_logic, session=session, post_request_model=post_request_model
     ),

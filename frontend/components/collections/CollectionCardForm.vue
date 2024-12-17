@@ -82,7 +82,6 @@ import type { DropDownOption } from "@lib/lib/dropDownOption"
 const emit = defineEmits(["update"])
 
 let { data: keywords } = await useApi("/facilities")
-console.log({ keywords })
 let keywordsFacilities: DropDownOption[] =
   keywords.value?.map((item) => {
     return { value: item.id, label: item.name }

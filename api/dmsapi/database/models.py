@@ -1,6 +1,7 @@
 import uuid
 from sqlmodel import SQLModel, Field, Relationship
 from fastapi import Path
+from typing import Optional, List
 
 
 class FacilityKeywordGroupLink(SQLModel, table=True):
@@ -105,9 +106,89 @@ class Facility(FacilityBase, table=True):
     )
 
 
+class UserBase(SQLModel):
+    username: str = Field(min_length=1, max_length=100)
+    email: str = Field(min_length=1, max_length=100)
+
+
+class User(UserBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    groups: List["GroupUserLink"] = Relationship(back_populates="user")
+
+
+class UserCreate(UserBase):
+    pass
+
+
+class UserUpdate(SQLModel):
+    username: str | None = Field(min_length=1, max_length=100, default=None)
+    email: str | None = Field(min_length=1, max_length=100, default=None)
+
+
+class UserList(UserBase):
+    id: uuid.UUID
+
+
+class GroupBase(SQLModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str = Field(min_length=1, max_length=100)
+
+
+class Group(GroupBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+
+    users: List["GroupUserLink"] = Relationship(back_populates="group")
+    permissions: List["Permission"] = Relationship(back_populates="group")
+
+
+class GroupCreate(GroupBase):
+    pass
+
+
+class GroupList(GroupBase):
+    id: uuid.UUID
+
+
+class GroupUserLink(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    group_id: uuid.UUID = Field(foreign_key="group.id")
+    user_id: uuid.UUID = Field(foreign_key="user.id")
+
+    group: Optional[Group] = Relationship(back_populates="users")
+    user: Optional[User] = Relationship(back_populates="groups")
+
+
+class Role(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: str
+
+
+class RoleList(SQLModel):
+    id: uuid.UUID
+
+
+class Permission(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    object: str
+    role_id: uuid.UUID = Field(foreign_key="role.id")
+    group_id: uuid.UUID = Field(foreign_key="group.id")
+
+    role: Role = Relationship()
+    group: Group = Relationship(back_populates="permissions")
+
+
+class PermissionResponse(SQLModel):
+    id: uuid.UUID
+    object: str
+    role_id: uuid.UUID
+    role_name: str
+    group_id: uuid.UUID
+    group_name: str
+
+
 class ErrorResponse(SQLModel):
     code: str
-    description: str
+    message: str
 
 
 class OKResponse(SQLModel):
