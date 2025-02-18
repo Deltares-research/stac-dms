@@ -184,7 +184,7 @@ resource "aws_ecs_task_definition" "backend" {
       environment = [
         {
           name  = "ES_HOST"
-          value = "true"
+          value = "${aws_opensearch_domain.opensearch.endpoint}"
         },
         {
           name  = "ES_USER"
