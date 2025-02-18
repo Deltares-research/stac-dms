@@ -22,12 +22,12 @@ export default defineNuxtConfig({
   openFetch: {
     clients: {
       api: {
-        schema: "http://stac-api:8000/api/api",
+        schema: process.env.API_URL + "/api",
         baseURL: "/api",
       },
     },
   },
   routeRules: {
-    "/api/**": { proxy: "http://stac-api:8000/api/**" },
+    "/api/**": { proxy: process.env.API_URL + "/api/**" },
   },
 })
