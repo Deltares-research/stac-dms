@@ -57,7 +57,7 @@ resource "aws_ecs_service" "frontend_service" {
 
   network_configuration {
     subnets          = ["${aws_subnet.az1a.id}", "${aws_subnet.az1b.id}", "${aws_subnet.az1c.id}"]
-    security_groups  = ["${aws_security_group.dms-ecs.id}"]
+    security_groups  = ["${aws_security_group.frontend-ecs.id}"]
     assign_public_ip = true
   }
   load_balancer {
@@ -70,6 +70,22 @@ resource "aws_ecs_service" "frontend_service" {
 resource "aws_security_group" "frontend-ecs" {
   name   = "frontend-ecs-sg-${terraform.workspace}"
   vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend-alb.id]
+    description     = "Allow traffic from ALB to frontend container"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
 }
 
 resource "aws_security_group" "frontend-alb" {
@@ -86,12 +102,12 @@ resource "aws_security_group" "frontend-alb" {
   }
 
   egress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.frontend-ecs.id]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
-
 }
 
 resource "aws_lb" "ecs_alb" {
@@ -145,6 +161,18 @@ resource "aws_lb_target_group" "ecs_tg" {
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
+
+  health_check {
+    enabled             = true
+    interval            = 30
+    path                = "/"
+    port                = "traffic-port"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    timeout             = 5
+    protocol            = "HTTP"
+    matcher             = "200-399"
+  }
 }
 
 resource "aws_ecs_task_definition" "backend" {
@@ -200,7 +228,7 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "ES_VERIFY_CERTS"
-          value = "false"
+          value = "true"
         },
         {
           name  = "BACKEND"
@@ -240,7 +268,7 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "APP_DOMAIN"
-          value = "https://${local.domain_name}"
+          value = "${local.domain_name}"
         },
       ]
       secrets = [
