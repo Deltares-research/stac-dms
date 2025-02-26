@@ -22,12 +22,13 @@ resource "random_password" "db_password" {
   special = false
 }
 
-resource "aws_secretsmanager_secret" "postgres_credentials" {
-  name = "dms-postgres-credentials-${terraform.workspace}"
+resource "aws_secretsmanager_secret" "postgresql_credentials" {
+  name                    = "dms-postgresql-credentials-${terraform.workspace}"
+  recovery_window_in_days = 0
 }
 
-resource "aws_secretsmanager_secret_version" "postgres_credentials" {
-  secret_id = aws_secretsmanager_secret.postgres_credentials.id
+resource "aws_secretsmanager_secret_version" "postgresql_credentials" {
+  secret_id = aws_secretsmanager_secret.postgresql_credentials.id
   secret_string = jsonencode({
     username = aws_db_instance.dms.username,
     password = random_password.db_password.result
