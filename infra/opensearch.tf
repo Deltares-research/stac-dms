@@ -3,15 +3,23 @@ resource "aws_security_group" "opensearch_security_group" {
   vpc_id      = aws_vpc.vpc.id
   description = "Allow inbound HTTPS traffic"
 
-  ingress {
-    description = "HTTP from VPC"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+  # ingress {
+  #   description = "HTTP from VPC"
+  #   from_port   = 443
+  #   to_port     = 443
+  #   protocol    = "tcp"
 
-    # cidr_blocks = [
-    #   data.aws_vpc.selected.cidr_block,
-    # ]
+  #   cidr_blocks = [
+  #     aws_vpc.vpc.cidr_block,
+  #   ]
+  # }
+
+  ingress {
+    description     = "HTTPS from backend service"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.backend-ecs.id]
   }
 }
 
@@ -21,7 +29,7 @@ resource "random_password" "os_password" {
 }
 
 resource "aws_secretsmanager_secret" "opensearch_credentials" {
-  name = "geoserver-postgres-credentials-${terraform.workspace}"
+  name = "opensearch-credentials-${terraform.workspace}"
 }
 
 resource "aws_secretsmanager_secret_version" "opensearch_credentials" {
@@ -43,8 +51,11 @@ resource "aws_opensearch_domain" "opensearch" {
     instance_type            = var.instance_type
     instance_count           = var.instance_count
     zone_awareness_enabled   = var.zone_awareness_enabled
-    zone_awareness_config {
-      availability_zone_count = var.zone_awareness_enabled ? length([aws_subnet.az1a.id, aws_subnet.az1b.id, aws_subnet.az1c.id]) : null
+    dynamic "zone_awareness_config" {
+      for_each = var.zone_awareness_enabled ? [1] : []
+      content {
+        availability_zone_count = 2
+      }
     }
   }
 
