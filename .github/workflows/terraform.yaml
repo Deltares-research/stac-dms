@@ -23,7 +23,7 @@ env:
   TF_VAR_azure_app_client_id: ${{ secrets.AZURE_APP_CLIENT_ID }}
   TF_VAR_azure_app_tenant_id: ${{ secrets.AZURE_APP_TENANT_ID }}
   TF_VAR_app_secret_key: ${{ secrets.APP_SECRET_KEY }}
-  TF_VAR_app_domain: ${{ ((github.ref_name == 'prod') || (github.base_ref == 'prod')) && 'deltares-fairdata.com' || 'test.deltares-fairdata.com' }}
+  # TF_VAR_app_domain: ${{ ((github.ref_name == 'prod') || (github.base_ref == 'prod')) && 'deltares-fairdata.com' || 'test.deltares-fairdata.com' }}
   AWS_REGION: eu-west-1
 
 jobs:

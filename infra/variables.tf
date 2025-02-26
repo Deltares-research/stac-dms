@@ -75,11 +75,6 @@ variable "certificate_arn" {
   type    = string
 }
 
-variable "app_domain" {
-  default = "deltares-fairdata.com"
-  type    = string
-}
-
 variable "azure_app_client_secret" {
   type      = string
   sensitive = true

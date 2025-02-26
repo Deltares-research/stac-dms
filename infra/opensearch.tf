@@ -29,7 +29,8 @@ resource "random_password" "os_password" {
 }
 
 resource "aws_secretsmanager_secret" "opensearch_credentials" {
-  name = "opensearch-credentials-${terraform.workspace}"
+  name                    = "opensearch-creds-${terraform.workspace}"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "opensearch_credentials" {
@@ -77,9 +78,9 @@ resource "aws_opensearch_domain" "opensearch" {
     enforce_https       = true
     tls_security_policy = "Policy-Min-TLS-1-2-2019-07"
 
-    custom_endpoint_enabled         = true
-    custom_endpoint                 = local.custom_domain
-    custom_endpoint_certificate_arn = data.aws_acm_certificate.opensearch.arn
+    custom_endpoint_enabled = false
+    # custom_endpoint                 = local.custom_domain
+    # custom_endpoint_certificate_arn = data.aws_acm_certificate.opensearch.arn
   }
 
   ebs_options {

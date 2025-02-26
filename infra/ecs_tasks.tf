@@ -24,7 +24,7 @@ resource "aws_ecs_task_definition" "frontend" {
       name  = "frontend"
       image = "${var.harbor_url}/${var.harbor_project}/frontend:${terraform.workspace}"
       repositoryCredentials = {
-        credentialsParameter = aws_secretsmanager_secret.harbor_login.arn
+        credentialsParameter = aws_secretsmanager_secret.harbor_credentials.arn
       }
       cpu       = 1024
       memory    = 2048
@@ -161,7 +161,7 @@ resource "aws_ecs_task_definition" "backend" {
       name  = "backend"
       image = "${var.harbor_url}/${var.harbor_project}/stac-fastapi-os:${terraform.workspace}"
       repositoryCredentials = {
-        credentialsParameter = aws_secretsmanager_secret.harbor_login.arn
+        credentialsParameter = aws_secretsmanager_secret.harbor_credentials.arn
       }
       cpu       = 1024
       memory    = 2048
@@ -220,7 +220,7 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "ES_HOST"
-          value = "{aws_opensearch_domain.opensearch.endpoint}"
+          value = "${aws_opensearch_domain.opensearch.endpoint}"
         },
         {
           name  = "STAC_FASTAPI_VERSION"
@@ -240,25 +240,25 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "APP_DOMAIN"
-          value = "${var.app_domain}"
+          value = "https://${local.domain_name}"
         },
       ]
       secrets = [
         {
           name      = "AZURE_APP_CLIENT_SECRET"
-          valueFrom = "${aws_secretsmanager_secret.azure_app_client_secret.arn}:azure_app_client_secret::"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_credentials.arn}:azure_app_client_secret::"
         },
         {
           name      = "AZURE_APP_CLIENT_ID"
-          valueFrom = "${aws_secretsmanager_secret.azure_app_client_id.arn}:azure_app_client_id::"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_credentials.arn}:azure_app_client_id::"
         },
         {
           name      = "AZURE_TENANT_ID"
-          valueFrom = "${aws_secretsmanager_secret.azure_app_tenant_id.arn}:azure_app_tenant_id::"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_credentials.arn}:azure_app_tenant_id::"
         },
         {
           name      = "APP_SECRET_KEY"
-          valueFrom = "${aws_secretsmanager_secret.app_secret_key.arn}:app_secret_key::"
+          valueFrom = "${aws_secretsmanager_secret.backend_secret_key.arn}:app_secret_key::"
         },
         {
           name      = "ES_PASS"
