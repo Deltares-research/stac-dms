@@ -155,7 +155,7 @@ resource "aws_ecs_task_definition" "backend" {
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
-
+  tags                     = {}
   container_definitions = jsonencode([
     {
       name  = "backend"
@@ -183,36 +183,44 @@ resource "aws_ecs_task_definition" "backend" {
       }
       environment = [
         {
-          name  = "ES_HOST"
-          value = "${aws_opensearch_domain.opensearch.endpoint}"
-        },
-        {
-          name  = "ES_USER"
-          value = "${local.master_user}"
-        },
-        {
           name  = "ES_PORT"
           value = "443"
         },
         {
-          name  = "ES_USE_SSL"
-          value = "true"
-        },
-        {
-          name  = "ES_VERIFY_CERTS"
-          value = "true"
-        },
-        {
-          name  = "APP_DOMAIN"
-          value = "${var.app_domain}"
+          name  = "STAC_FASTAPI_DESCRIPTION"
+          value = "A STAC API containing Deltares datasets"
         },
         {
           name  = "STAC_FASTAPI_TITLE"
           value = "Deltares Data Management Suite STAC API"
         },
         {
-          name  = "STAC_FASTAPI_DESCRIPTION"
-          value = "A STAC API containing Deltares datasets"
+          name  = "ENVIRONMENT"
+          value = "prod"
+        },
+        {
+          name  = "ES_VERIFY_CERTS"
+          value = "false"
+        },
+        {
+          name  = "BACKEND"
+          value = "opensearch"
+        },
+        {
+          name  = "ES_USER"
+          value = "${local.master_user}"
+        },
+        {
+          name  = "ES_USE_SSL"
+          value = "true"
+        },
+        {
+          name  = "WEB_CONCURRENCY"
+          value = "10"
+        },
+        {
+          name  = "ES_HOST"
+          value = "{aws_opensearch_domain.opensearch.endpoint}"
         },
         {
           name  = "STAC_FASTAPI_VERSION"
@@ -223,32 +231,16 @@ resource "aws_ecs_task_definition" "backend" {
           value = "0.0.0.0"
         },
         {
+          name  = "DB_CONNECTION_URL"
+          value = "postgresql+psycopg://${aws_db_instance.dms.username}:${aws_db_instance.dms.password}@${aws_db_instance.dms.address}:${tostring(aws_db_instance.dms.port)}/postgres"
+        },
+        {
           name  = "APP_PORT"
           value = "8000"
         },
         {
-          name  = "STAC_FASTAPI_DESCRIPTION"
-          value = "A STAC API containing Deltares datasets"
-        },
-        {
-          name  = "STAC_FASTAPI_DESCRIPTION"
-          value = "A STAC API containing Deltares datasets"
-        },
-        {
-          name  = "BACKEND"
-          value = "opensearch"
-        },
-        {
-          name  = "ENVIRONMENT"
-          value = "local"
-        },
-        {
-          name  = "WEB_CONCURRENCY"
-          value = "10"
-        },
-        {
-          name  = "DB_CONNECTION_URL"
-          value = "postgresql+psycopg://${aws_db_instance.dms.username}:${aws_db_instance.dms.password}@${aws_db_instance.dms.address}:${tostring(aws_db_instance.dms.port)}/postgres"
+          name  = "APP_DOMAIN"
+          value = "${var.app_domain}"
         },
       ]
       secrets = [
