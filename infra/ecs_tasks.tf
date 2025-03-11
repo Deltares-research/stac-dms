@@ -304,9 +304,9 @@ resource "aws_security_group" "backend-ecs" {
   ingress {
     from_port   = 8000
     to_port     = 8000
-    protocol    = "-1"
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all inbound traffic"    
+    description = "Allow all inbound traffic"
   }
 
   egress {
