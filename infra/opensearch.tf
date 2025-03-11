@@ -3,25 +3,34 @@ resource "aws_security_group" "opensearch_security_group" {
   vpc_id      = aws_vpc.vpc.id
   description = "Allow inbound HTTPS traffic"
 
-  ingress {
-    description = "HTTP from VPC"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+  # ingress {
+  #   description = "HTTP from VPC"
+  #   from_port   = 443
+  #   to_port     = 443
+  #   protocol    = "tcp"
 
-    # cidr_blocks = [
-    #   data.aws_vpc.selected.cidr_block,
-    # ]
+  #   cidr_blocks = [
+  #     aws_vpc.vpc.cidr_block,
+  #   ]
+  # }
+
+  ingress {
+    description     = "HTTPS from backend service"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.backend-ecs.id]
   }
 }
 
 resource "random_password" "os_password" {
   length  = 24
-  special = false
+  special = true
 }
 
 resource "aws_secretsmanager_secret" "opensearch_credentials" {
-  name = "geoserver-postgres-credentials-${terraform.workspace}"
+  name                    = "opensearch-creds-${terraform.workspace}"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "opensearch_credentials" {
@@ -43,14 +52,17 @@ resource "aws_opensearch_domain" "opensearch" {
     instance_type            = var.instance_type
     instance_count           = var.instance_count
     zone_awareness_enabled   = var.zone_awareness_enabled
-    zone_awareness_config {
-      availability_zone_count = var.zone_awareness_enabled ? length([aws_subnet.az1a.id, aws_subnet.az1b.id, aws_subnet.az1c.id]) : null
+    dynamic "zone_awareness_config" {
+      for_each = var.zone_awareness_enabled ? [1] : []
+      content {
+        availability_zone_count = 2
+      }
     }
   }
 
   advanced_security_options {
-    enabled                        = var.security_options_enabled
-    anonymous_auth_enabled         = true
+    enabled                        = true
+    anonymous_auth_enabled         = false
     internal_user_database_enabled = true
     master_user_options {
       master_user_name     = local.master_user
@@ -66,9 +78,9 @@ resource "aws_opensearch_domain" "opensearch" {
     enforce_https       = true
     tls_security_policy = "Policy-Min-TLS-1-2-2019-07"
 
-    custom_endpoint_enabled         = true
-    custom_endpoint                 = local.custom_domain
-    custom_endpoint_certificate_arn = data.aws_acm_certificate.opensearch.arn
+    custom_endpoint_enabled = false
+    # custom_endpoint                 = local.custom_domain
+    # custom_endpoint_certificate_arn = data.aws_acm_certificate.opensearch.arn
   }
 
   ebs_options {
