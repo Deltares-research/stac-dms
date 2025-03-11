@@ -2,10 +2,6 @@ variable "aws_region" {
   type    = string
   default = "eu-west-1"
 }
-variable "security_options_enabled" {
-  type    = bool
-  default = false
-}
 variable "volume_type" {
   type    = string
   default = "gp3"
