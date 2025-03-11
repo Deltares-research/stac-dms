@@ -1,16 +1,19 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
+
   modules: [
     "@nuxtjs/tailwindcss",
     "shadcn-nuxt",
     "@nuxt/image",
     "nuxt-open-fetch",
   ],
+
   shadcn: {
     prefix: "",
     componentDir: "./components/ui",
   },
+
   vite: {
     server: {
       hmr: {
@@ -19,15 +22,19 @@ export default defineNuxtConfig({
       },
     },
   },
+
   openFetch: {
     clients: {
       api: {
-        schema: "http://stac-api:8000/api/api",
+        schema: process.env.API_URL + "/api/api",
         baseURL: "/api",
       },
     },
   },
+
   routeRules: {
-    "/api/**": { proxy: "http://stac-api:8000/api/**" },
+    "/api/**": { proxy: process.env.API_URL + "/api/**" },
   },
+
+  compatibilityDate: "2025-03-11",
 })
