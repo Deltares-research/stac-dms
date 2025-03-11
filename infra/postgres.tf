@@ -4,7 +4,7 @@ resource "aws_db_instance" "dms" {
   max_allocated_storage  = 100
   db_name                = "postgres_dms_${terraform.workspace}"
   engine                 = "postgres"
-  engine_version         = "16.3"
+  engine_version         = "16.4"
   instance_class         = "db.t3.micro"
   username               = "dms"
   password               = random_password.db_password.result
@@ -22,12 +22,13 @@ resource "random_password" "db_password" {
   special = false
 }
 
-resource "aws_secretsmanager_secret" "postgres_credentials" {
-  name = "dms-postgres-credentials-${terraform.workspace}"
+resource "aws_secretsmanager_secret" "postgresql_credentials" {
+  name                    = "dms-postgresql-credentials-${terraform.workspace}"
+  recovery_window_in_days = 0
 }
 
-resource "aws_secretsmanager_secret_version" "postgres_credentials" {
-  secret_id = aws_secretsmanager_secret.postgres_credentials.id
+resource "aws_secretsmanager_secret_version" "postgresql_credentials" {
+  secret_id = aws_secretsmanager_secret.postgresql_credentials.id
   secret_string = jsonencode({
     username = aws_db_instance.dms.username,
     password = random_password.db_password.result

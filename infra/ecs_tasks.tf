@@ -24,7 +24,7 @@ resource "aws_ecs_task_definition" "frontend" {
       name  = "frontend"
       image = "${var.harbor_url}/${var.harbor_project}/frontend:${terraform.workspace}"
       repositoryCredentials = {
-        credentialsParameter = aws_secretsmanager_secret.harbor_login.arn
+        credentialsParameter = aws_secretsmanager_secret.harbor_credentials.arn
       }
       cpu       = 1024
       memory    = 2048
@@ -57,7 +57,7 @@ resource "aws_ecs_service" "frontend_service" {
 
   network_configuration {
     subnets          = ["${aws_subnet.az1a.id}", "${aws_subnet.az1b.id}", "${aws_subnet.az1c.id}"]
-    security_groups  = ["${aws_security_group.dms-ecs.id}"]
+    security_groups  = ["${aws_security_group.frontend-ecs.id}"]
     assign_public_ip = true
   }
   load_balancer {
@@ -70,6 +70,22 @@ resource "aws_ecs_service" "frontend_service" {
 resource "aws_security_group" "frontend-ecs" {
   name   = "frontend-ecs-sg-${terraform.workspace}"
   vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    from_port       = 3000
+    to_port         = 3000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend-alb.id]
+    description     = "Allow traffic from ALB to frontend container"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
 }
 
 resource "aws_security_group" "frontend-alb" {
@@ -86,12 +102,12 @@ resource "aws_security_group" "frontend-alb" {
   }
 
   egress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    security_groups = [aws_security_group.frontend-ecs.id]
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
   }
-
 }
 
 resource "aws_lb" "ecs_alb" {
@@ -145,6 +161,18 @@ resource "aws_lb_target_group" "ecs_tg" {
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
+
+  health_check {
+    enabled             = true
+    interval            = 30
+    path                = "/"
+    port                = "traffic-port"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    timeout             = 5
+    protocol            = "HTTP"
+    matcher             = "200-399"
+  }
 }
 
 resource "aws_ecs_task_definition" "backend" {
@@ -155,13 +183,13 @@ resource "aws_ecs_task_definition" "backend" {
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
-
+  tags                     = {}
   container_definitions = jsonencode([
     {
       name  = "backend"
       image = "${var.harbor_url}/${var.harbor_project}/stac-fastapi-os:${terraform.workspace}"
       repositoryCredentials = {
-        credentialsParameter = aws_secretsmanager_secret.harbor_login.arn
+        credentialsParameter = aws_secretsmanager_secret.harbor_credentials.arn
       }
       cpu       = 1024
       memory    = 2048
@@ -183,36 +211,44 @@ resource "aws_ecs_task_definition" "backend" {
       }
       environment = [
         {
-          name  = "ES_HOST"
-          value = "${aws_opensearch_domain.opensearch.endpoint}"
-        },
-        {
-          name  = "ES_USER"
-          value = "${local.master_user}"
-        },
-        {
           name  = "ES_PORT"
           value = "443"
         },
         {
-          name  = "ES_USE_SSL"
-          value = "true"
-        },
-        {
-          name  = "ES_VERIFY_CERTS"
-          value = "true"
-        },
-        {
-          name  = "APP_DOMAIN"
-          value = "${var.app_domain}"
+          name  = "STAC_FASTAPI_DESCRIPTION"
+          value = "A STAC API containing Deltares datasets"
         },
         {
           name  = "STAC_FASTAPI_TITLE"
           value = "Deltares Data Management Suite STAC API"
         },
         {
-          name  = "STAC_FASTAPI_DESCRIPTION"
-          value = "A STAC API containing Deltares datasets"
+          name  = "ENVIRONMENT"
+          value = "prod"
+        },
+        {
+          name  = "ES_VERIFY_CERTS"
+          value = "true"
+        },
+        {
+          name  = "BACKEND"
+          value = "opensearch"
+        },
+        {
+          name  = "ES_USER"
+          value = "${local.master_user}"
+        },
+        {
+          name  = "ES_USE_SSL"
+          value = "true"
+        },
+        {
+          name  = "WEB_CONCURRENCY"
+          value = "10"
+        },
+        {
+          name  = "ES_HOST"
+          value = "${aws_opensearch_domain.opensearch.endpoint}"
         },
         {
           name  = "STAC_FASTAPI_VERSION"
@@ -223,50 +259,34 @@ resource "aws_ecs_task_definition" "backend" {
           value = "0.0.0.0"
         },
         {
+          name  = "DB_CONNECTION_URL"
+          value = "postgresql+psycopg://${aws_db_instance.dms.username}:${aws_db_instance.dms.password}@${aws_db_instance.dms.address}:${tostring(aws_db_instance.dms.port)}/postgres"
+        },
+        {
           name  = "APP_PORT"
           value = "8000"
         },
         {
-          name  = "STAC_FASTAPI_DESCRIPTION"
-          value = "A STAC API containing Deltares datasets"
-        },
-        {
-          name  = "STAC_FASTAPI_DESCRIPTION"
-          value = "A STAC API containing Deltares datasets"
-        },
-        {
-          name  = "BACKEND"
-          value = "opensearch"
-        },
-        {
-          name  = "ENVIRONMENT"
-          value = "local"
-        },
-        {
-          name  = "WEB_CONCURRENCY"
-          value = "10"
-        },
-        {
-          name  = "DB_CONNECTION_URL"
-          value = "postgresql+psycopg://${aws_db_instance.dms.username}:${aws_db_instance.dms.password}@${aws_db_instance.dms.address}:${tostring(aws_db_instance.dms.port)}/postgres"
+          name  = "APP_DOMAIN"
+          value = "${local.domain_name}"
         },
       ]
       secrets = [
         {
           name      = "AZURE_APP_CLIENT_SECRET"
-          valueFrom = "${aws_secretsmanager_secret.azure_app_client_secret.arn}:azure_app_client_secret::"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_credentials.arn}:azure_app_client_secret::"
         },
         {
           name      = "AZURE_APP_CLIENT_ID"
-          valueFrom = "${aws_secretsmanager_secret.azure_app_client_id.arn}:azure_app_client_id::"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_credentials.arn}:azure_app_client_id::"
         },
         {
           name      = "AZURE_TENANT_ID"
-          valueFrom = "${aws_secretsmanager_secret.azure_app_tenant_id.arn}:azure_app_tenant_id::"
+          valueFrom = "${aws_secretsmanager_secret.azure_app_credentials.arn}:azure_app_tenant_id::"
         },
         {
           name      = "APP_SECRET_KEY"
-          valueFrom = "${aws_secretsmanager_secret.app_secret_key.arn}:app_secret_key::"
+          valueFrom = "${aws_secretsmanager_secret.backend_secret_key.arn}:app_secret_key::"
         },
         {
           name      = "ES_PASS"
@@ -277,28 +297,25 @@ resource "aws_ecs_task_definition" "backend" {
   ])
 }
 
-resource "aws_ecs_service" "backend_service" {
-  name            = "backend-service"
-  cluster         = aws_ecs_cluster.cluster.name
-  task_definition = aws_ecs_task_definition.backend.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets          = ["${aws_subnet.az1a.id}", "${aws_subnet.az1b.id}", "${aws_subnet.az1c.id}"]
-    security_groups  = ["${aws_security_group.dms-ecs.id}"]
-    assign_public_ip = true
-  }
-  load_balancer {
-    target_group_arn = aws_lb_target_group.ecs_bg.arn
-    container_name   = "backend"
-    container_port   = 8000
-  }
-}
-
 resource "aws_security_group" "backend-ecs" {
   name   = "backend-ecs-sg-${terraform.workspace}"
   vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all inbound traffic"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
 }
 
 resource "aws_security_group" "backend-alb" {
@@ -329,4 +346,23 @@ resource "aws_lb_target_group" "ecs_bg" {
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.vpc.id
+}
+
+resource "aws_ecs_service" "backend_service" {
+  name            = "backend-service"
+  cluster         = aws_ecs_cluster.cluster.name
+  task_definition = aws_ecs_task_definition.backend.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = ["${aws_subnet.az1a.id}", "${aws_subnet.az1b.id}", "${aws_subnet.az1c.id}"]
+    security_groups  = ["${aws_security_group.backend-ecs.id}"]
+    assign_public_ip = true
+  }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.ecs_bg.arn
+    container_name   = "backend"
+    container_port   = 8000
+  }
 }

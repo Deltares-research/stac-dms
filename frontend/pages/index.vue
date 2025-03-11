@@ -15,8 +15,9 @@ import MapBrowser from "~/components/MapBrowser.vue"
 import type { Extent } from "ol/extent"
 import KeywordsCombobox from "~/components/keywords/KeywordsCombobox.vue"
 import CollectionCombobox from "~/components/collections/CollectionCombobox.vue"
+import { bboxPolygon } from "@turf/turf"
 
-let route = useRoute()
+const route = useRoute()
 
 let selectedItemId = ref<string>()
 
@@ -24,6 +25,8 @@ let daterange = ref<DateRange>()
 let bbox = ref<Extent>([180, 90, -180, -90])
 
 let datetime = computed(() => {
+  if (!route || !route.query) return undefined
+  
   let { start, end } = route.query
   if (start && end) {
     return `${dateFormat(new Date(start as string), "isoUtcDateTime")}/${dateFormat(new Date(end as string), "isoUtcDateTime")}`
@@ -34,24 +37,25 @@ function onChangeBbox(newBox: Extent) {
   bbox.value = newBox
 }
 
-let keywordIds = (
-  Array.isArray(route.query.keywords)
-    ? route.query.keywords
-    : [route.query.keywords]
-)
-  .map((id) => id?.toString())
-  .filter(Boolean) as string[]
+let keywordIds = computed(() => {
+  if (!route || !route.query || !route.query.keywords) return []
+  
+  const keywords = route.query.keywords
+  return (Array.isArray(keywords) ? keywords : [keywords])
+    .map((id) => id?.toString())
+    .filter(Boolean) as string[]
+})
 
-let collectionIds = (
-  Array.isArray(route.query.collections)
-    ? route.query.collections
-    : [route.query.collections]
-)
-  .map((id) => id?.toString())
-  .filter(Boolean) as string[]
-
+let collectionIds = computed(() => {
+  if (!route || !route.query || !route.query.collections) return []
+  
+  const collections = route.query.collections
+  return (Array.isArray(collections) ? collections : [collections])
+    .map((id) => id?.toString())
+    .filter(Boolean) as string[]
+})
 let filter = computed(() => {
-  let geometry = bbox.value ? bboxPolygon(bbox.value).geometry : undefined
+  let geometry = bbox.value ? bboxPolygon(bbox.value as [number, number, number, number]).geometry : undefined
 
   return {
     op: "and",
@@ -71,7 +75,7 @@ let filter = computed(() => {
               }
             : undefined,
           // The isNull operator does not work. The below is a workaround. It includes items that have no geometry by intersecting with a Polygon that covers the entire world.
-          route.query.includeEmptyGeometry === "on"
+          route.query?.includeEmptyGeometry === "on"
             ? {
                 op: "not",
                 args: [
@@ -109,7 +113,7 @@ let filter = computed(() => {
               {
                 property: "properties.title",
               },
-              `%${route.query.q ?? ""}%`,
+              `%${route.query?.q ?? ""}%`,
             ],
           },
           {
@@ -118,19 +122,19 @@ let filter = computed(() => {
               {
                 property: "properties.description",
               },
-              `%${route.query.q ?? ""}%`,
+              `%${route.query?.q ?? ""}%`,
             ],
           },
         ],
       },
-      route.query.keywords
+      keywordIds.value.length > 0
         ? {
             op: "in",
             args: [
               {
                 property: "properties.keywords.id",
               },
-              keywordIds,
+              keywordIds.value,
             ],
           }
         : undefined,
@@ -141,11 +145,11 @@ let filter = computed(() => {
 let { data: searchResults, status } = useApi("/search", {
   method: "post",
   body: {
-    collections: collectionIds,
-    datetime: datetime,
-    filter: filter,
+    collections: collectionIds.value,
+    datetime: datetime.value,
+    filter: filter.value,
     "filter-lang": "cql2-json",
-  },
+  } as any,
 })
 </script>
 
@@ -163,7 +167,7 @@ let { data: searchResults, status } = useApi("/search", {
           <Input
             name="q"
             placeholder="Search title or description..."
-            :model-value="route.query.q as string"
+            :model-value="route.query?.q as string || ''"
           />
 
           <input name="start" type="hidden" :value="daterange?.start" />
@@ -186,7 +190,7 @@ let { data: searchResults, status } = useApi("/search", {
             <Checkbox
               id="includeEmptyGeometry"
               name="includeEmptyGeometry"
-              :default-checked="route.query.includeEmptyGeometry === 'on'"
+              :default-checked="route.query?.includeEmptyGeometry === 'on'"
             />
             <label
               for="includeEmptyGeometry"

@@ -2,10 +2,6 @@ variable "aws_region" {
   type    = string
   default = "eu-west-1"
 }
-variable "security_options_enabled" {
-  type    = bool
-  default = false
-}
 variable "volume_type" {
   type    = string
   default = "gp3"
@@ -72,11 +68,6 @@ variable "harbor_password" {
 
 variable "certificate_arn" {
   default = "arn:aws:acm:eu-west-1:654654181948:certificate/bc14494c-2be8-47c8-9ab4-e95e40b3d41f"
-  type    = string
-}
-
-variable "app_domain" {
-  default = "deltares-fairdata.com"
   type    = string
 }
 
