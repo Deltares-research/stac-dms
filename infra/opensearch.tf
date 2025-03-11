@@ -25,7 +25,7 @@ resource "aws_security_group" "opensearch_security_group" {
 
 resource "random_password" "os_password" {
   length  = 24
-  special = false
+  special = true
 }
 
 resource "aws_secretsmanager_secret" "opensearch_credentials" {
@@ -61,8 +61,8 @@ resource "aws_opensearch_domain" "opensearch" {
   }
 
   advanced_security_options {
-    enabled                        = var.security_options_enabled
-    anonymous_auth_enabled         = true
+    enabled                        = true
+    anonymous_auth_enabled         = false
     internal_user_database_enabled = true
     master_user_options {
       master_user_name     = local.master_user
