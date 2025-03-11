@@ -32,6 +32,7 @@ services:
       - /app/.venv
     depends_on:
       - opensearch
+      - postgres
     command: bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m dmsapi.app"
 
   postgres:
@@ -66,6 +67,8 @@ services:
       target: run-dev
     env_file:
       - ./frontend/.env
+    environment:
+      - API_URL=http://stac-api:8000
     ports:
       - 24678:24678
       - 3000:3000
