@@ -36,6 +36,12 @@ resource "aws_ecs_task_definition" "frontend" {
           protocol      = "tcp"
         }
       ]
+      environment = [
+        {
+          name  = "API_URL"
+          value = "https://${local.domain_name}"
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -127,7 +133,7 @@ resource "aws_lb_listener" "ecs_alb_listener" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = var.certificate_arn
+  certificate_arn   = local.is_prod ? data.aws_acm_certificate.opensearch.arn : data.aws_acm_certificate.non_prod_domain.arn
 
   default_action {
     type             = "forward"

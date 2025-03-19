@@ -6,6 +6,10 @@ data "aws_acm_certificate" "opensearch" {
   domain = "deltares-fairdata.com"
 }
 
+data "aws_acm_certificate" "non_prod_domain" {
+  domain = "*.deltares-fairdata.com"
+}
+
 locals {
   # For prod workspace, use the top-level domain
   # For other workspaces, use a subdomain based on the workspace name
