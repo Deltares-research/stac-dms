@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, computed, watch, nextTick } from "vue"
 import { Map, Layers, Sources, Interactions, Styles } from "vue3-openlayers"
 import { GeoJSON } from "ol/format"
 import type { FeatureCollection } from "geojson"
@@ -28,16 +28,18 @@ let center = ref([0, 0])
 let zoom = ref(1)
 
 let vectorRef = ref()
+let mapRef = ref()
+let viewRef = ref()
 
 let selectedFeature = ref()
 
-function featureSelected(event) {
+function featureSelected(event: { selected: any[] }) {
   selectedFeature.value = event.selected[0]
 
   onHoverItem?.(selectedFeature.value?.getId())
 }
 
-function onMoveEnd(event) {
+function onMoveEnd(event: { map: any; target: any }) {
   let extent = event.map.getView().calculateExtent(event.map.getSize())
   let bbox = transformExtent(
     extent,
@@ -47,17 +49,51 @@ function onMoveEnd(event) {
 
   onChangeBbox(bbox)
 }
+
+// Zoom to fit all features when featureCollection updates
+watch(
+  () => JSON.stringify(featureCollection),
+  async (newVal) => {
+    if (newVal && features.value?.length) {
+      // Wait for features to be rendered
+      await nextTick()
+
+      // Get the source from the vector layer
+      const source = vectorRef.value?.source
+
+      if (source) {
+        // Get the extent of all features
+        const extent = source.getExtent()
+
+        // Check if extent is valid (not empty)
+        if (
+          extent &&
+          !extent.every((val: number) => val === Infinity || val === -Infinity)
+        ) {
+          // Fit view to the features extent with some padding
+          viewRef.value?.fit(extent, {
+            padding: [50, 50, 50, 50],
+            duration: 500,
+            maxZoom: 10,
+          })
+        }
+      }
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
   <div class="relative w-full h-full">
     <Map.OlMap
+      ref="mapRef"
       @moveend="onMoveEnd"
       class="overflow-hidden w-full h-full"
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
     >
-      <Map.OlView ref="view" :center="center" :zoom="zoom" />
+      <Map.OlView ref="viewRef" :center="center" :zoom="zoom" />
 
       <Layers.OlTileLayer>
         <Sources.OlSourceOsm />
