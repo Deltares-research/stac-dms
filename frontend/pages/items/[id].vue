@@ -720,8 +720,8 @@ function getDisplayTime() {
           <CardHeader>Geometry</CardHeader>
           <CardContent>
             <div class="container mx-auto">
-              <ClientOnly>
-                <GeometryDraw
+              <ClientOnly fallback="Loading...">
+                <LazyGeometryDraw
                   :read-only="readOnly != ''"
                   :initialValue="geometry"
                   @valueChange="setValue"

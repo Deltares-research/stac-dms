@@ -16,17 +16,20 @@ import type { Extent } from "ol/extent"
 import KeywordsCombobox from "~/components/keywords/KeywordsCombobox.vue"
 import CollectionCombobox from "~/components/collections/CollectionCombobox.vue"
 import { bboxPolygon } from "@turf/turf"
+import type { LocationQueryRaw } from "vue-router"
 
 const route = useRoute()
+const router = useRouter()
 
 let selectedItemId = ref<string>()
 
 let daterange = ref<DateRange>()
 let bbox = ref<Extent>([180, 90, -180, -90])
+let bboxFilter = ref<Extent>([180, 90, -180, -90])
 
 let datetime = computed(() => {
   if (!route || !route.query) return undefined
-  
+
   let { start, end } = route.query
   if (start && end) {
     return `${dateFormat(new Date(start as string), "isoUtcDateTime")}/${dateFormat(new Date(end as string), "isoUtcDateTime")}`
@@ -37,9 +40,13 @@ function onChangeBbox(newBox: Extent) {
   bbox.value = newBox
 }
 
+function searchBboxArea() {
+  bboxFilter.value = bbox.value
+}
+
 let keywordIds = computed(() => {
   if (!route || !route.query || !route.query.keywords) return []
-  
+
   const keywords = route.query.keywords
   return (Array.isArray(keywords) ? keywords : [keywords])
     .map((id) => id?.toString())
@@ -48,14 +55,17 @@ let keywordIds = computed(() => {
 
 let collectionIds = computed(() => {
   if (!route || !route.query || !route.query.collections) return []
-  
+
   const collections = route.query.collections
   return (Array.isArray(collections) ? collections : [collections])
     .map((id) => id?.toString())
     .filter(Boolean) as string[]
 })
+
 let filter = computed(() => {
-  let geometry = bbox.value ? bboxPolygon(bbox.value as [number, number, number, number]).geometry : undefined
+  let geometry = bboxFilter.value
+    ? bboxPolygon(bboxFilter.value as [number, number, number, number]).geometry
+    : undefined
 
   return {
     op: "and",
@@ -142,15 +152,21 @@ let filter = computed(() => {
   }
 })
 
-let { data: searchResults, status } = useApi("/search", {
+let { data: searchResults, status } = await useApi("/search", {
   method: "post",
   body: {
-    collections: collectionIds.value,
-    datetime: datetime.value,
-    filter: filter.value,
+    collections: collectionIds,
+    datetime,
+    filter,
     "filter-lang": "cql2-json",
   } as any,
 })
+
+function onSubmit(event: Event) {
+  let formData = new FormData(event.target as HTMLFormElement)
+  let query = Object.fromEntries(formData.entries()) as LocationQueryRaw
+  router.push({ query })
+}
 </script>
 
 <template>
@@ -163,11 +179,15 @@ let { data: searchResults, status } = useApi("/search", {
         <Loader2 class="w-4 h-4 animate-spin" />
       </div>
       <div class="p-5 h-full overflow-y-auto">
-        <form class="flex flex-col gap-1.5" method="get">
+        <form
+          class="flex flex-col gap-1.5"
+          method="get"
+          @submit.prevent="onSubmit"
+        >
           <Input
             name="q"
             placeholder="Search title or description..."
-            :model-value="route.query?.q as string || ''"
+            :model-value="(route.query?.q as string) || ''"
           />
 
           <input name="start" type="hidden" :value="daterange?.start" />
@@ -203,32 +223,47 @@ let { data: searchResults, status } = useApi("/search", {
           <Button>Search</Button>
         </form>
 
-        <Card
-          v-for="item of searchResults?.features"
-          :key="item.id"
-          :class="selectedItemId === item.id ? 'border-emerald-500' : ''"
-        >
-          <CardHeader>
-            <CardTitle class="text-xl">
-              {{ item.properties.title ?? item.id }}
-            </CardTitle>
-            <CardDescription>{{ item.properties.description }}</CardDescription>
-          </CardHeader>
-          <CardContent v-if="item.properties.datetime">
-            <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
-              >View details</NuxtLink
-            >
-            <div class="text-xs text-muted-foreground">
-              {{
-                dateFormat(new Date(item.properties.datetime), "mmmm dS, yyyy")
-              }}
-            </div>
-          </CardContent>
-        </Card>
+        <div class="mt-5 flex flex-col gap-5">
+          <Card
+            v-for="item of searchResults?.features"
+            :key="item.id"
+            :class="selectedItemId === item.id ? 'border-emerald-500' : ''"
+          >
+            <CardHeader>
+              <CardTitle class="text-xl">
+                {{ item.properties.title ?? item.id }}
+              </CardTitle>
+              <CardDescription>{{
+                item.properties.description
+              }}</CardDescription>
+            </CardHeader>
+            <CardContent v-if="item.properties.datetime">
+              <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
+                >View details</NuxtLink
+              >
+              <div class="text-xs text-muted-foreground">
+                {{
+                  dateFormat(
+                    new Date(item.properties.datetime),
+                    "mmmm dS, yyyy",
+                  )
+                }}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
 
-    <div class="relative h-full">
+    <div class="relative h-full flex justify-center">
+      <Button
+        size="sm"
+        @click="searchBboxArea"
+        v-if="bboxFilter !== bbox"
+        class="absolute top-4 z-10 animate-in fade-in-0 duration-200"
+      >
+        Search this area
+      </Button>
       <ClientOnly>
         <MapBrowser
           :feature-collection="searchResults"
