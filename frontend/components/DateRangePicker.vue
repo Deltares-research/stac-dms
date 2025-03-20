@@ -10,6 +10,8 @@ import {
   CalendarDate,
   type DateValue,
   isEqualMonth,
+  today,
+  getLocalTimeZone,
 } from "@internationalized/date"
 
 import { type DateRange, RangeCalendarRoot, useDateFormatter } from "radix-vue"
@@ -36,8 +38,8 @@ const emit = defineEmits<{
 }>()
 
 const value = ref({
-  start: new CalendarDate(2019, 1, 1),
-  end: new CalendarDate(2024, 1, 20),
+  start: undefined,
+  end: undefined,
 }) as Ref<DateRange>
 
 watch(value, (newValue) => {
@@ -47,8 +49,10 @@ watch(value, (newValue) => {
 const locale = ref("en-US")
 const formatter = useDateFormatter(locale.value)
 
-const placeholder = ref(value.value.start) as Ref<DateValue>
-const secondMonthPlaceholder = ref(value.value.end) as Ref<DateValue>
+const placeholder = ref(today(getLocalTimeZone())) as Ref<DateValue>
+const secondMonthPlaceholder = ref(
+  today(getLocalTimeZone()).add({ months: 1 }),
+) as Ref<DateValue>
 
 const firstMonth = ref(
   createMonth({
