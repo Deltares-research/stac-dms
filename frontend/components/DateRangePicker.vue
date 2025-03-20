@@ -5,6 +5,7 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  XIcon,
 } from "lucide-vue-next"
 import {
   CalendarDate,
@@ -37,10 +38,16 @@ const emit = defineEmits<{
   (event: "update:modelValue", payload: DateRange): void
 }>()
 
-const value = ref({
-  start: undefined,
-  end: undefined,
-}) as Ref<DateRange>
+const props = defineProps<{
+  modelValue?: DateRange
+}>()
+
+const value = ref(
+  props.modelValue ?? {
+    start: undefined,
+    end: undefined,
+  },
+) as Ref<DateRange>
 
 watch(value, (newValue) => {
   emit("update:modelValue", newValue)
@@ -109,44 +116,53 @@ watch(secondMonthPlaceholder, (_secondMonthPlaceholder) => {
 
 <template>
   <Popover>
-    <PopoverTrigger as-child>
-      <Button
-        variant="outline"
-        :class="
-          cn(
-            'justify-start text-left font-normal',
-            !value && 'text-muted-foreground',
-          )
-        "
-      >
-        <CalendarIcon class="mr-2 h-4 w-4" />
-        <template v-if="value.start">
-          <template v-if="value.end">
-            {{
-              formatter.custom(toDate(value.start), {
-                dateStyle: "medium",
-              })
-            }}
-            -
-            {{
-              formatter.custom(toDate(value.end), {
-                dateStyle: "medium",
-              })
-            }}
-          </template>
+    <PopoverTrigger>
+      <div class="relative">
+        <Button
+          size="sm"
+          variant="outline"
+          :class="
+            cn(
+              'justify-start text-left font-normal pr-8',
+              !value && 'text-muted-foreground',
+            )
+          "
+        >
+          <CalendarIcon class="mr-2 size-3.5" />
+          <template v-if="value.start">
+            <template v-if="value.end">
+              {{
+                formatter.custom(toDate(value.start), {
+                  dateStyle: "medium",
+                })
+              }}
+              -
+              {{
+                formatter.custom(toDate(value.end), {
+                  dateStyle: "medium",
+                })
+              }}
+            </template>
 
-          <template v-else>
-            {{
-              formatter.custom(toDate(value.start), {
-                dateStyle: "medium",
-              })
-            }}
+            <template v-else>
+              {{
+                formatter.custom(toDate(value.start), {
+                  dateStyle: "medium",
+                })
+              }}
+            </template>
           </template>
-        </template>
-        <template v-else> Pick a date </template>
-      </Button>
+          <template v-else> Pick a date </template>
+        </Button>
+        <button
+          @click="value = { start: undefined, end: undefined }"
+          class="absolute right-0 top-0 h-full flex items-center justify-center w-8 hover:bg-gray-100 px-1 rounded"
+        >
+          <XIcon class="size-3.5" />
+        </button>
+      </div>
     </PopoverTrigger>
-    <PopoverContent class="w-auto p-0">
+    <PopoverContent class="w-auto p-0" align="start">
       <RangeCalendarRoot
         v-slot="{ weekDays }"
         v-model="value"
