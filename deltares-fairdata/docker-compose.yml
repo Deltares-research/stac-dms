@@ -5,7 +5,7 @@ services:
     restart: always
     build:
       context: ./api
-      target: development
+      target: production
     env_file:
       - ./api/.env
     ports:
