@@ -1,4 +1,4 @@
-name: Frontend CI
+name: Deltares Fairdata Frontend CI
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -10,15 +10,15 @@ on:
       - main
       - prod
     paths:
-      - "frontend/**"
-      - ".github/workflows/frontend_ci.yml"
+      - "deltares-fairdata/frontend/**"
+      - ".github/workflows/deltares_fairdata_frontend_ci.yml"
   pull_request:
     branches:
       - main
       - prod
     paths:
-      - "frontend/**"
-      - ".github/workflows/frontend_ci.yml"
+      - "deltares-fairdata/frontend/**"
+      - ".github/workflows/deltares_fairdata_frontend_ci.yml"
         # Allow manual trigger
   workflow_dispatch:
 
@@ -42,7 +42,7 @@ jobs:
       - name: Checkout the repository to the runner
         uses: actions/checkout@v2
       - name: Create .env file
-        run: echo "API_URL=${{ env.API_URL }}" > frontend/.env
+        run: echo "API_URL=${{ env.API_URL }}" > deltares-fairdata/frontend/.env
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -56,7 +56,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: frontend
+          context: deltares-fairdata/frontend
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: run-prod
