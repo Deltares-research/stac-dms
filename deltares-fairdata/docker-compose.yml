@@ -1,8 +1,7 @@
 services:
-  stac-api:
-    container_name: stac-fastapi-os
-    image: stac-dms/stac-fastapi-os
-    restart: always
+  backend:
+    container_name: backend
+    image: stac-dms/backend
     build:
       context: ./api
       target: production
@@ -33,7 +32,7 @@ services:
     depends_on:
       - opensearch
       - postgres
-    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m dmsapi.app"
+    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && fastapi run dmsapi/app.py --port 8000"
 
   postgres:
     image: postgres:16
@@ -61,20 +60,20 @@ services:
       - "9202:9202"
       - 9600:9600
 
-  stac-dms:
+  frontend:
     build:
       context: ./frontend
       target: run-dev
     env_file:
       - ./frontend/.env
     environment:
-      - API_URL=http://stac-api:8000
+      - API_URL=http://backend:8000
     ports:
       - 24678:24678
       - 3000:3000
     depends_on:
-      - stac-api
-    container_name: stac-dms-frontend
+      - backend
+    container_name: frontend
     image: stac-dms/frontend
     tmpfs:
       - /tmp
@@ -83,8 +82,8 @@ services:
       - /src/node_modules
       - /nuxt/.nuxt
 
-  stac-proxy:
-    container_name: stac-proxy
+  proxy:
+    container_name: proxy
     image: stac-dms/proxy
     build:
       context: ./proxy
@@ -96,11 +95,11 @@ services:
       - ./proxy/data/data:/data
       - ./proxy/data/config:/config
     depends_on:
-      - stac-api
-      - stac-dms
+      - backend
+      - frontend
     environment:
       - DOMAIN=localhost
-      - PROXY_BACKEND_HOST=stac-fastapi-os
+      - PROXY_BACKEND_HOST=backend
       - PROXY_BACKEND_PORT=8000
-      - PROXY_FRONTEND_HOST=stac-dms
+      - PROXY_FRONTEND_HOST=frontend
       - PROXY_FRONTEND_PORT=3000

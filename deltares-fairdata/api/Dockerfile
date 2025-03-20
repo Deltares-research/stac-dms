@@ -36,12 +36,11 @@ FROM builder-base AS development
 # Uses `--host 0.0.0.0` to allow access from outside the container
 
 
-CMD ["sh", "-c", "alembic upgrade head && python -m dmsapi.app"]
+CMD ["fastapi", "dev", "dmsapi/app.py", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
 
 ################################
 # PRODUCTION
 # Final image used for runtime
 ################################
 FROM builder-base AS production
-
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "dmsapi.app"]
+CMD ["fastapi", "run", "dmsapi/app.py", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]

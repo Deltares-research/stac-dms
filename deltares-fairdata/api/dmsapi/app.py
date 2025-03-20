@@ -2,10 +2,11 @@
 
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
-from starlette.applications import Starlette
-from starlette.middleware import Middleware
 
+from fastapi import FastAPI
+from fastapi_sso.sso.microsoft import MicrosoftSSO
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
 from stac_fastapi.core.core import (
     BulkTransactionsClient,
@@ -22,21 +23,21 @@ from stac_fastapi.extensions.core import (
     TokenPaginationExtension,
     TransactionExtension,
 )
-from stac_fastapi.types.config import Settings
 from stac_fastapi.extensions.third_party import BulkTransactionExtension
 from stac_fastapi.opensearch.database_logic import (
     DatabaseLogic,
     create_collection_index,
     create_index_templates,
 )
-from fastapi_sso.sso.microsoft import MicrosoftSSO
+from stac_fastapi.types.config import Settings
+from starlette.middleware import Middleware
 
+from dmsapi.config import DMSAPISettings
 from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.database.db import create_db_engine
+from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
-from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
-from dmsapi.config import DMSAPISettings
 from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 
 settings = DMSAPISettings()
@@ -57,6 +58,7 @@ filter_extension = FilterExtension(client=EsAsyncBaseFiltersClient())
 filter_extension.conformance_classes.append(
     "http://www.opengis.net/spec/cql2/1.0/conf/advanced-comparison-operators"
 )
+
 
 database_logic = DatabaseLogic()
 
@@ -92,7 +94,25 @@ database_logic.extensions = [type(ext).__name__ for ext in extensions]
 
 post_request_model = create_post_request_model(extensions)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    run_migrations()
+    await create_index_templates()
+    await create_collection_index()
+    yield
+
+
+app = FastAPI(
+    lifespan=lifespan,
+    openapi_url=settings.openapi_url,
+    docs_url=settings.docs_url,
+    redoc_url=None,
+)
+app.root_path = os.getenv("STAC_FASTAPI_ROOT_PATH", "/api")
+
 api = StacDmsApi(
+    app=app,
     title=os.getenv("STAC_FASTAPI_TITLE", "stac-fastapi-opensearch"),
     description=os.getenv("STAC_FASTAPI_DESCRIPTION", "stac-fastapi-opensearch"),
     api_version=os.getenv("STAC_FASTAPI_VERSION", "2.1"),
@@ -105,51 +125,22 @@ api = StacDmsApi(
     search_get_request_model=create_get_request_model(extensions),
     search_post_request_model=post_request_model,
 )
-app = api.app
-app.root_path = os.getenv("STAC_FASTAPI_ROOT_PATH", "/api")
 
 
 def run_migrations():
-    from alembic.config import Config
     from alembic import command
+    from alembic.config import Config
 
     config_path = Path(__file__).parent.parent / "alembic.ini"
     alembic_cfg = Config(config_path)
     if settings.environment == "local":
         _LOGGER.info(
-            f"Checking for unapplied DB migrations. Not running them. usingconfig at {config_path}"
+            f"Checking for unapplied DB migrations. Not running them. using config at {config_path}"
         )
         command.check(alembic_cfg)
     else:
         _LOGGER.info("Running DB migrations")
-        # command.upgrade(alembic_cfg, "head")
-
-
-@app.on_event("startup")
-async def _startup_event() -> None:
-    # run_migrations()
-    await create_index_templates()
-    await create_collection_index()
-
-
-def run() -> None:
-    """Run app from command line using uvicorn if available."""
-    try:
-        import uvicorn
-
-        uvicorn.run(
-            "dmsapi.app:app",
-            host=settings.app_host,
-            port=settings.app_port,
-            log_level="info",
-            reload=settings.reload,
-        )
-    except ImportError:
-        raise RuntimeError("Uvicorn must be installed in order to use command")
-
-
-if __name__ == "__main__":
-    run()
+        command.upgrade(alembic_cfg, "head")
 
 
 # def create_handler(app):
