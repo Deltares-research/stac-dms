@@ -6,56 +6,78 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { ref } from "vue"
+import { ref, reactive } from "vue"
 import dateFormat from "dateformat"
-import DateRangePicker from "~/components/DateRangePicker.vue"
 import type { DateRange } from "radix-vue"
 import Input from "~/components/ui/input/Input.vue"
 import MapBrowser from "~/components/MapBrowser.vue"
 import type { Extent } from "ol/extent"
-import KeywordsCombobox from "~/components/keywords/KeywordsCombobox.vue"
-import CollectionCombobox from "~/components/collections/CollectionCombobox.vue"
 import { bboxPolygon } from "@turf/turf"
+import type { LocationQueryRaw } from "vue-router"
+import FilterSystem from "~/components/FilterSystem.vue"
+import { parseDate } from "@internationalized/date"
 
 const route = useRoute()
+const router = useRouter()
 
 let selectedItemId = ref<string>()
 
-let daterange = ref<DateRange>()
 let bbox = ref<Extent>([180, 90, -180, -90])
+let bboxFilter = ref<Extent>([180, 90, -180, -90])
+
+// Reactive filter state
+const filterState = reactive({
+  q: (route.query?.q as string) || "",
+  date: undefined as DateRange | undefined,
+  keywords: [] as string[],
+  collections: [] as string[],
+  includeEmptyGeometry: route.query?.includeEmptyGeometry === "on",
+})
+
+// Initialize filter state from route query
+if (route.query?.start && route.query?.end) {
+  filterState.date = {
+    start: parseDate(route.query.start as string),
+    end: parseDate(route.query.end as string),
+  }
+}
+
+if (route.query?.keywords) {
+  const keywords = route.query.keywords
+  filterState.keywords = (Array.isArray(keywords) ? keywords : [keywords])
+    .map((id) => id?.toString())
+    .filter(Boolean) as string[]
+}
+
+if (route.query?.collections) {
+  const collections = route.query.collections
+  filterState.collections = (
+    Array.isArray(collections) ? collections : [collections]
+  )
+    .map((id) => id?.toString())
+    .filter(Boolean) as string[]
+}
 
 let datetime = computed(() => {
-  if (!route || !route.query) return undefined
-  
-  let { start, end } = route.query
-  if (start && end) {
-    return `${dateFormat(new Date(start as string), "isoUtcDateTime")}/${dateFormat(new Date(end as string), "isoUtcDateTime")}`
-  }
+  if (!filterState.date?.start || !filterState.date?.end) return undefined
+
+  return `${dateFormat(new Date(filterState.date.start as unknown as string), "isoUtcDateTime")}/${dateFormat(new Date(filterState.date.end as unknown as string), "isoUtcDateTime")}`
 })
 
 function onChangeBbox(newBox: Extent) {
   bbox.value = newBox
 }
 
-let keywordIds = computed(() => {
-  if (!route || !route.query || !route.query.keywords) return []
-  
-  const keywords = route.query.keywords
-  return (Array.isArray(keywords) ? keywords : [keywords])
-    .map((id) => id?.toString())
-    .filter(Boolean) as string[]
-})
+function searchBboxArea() {
+  bboxFilter.value = bbox.value
+}
 
-let collectionIds = computed(() => {
-  if (!route || !route.query || !route.query.collections) return []
-  
-  const collections = route.query.collections
-  return (Array.isArray(collections) ? collections : [collections])
-    .map((id) => id?.toString())
-    .filter(Boolean) as string[]
-})
+watch(filterState, onSubmit)
+
 let filter = computed(() => {
-  let geometry = bbox.value ? bboxPolygon(bbox.value as [number, number, number, number]).geometry : undefined
+  let geometry = bboxFilter.value
+    ? bboxPolygon(bboxFilter.value as [number, number, number, number]).geometry
+    : undefined
 
   return {
     op: "and",
@@ -75,7 +97,7 @@ let filter = computed(() => {
               }
             : undefined,
           // The isNull operator does not work. The below is a workaround. It includes items that have no geometry by intersecting with a Polygon that covers the entire world.
-          route.query?.includeEmptyGeometry === "on"
+          filterState.includeEmptyGeometry
             ? {
                 op: "not",
                 args: [
@@ -113,7 +135,7 @@ let filter = computed(() => {
               {
                 property: "properties.title",
               },
-              `%${route.query?.q ?? ""}%`,
+              `%${filterState.q}%`,
             ],
           },
           {
@@ -122,19 +144,19 @@ let filter = computed(() => {
               {
                 property: "properties.description",
               },
-              `%${route.query?.q ?? ""}%`,
+              `%${filterState.q}%`,
             ],
           },
         ],
       },
-      keywordIds.value.length > 0
+      filterState.keywords.length > 0
         ? {
             op: "in",
             args: [
               {
                 property: "properties.keywords.id",
               },
-              keywordIds.value,
+              filterState.keywords,
             ],
           }
         : undefined,
@@ -142,15 +164,42 @@ let filter = computed(() => {
   }
 })
 
-let { data: searchResults, status } = useApi("/search", {
+let { data: searchResults, status } = await useApi("/search", {
   method: "post",
   body: {
-    collections: collectionIds.value,
-    datetime: datetime.value,
-    filter: filter.value,
+    collections:
+      filterState.collections.length > 0 ? filterState.collections : undefined,
+    datetime,
+    filter,
     "filter-lang": "cql2-json",
   } as any,
 })
+
+function onSubmit() {
+  const query: LocationQueryRaw = { q: filterState.q }
+
+  if (filterState.date?.start) {
+    query.start = filterState.date.start as unknown as string
+  }
+
+  if (filterState.date?.end) {
+    query.end = filterState.date.end as unknown as string
+  }
+
+  if (filterState.keywords.length > 0) {
+    query.keywords = filterState.keywords
+  }
+
+  if (filterState.collections.length > 0) {
+    query.collections = filterState.collections
+  }
+
+  if (filterState.includeEmptyGeometry) {
+    query.includeEmptyGeometry = "on"
+  }
+
+  router.push({ query })
+}
 </script>
 
 <template>
@@ -163,75 +212,68 @@ let { data: searchResults, status } = useApi("/search", {
         <Loader2 class="w-4 h-4 animate-spin" />
       </div>
       <div class="p-5 h-full overflow-y-auto">
-        <form class="flex flex-col gap-1.5" method="get">
-          <Input
-            name="q"
-            placeholder="Search title or description..."
-            :model-value="route.query?.q as string || ''"
+        <div class="flex flex-col gap-4">
+          <!-- Filter System -->
+          <FilterSystem
+            :model-value="filterState as any"
+            @update:model-value="(val: any) => Object.assign(filterState, val)"
           />
 
-          <input name="start" type="hidden" :value="daterange?.start" />
-          <input name="end" type="hidden" :value="daterange?.end" />
-          <DateRangePicker v-model="daterange" />
-
-          <KeywordsCombobox
-            name="keywords"
-            placeholder="Keywords"
-            :model-value="keywordIds"
-          />
-
-          <CollectionCombobox
-            name="collections"
-            placeholder="Collections"
-            :model-value="collectionIds"
-          />
-
-          <div class="flex items-center space-x-2 py-2">
-            <Checkbox
-              id="includeEmptyGeometry"
-              name="includeEmptyGeometry"
-              :default-checked="route.query?.includeEmptyGeometry === 'on'"
+          <!-- Search Input -->
+          <div class="flex gap-2">
+            <Input
+              v-model="filterState.q"
+              placeholder="Search title or description..."
+              class="flex-1"
             />
-            <label
-              for="includeEmptyGeometry"
-              class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Include empty geometries
-            </label>
+            <Button @click="onSubmit">Search</Button>
           </div>
+        </div>
 
-          <Button>Search</Button>
-        </form>
-
-        <Card
-          v-for="item of searchResults?.features"
-          :key="item.id"
-          :class="selectedItemId === item.id ? 'border-emerald-500' : ''"
-        >
-          <CardHeader>
-            <CardTitle class="text-xl">
-              {{ item.properties.title ?? item.id }}
-            </CardTitle>
-            <CardDescription>{{ item.properties.description }}</CardDescription>
-          </CardHeader>
-          <CardContent v-if="item.properties.datetime">
-            <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
-              >View details</NuxtLink
-            >
-            <div class="text-xs text-muted-foreground">
-              {{
-                dateFormat(new Date(item.properties.datetime), "mmmm dS, yyyy")
-              }}
-            </div>
-          </CardContent>
-        </Card>
+        <div class="mt-5 flex flex-col gap-5">
+          <Card
+            v-for="item of searchResults?.features"
+            :key="item.id"
+            :class="selectedItemId === item.id ? 'border-emerald-500' : ''"
+          >
+            <CardHeader>
+              <CardTitle class="text-xl">
+                {{ item.properties.title ?? item.id }}
+              </CardTitle>
+              <CardDescription>{{
+                item.properties.description
+              }}</CardDescription>
+            </CardHeader>
+            <CardContent v-if="item.properties.datetime">
+              <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
+                >View details</NuxtLink
+              >
+              <div class="text-xs text-muted-foreground">
+                {{
+                  dateFormat(
+                    new Date(item.properties.datetime),
+                    "mmmm dS, yyyy",
+                  )
+                }}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
 
-    <div class="relative h-full">
+    <div class="relative h-full flex justify-center">
+      <Button
+        size="sm"
+        @click="searchBboxArea"
+        v-if="bboxFilter !== bbox"
+        class="absolute top-4 z-10 animate-in fade-in-0 duration-200"
+      >
+        Search this area
+      </Button>
       <ClientOnly>
         <MapBrowser
-          :feature-collection="searchResults"
+          :feature-collection="searchResults as any"
           @change-bbox="onChangeBbox"
           @hover-item="selectedItemId = $event"
         />

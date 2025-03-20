@@ -14,15 +14,6 @@ export default defineNuxtConfig({
     componentDir: "./components/ui",
   },
 
-  vite: {
-    server: {
-      hmr: {
-        protocol: "wss",
-        clientPort: 3000,
-      },
-    },
-  },
-
   openFetch: {
     clients: {
       api: {
