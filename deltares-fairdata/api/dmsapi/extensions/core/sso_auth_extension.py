@@ -141,7 +141,24 @@ class SSOAuthExtension(ApiExtension):
             openid = await self.sso_client.verify_and_process(request)
             if not openid:
                 raise HTTPException(status_code=401, detail="Authentication failed")
-        # Create a JWT with the user's OpenID
+        response = RedirectResponse(url="/")
+        expiration, token = self.create_token(openid, APP_SECRET_KEY)
+        response.set_cookie(
+            key=COOKIE_NAME, value=token, expires=expiration
+        )  # This cookie will make sure /protected knows the user
+        return response
+
+    @staticmethod
+    def create_token(openid: OpenID, key: Key) -> tuple[datetime.datetime, str]:
+        """Create a JWT token for the given OpenID.
+
+        Args:
+            openid: The OpenID to create a token for
+            algorithm: The algorithm to use for signing
+
+        Returns:
+            Tuple of expiration datetime and encoded token string
+        """
         expiration = datetime.datetime.now(
             tz=datetime.timezone.utc
         ) + datetime.timedelta(days=1)
@@ -151,11 +168,7 @@ class SSOAuthExtension(ApiExtension):
                 "exp": int(expiration.strftime("%s")),
                 "sub": openid.id,
             },
-            header={"alg": self.algorithm},
-            key=APP_SECRET_KEY,
+            header={"alg": SSOAuthExtension.algorithm},
+            key=key,
         ).decode("utf-8")
-        response = RedirectResponse(url="/")
-        response.set_cookie(
-            key=COOKIE_NAME, value=token, expires=expiration
-        )  # This cookie will make sure /protected knows the user
-        return response
+        return expiration, token

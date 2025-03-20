@@ -30,7 +30,7 @@ async function logout() {
         <NuxtLink to="/keywords">Keywords</NuxtLink>
       </Button>
       <Button as-child variant="link">
-        <NuxtLink to="/main">Storage Finder</NuxtLink>
+        <NuxtLink to="/groups">Groups</NuxtLink>
       </Button>
     </nav>
     <div class="flex justify-end">
