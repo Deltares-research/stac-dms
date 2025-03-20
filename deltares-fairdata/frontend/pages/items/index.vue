@@ -157,7 +157,7 @@ const collectionColumns: ColumnDef<
     <CardContent>
       <div class="flex justify-end">
         <Button as-child>
-          <NuxtLink to="/items/create" class="flex items-center gap-1">
+          <NuxtLink to="/items/create/edit" class="flex items-center gap-1">
             <PlusIcon class="w-4 h-4 mr-2" />
             Register new dataset
           </NuxtLink>
