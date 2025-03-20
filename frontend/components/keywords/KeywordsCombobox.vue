@@ -64,7 +64,7 @@ let keywordsById = computed(() =>
 
 <template>
   <input v-for="val in value" type="hidden" :name="name" :value="val" />
-  <div class="relative w-full flex flex-col gap-1.5">
+  <div class="relative w-fit flex flex-col gap-1.5">
     <div class="flex gap-1.5" v-if="value.length">
       <button
         v-for="keyword in value"
@@ -80,6 +80,7 @@ let keywordsById = computed(() =>
       <PopoverTrigger as-child>
         <Button
           variant="outline"
+          size="sm"
           role="combobox"
           :aria-expanded="open"
           class="justify-between w-full"
