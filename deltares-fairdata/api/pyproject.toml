@@ -12,6 +12,7 @@ dependencies = [
     "sqlmodel>=0.0.21,<0.0.22",
     "psycopg[binary]>=3.2.1,<4",
     "stac-fastapi-opensearch==3.0.0",
+    "fastapi[standard]>=0.115.11",
 ]
 
 [dependency-groups]
