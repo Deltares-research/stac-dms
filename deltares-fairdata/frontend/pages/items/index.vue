@@ -121,7 +121,7 @@ const collectionColumns: ColumnDef<
         {
           variant: "ghost",
           onClick: () => {
-            router.push("/items/" + row.original.id)
+            router.push("/items/" + row.original.id + "/edit")
           },
         },
         () => ["Edit", h(Pencil, { class: "ml-2 h-4 w-4" })],
@@ -136,7 +136,7 @@ const collectionColumns: ColumnDef<
         {
           variant: "ghost",
           onClick: () => {
-            router.push("/items/delete/" + row.original.id)
+            router.push("/items/" + row.original.id + "/delete")
           },
         },
         () => ["Delete", h(Trash2, { class: "ml-2 h-4 w-4" })],
@@ -165,7 +165,7 @@ const collectionColumns: ColumnDef<
       </div>
       <div class="flex justify-end"></div>
       <DataTable
-        v-if="items.features"
+        v-if="items?.features"
         :columns="collectionColumns"
         :data="items.features"
         filterId="properties.title"
