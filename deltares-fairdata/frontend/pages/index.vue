@@ -245,7 +245,7 @@ function onSubmit() {
               }}</CardDescription>
             </CardHeader>
             <CardContent v-if="item.properties.datetime">
-              <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
+              <NuxtLink :to="'/items/' + item.id + '/view'"
                 >View details</NuxtLink
               >
               <div class="text-xs text-muted-foreground">
