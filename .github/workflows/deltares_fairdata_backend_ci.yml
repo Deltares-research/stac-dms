@@ -1,4 +1,4 @@
-name: Backend CI
+name: Deltares Fairdata Backend CI
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -10,15 +10,15 @@ on:
       - main
       - prod
     paths:
-      - "api/**"
-      - ".github/workflows/backend_ci.yml"
+      - "deltares-fairdata/api/**"
+      - ".github/workflows/deltares_fairdata_backend_ci.yml.yml"
   pull_request:
     branches:
       - main
       - prod
     paths:
-      - "api/**"
-      - ".github/workflows/backend_ci.yml"
+      - "deltares-fairdata/api/**"
+      - ".github/workflows/deltares_fairdata_backend_ci.yml.yml"
 
   # Allow manual trigger
   workflow_dispatch:
@@ -57,15 +57,15 @@ jobs:
       - name: Define a cache for the virtual environment based on the dependencies lock file
         uses: actions/cache@v3
         with:
-          path: ./api/.venv
+          path: ./deltares-fairdata/api/.venv
           key: venv-${{ hashFiles('poetry.lock') }}
 
       - name: Install the project dependencies
-        working-directory: api
+        working-directory: deltares-fairdata/api
         run: poetry install --with=dev
 
       - name: Run Pytest
-        working-directory: api
+        working-directory: deltares-fairdata/api
         run: poetry run pytest tests/ --junit-xml=test-results.xml
 
       - name: Publish Test Results
@@ -73,7 +73,7 @@ jobs:
         if: always()
         with:
           files: |
-            api/test-results.xml
+            deltares-fairdata/api/test-results.xml
 
   build-image:
     runs-on: ubuntu-latest
@@ -94,7 +94,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: api
+          context: deltares-fairdata/api
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: development

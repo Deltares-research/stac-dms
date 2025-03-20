@@ -5,10 +5,16 @@ on:
     branches:
       - prod
       - main
+    paths:
+      - "deltares-fairdata/**"
+      - ".github/workflows/deltares_fairdata_terraform.yaml"
   pull_request:
     branches:
       - prod
       - main
+    paths:
+      - "deltares-fairdata/**"
+      - ".github/workflows/deltares_fairdata_terraform.yaml"
 
 env:
   # verbosity setting for Terraform logs
@@ -35,7 +41,7 @@ jobs:
       run:
         shell: bash
         # We keep Terraform files in the terraform directory.
-        working-directory: ./infra
+        working-directory: ./deltares-fairdata/infra
     permissions:
       issues: write
       pull-requests: write
