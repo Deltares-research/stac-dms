@@ -1,5 +1,5 @@
 resource "aws_security_group" "opensearch_security_group" {
-  name        = "dms-es-sg"
+  name        = "dms-es-sg-${terraform.workspace}"
   vpc_id      = aws_vpc.vpc.id
   description = "Allow inbound HTTPS traffic"
 
