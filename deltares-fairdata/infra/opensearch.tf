@@ -38,7 +38,7 @@ resource "aws_opensearch_domain" "opensearch" {
   cluster_config {
     dedicated_master_count   = 1
     dedicated_master_type    = "t3.small.search"
-    dedicated_master_enabled = local.is_prod ? true : false
+    dedicated_master_enabled = false
     instance_type            = "t3.small.search"
     instance_count           = 2
     zone_awareness_enabled   = false
