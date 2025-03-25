@@ -33,17 +33,22 @@ resource "aws_secretsmanager_secret_version" "opensearch_credentials" {
 
 resource "aws_opensearch_domain" "opensearch" {
   domain_name    = local.domain
-  engine_version = "OpenSearch_${var.engine_version}"
+  engine_version = "OpenSearch_2.15"
 
   cluster_config {
     dedicated_master_count   = 1
     dedicated_master_type    = "t3.small.search"
-    dedicated_master_enabled = false
+    dedicated_master_enabled = local.is_prod ? true : false
     instance_type            = "t3.small.search"
-    instance_count           = 1
+    instance_count           = 2
     zone_awareness_enabled   = false
   }
-
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 30
+    volume_type = "gp3"
+    throughput  = 125
+  }
   advanced_security_options {
     enabled                        = true
     anonymous_auth_enabled         = false
@@ -67,12 +72,7 @@ resource "aws_opensearch_domain" "opensearch" {
     # custom_endpoint_certificate_arn = data.aws_acm_certificate.opensearch.arn
   }
 
-  ebs_options {
-    ebs_enabled = var.ebs_enabled
-    volume_size = var.ebs_volume_size
-    volume_type = var.volume_type
-    throughput  = var.throughput
-  }
+
 
   log_publishing_options {
     cloudwatch_log_group_arn = aws_cloudwatch_log_group.opensearch_log_group_index_slow_logs.arn
