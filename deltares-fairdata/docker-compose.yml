@@ -27,12 +27,15 @@ services:
       - BACKEND=opensearch
       - DB_CONNECTION_URL=postgresql+psycopg://postgres:postgres@postgres:5432/postgres
     volumes:
-      - ./api:/app
-      - /app/.venv
+      - ./api/dmsapi:/app/dmsapi
+      - ./api/tests:/app/tests
+      - ./api/scripts:/app/scripts
+      - ./api/pyproject.toml:/app/pyproject.toml
+      - ./api/uv.lock:/app/uv.lock
     depends_on:
       - opensearch
       - postgres
-    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && fastapi run dmsapi/app.py --port 8000"
+    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && uv run --no-dev fastapi dev dmsapi/app.py --port 8000"
 
   postgres:
     image: postgres:16

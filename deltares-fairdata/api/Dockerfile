@@ -36,11 +36,11 @@ FROM builder-base AS development
 # Uses `--host 0.0.0.0` to allow access from outside the container
 
 
-CMD ["fastapi", "dev", "dmsapi/app.py", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["fastapi", "dev", "dmsapi/app.py","--no-dev", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000" ]
 
 ################################
 # PRODUCTION
 # Final image used for runtime
 ################################
 FROM builder-base AS production
-CMD ["fastapi", "run", "dmsapi/app.py", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["fastapi", "run", "dmsapi/app.py", "--no-dev", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
