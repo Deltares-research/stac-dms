@@ -1,27 +1,17 @@
-resource "aws_security_group" "opensearch_security_group" {
-  name        = "dms-es-sg"
+resource "aws_security_group" "opensearch_sg" {
+  name        = "dms-es-sg-${terraform.workspace}"
   vpc_id      = aws_vpc.vpc.id
-  description = "Allow inbound HTTPS traffic"
-
-  # ingress {
-  #   description = "HTTP from VPC"
-  #   from_port   = 443
-  #   to_port     = 443
-  #   protocol    = "tcp"
-
-  #   cidr_blocks = [
-  #     aws_vpc.vpc.cidr_block,
-  #   ]
-  # }
-
-  ingress {
-    description     = "HTTPS from backend service"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.backend-ecs.id]
-  }
+  description = "Allow inbound HTTPS traffic for opensearch"
 }
+
+resource "aws_vpc_security_group_ingress_rule" "opensearch_sg_ingress" {
+  security_group_id            = aws_security_group.opensearch_sg.id
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.backend-ecs.id
+}
+
 
 resource "random_password" "os_password" {
   length  = 24
@@ -43,23 +33,22 @@ resource "aws_secretsmanager_secret_version" "opensearch_credentials" {
 
 resource "aws_opensearch_domain" "opensearch" {
   domain_name    = local.domain
-  engine_version = "OpenSearch_${var.engine_version}"
+  engine_version = "OpenSearch_2.15"
 
   cluster_config {
-    dedicated_master_count   = var.dedicated_master_count
-    dedicated_master_type    = var.dedicated_master_type
-    dedicated_master_enabled = var.dedicated_master_enabled
-    instance_type            = var.instance_type
-    instance_count           = var.instance_count
-    zone_awareness_enabled   = var.zone_awareness_enabled
-    dynamic "zone_awareness_config" {
-      for_each = var.zone_awareness_enabled ? [1] : []
-      content {
-        availability_zone_count = 2
-      }
-    }
+    dedicated_master_count   = 1
+    dedicated_master_type    = "t3.small.search"
+    dedicated_master_enabled = false
+    instance_type            = "t3.small.search"
+    instance_count           = 2
+    zone_awareness_enabled   = false
   }
-
+  ebs_options {
+    ebs_enabled = true
+    volume_size = 30
+    volume_type = "gp3"
+    throughput  = 125
+  }
   advanced_security_options {
     enabled                        = true
     anonymous_auth_enabled         = false
@@ -83,12 +72,7 @@ resource "aws_opensearch_domain" "opensearch" {
     # custom_endpoint_certificate_arn = data.aws_acm_certificate.opensearch.arn
   }
 
-  ebs_options {
-    ebs_enabled = var.ebs_enabled
-    volume_size = var.ebs_volume_size
-    volume_type = var.volume_type
-    throughput  = var.throughput
-  }
+
 
   log_publishing_options {
     cloudwatch_log_group_arn = aws_cloudwatch_log_group.opensearch_log_group_index_slow_logs.arn
@@ -110,7 +94,7 @@ resource "aws_opensearch_domain" "opensearch" {
   vpc_options {
     subnet_ids = slice([aws_subnet.az1a.id, aws_subnet.az1b.id, aws_subnet.az1c.id], 0, 1)
 
-    security_group_ids = [aws_security_group.opensearch_security_group.id]
+    security_group_ids = [aws_security_group.opensearch_sg.id]
   }
 
 
