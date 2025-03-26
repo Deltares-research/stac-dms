@@ -28,12 +28,17 @@ permissions:
   issues: read
   checks: write
   pull-requests: write
+  id-token: write
 
 env:
   REGISTRY_ADDRESS: containers.deltares.nl
   HARBOR_PROJECT: fair-data
   TAG: ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
   TARGET: ${{ github.ref == 'refs/heads/prod' && 'run-prod' || 'run-dev' }}
+  AWS_REGION: eu-west-1
+  CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-cluster-prod' || 'dms-cluster-dev' }}
+  TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-backend-prod' || 'dms-backend-dev' }}
+  SERVICE_NAME: backend-service
 
 jobs:
   pytest:
@@ -102,3 +107,34 @@ jobs:
           tags: |
             ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/stac-fastapi-os:${{ github.sha }}
             ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/stac-fastapi-os:${{ env.TAG }}
+
+      # When pushing we also restart the backend service with the new image
+      - name: Login to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ github.event_name != 'pull_request'}}
+        with:
+          role-to-assume: arn:aws:iam::654654181948:role/github-actions-terraform-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download task definition
+        if: ${{ github.event_name != 'pull_request'}}
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION_NAME }} --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        if: ${{ github.event_name != 'pull_request'}}
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: backend
+          image: ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/stac-fastapi-os:${{ github.sha }}
+
+      - name: Deploy Amazon ECS task definition
+        if: ${{ github.event_name != 'pull_request'}}
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.SERVICE_NAME }}
+          cluster: ${{ env.CLUSTER_NAME }}
+          wait-for-service-stability: true
