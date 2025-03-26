@@ -11,14 +11,14 @@ on:
       - prod
     paths:
       - "deltares-fairdata/api/**"
-      - ".github/workflows/deltares_fairdata_backend_ci.yml.yml"
+      - ".github/workflows/deltares_fairdata_backend_ci.yml"
   pull_request:
     branches:
       - main
       - prod
     paths:
       - "deltares-fairdata/api/**"
-      - ".github/workflows/deltares_fairdata_backend_ci.yml.yml"
+      - ".github/workflows/deltares_fairdata_backend_ci.yml"
 
   # Allow manual trigger
   workflow_dispatch:
