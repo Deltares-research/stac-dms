@@ -41,6 +41,11 @@ env:
 jobs:
   build-image:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+      id-token: write
     steps:
       - name: Checkout the repository to the runner
         uses: actions/checkout@v2
