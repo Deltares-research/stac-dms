@@ -5,9 +5,10 @@ import { GeoJSON } from "ol/format"
 import type { FeatureCollection } from "geojson"
 import { Circle, MapPin, Pentagon, Spline, Trash2 } from "lucide-vue-next"
 
-let geoJson = new GeoJSON()
-
-let projection = ref("EPSG:4326")
+let geoJson = new GeoJSON({
+  dataProjection: "EPSG:4326",
+  featureProjection: "EPSG:3857",
+})
 
 let { onValueChange, initialValue } = defineProps<{
   onValueChange?: (newValue: FeatureCollection) => void
@@ -15,10 +16,7 @@ let { onValueChange, initialValue } = defineProps<{
   readOnly: Boolean
 }>()
 
-let initialFeatures = geoJson.readFeatures(initialValue, {
-  featureProjection: "EPSG:4326",
-  dataProjection: "EPSG:4326",
-})
+let initialFeatures = geoJson.readFeatures(initialValue)
 
 let center = ref([0, 0])
 let zoom = ref(1)
@@ -70,6 +68,47 @@ function selectDrawType(type: "Point" | "Polygon" | "Circle") {
   drawType.value = type
   drawEnable.value = true
 }
+
+// Watch for changes to fit map to features
+watch(initialFeatures, () => {
+  if (initialFeatures.length > 0) {
+    setTimeout(() => {
+      try {
+        const extent = vectorRef.value?.source?.getExtent()
+        if (extent && viewRef.value) {
+          viewRef.value.fit(extent, {
+            padding: [50, 50, 50, 50],
+            duration: 500,
+            maxZoom: 10,
+          })
+        }
+      } catch (e) {
+        console.warn("Error fitting map to geometry:", e)
+      }
+    }, 500)
+  }
+})
+
+const viewRef = ref()
+
+onMounted(() => {
+  if (initialFeatures.length > 0) {
+    setTimeout(() => {
+      try {
+        const extent = vectorRef.value?.source?.getExtent()
+        if (extent && viewRef.value) {
+          viewRef.value.fit(extent, {
+            padding: [50, 50, 50, 50],
+            duration: 500,
+            maxZoom: 10,
+          })
+        }
+      } catch (e) {
+        console.warn("Error fitting map to geometry:", e)
+      }
+    }, 500)
+  }
+})
 </script>
 
 <template>
@@ -133,13 +172,7 @@ function selectDrawType(type: "Point" | "Polygon" | "Circle") {
       :loadTilesWhileAnimating="true"
       :loadTilesWhileInteracting="true"
     >
-      <Map.OlView
-        :projection="projection"
-        :rotation="0"
-        ref="view"
-        :center="center"
-        :zoom="zoom"
-      />
+      <Map.OlView :rotation="0" ref="viewRef" :center="center" :zoom="zoom" />
 
       <Layers.OlTileLayer>
         <Sources.OlSourceOsm />
