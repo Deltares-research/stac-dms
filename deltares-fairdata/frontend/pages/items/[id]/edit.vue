@@ -213,7 +213,7 @@ let formSchema = toTypedSchema(
           originatorDataRoleCode: z.string().default("originator"),
           originatorDataOrganisation: z.string().default("Deltares"),
           originatorMetaDataOrganisation: z.string().default("Deltares"),
-          originatorMetaDataEmail: z.string().default(userData.value.email),
+          originatorMetaDataEmail: z.string(),
           originatorMetaDataRoleCode: z.string().default("originator"),
           metaDataLanguage: z.string().default("eng"),
           metaDataDateTime: z.date().default(new Date()),
