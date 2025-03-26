@@ -2,50 +2,7 @@ variable "aws_region" {
   type    = string
   default = "eu-west-1"
 }
-variable "volume_type" {
-  type    = string
-  default = "gp3"
-}
-variable "throughput" {
-  type    = number
-  default = 125
-}
-variable "ebs_enabled" {
-  type    = bool
-  default = true
-}
-variable "ebs_volume_size" {
-  type    = number
-  default = 10
-}
-variable "instance_type" {
-  type    = string
-  default = "t3.small.search"
-}
-variable "instance_count" {
-  type    = number
-  default = 1
-}
-variable "dedicated_master_enabled" {
-  type    = bool
-  default = false
-}
-variable "dedicated_master_count" {
-  type    = number
-  default = 1
-}
-variable "dedicated_master_type" {
-  type    = string
-  default = "t3.small.search"
-}
-variable "zone_awareness_enabled" {
-  type    = bool
-  default = false
-}
-variable "engine_version" {
-  type    = string
-  default = "2.15"
-}
+
 variable "harbor_url" {
   default = "containers.deltares.nl"
   type    = string
