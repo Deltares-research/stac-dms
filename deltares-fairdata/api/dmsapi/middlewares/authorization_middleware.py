@@ -1,24 +1,20 @@
+from authlib.jose import OctKey, jwt
 from dmsapi.config import DMSAPISettings
 from dmsapi.database.models import ErrorResponse, UserCreate
 from dmsapi.extensions.core.sso_auth_extension import COOKIE_NAME
+from dmsapi.extensions.rbac.rbac_client import RBACClient
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyCookie
 from fastapi_sso import OpenID
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette import status
-from authlib.jose import jwt, OctKey
 from sqlalchemy.engine import Engine
 from stac_fastapi.types.errors import NotFoundError
-
-from dmsapi.extensions.rbac.rbac_client import RBACClient
+from starlette import status
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class AuthorizationMiddleware(BaseHTTPMiddleware):
-
     def __init__(self, app, settings: DMSAPISettings, db_engine: Engine):
-        # TODO: add cookie name and token name from var
-        # TODO: add decoding key from settings
         super().__init__(app)
         self.db_engine = db_engine
         self.settings = settings

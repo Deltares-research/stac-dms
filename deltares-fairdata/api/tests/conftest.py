@@ -1,17 +1,17 @@
-import datetime
 import os
 
-from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
-from fastapi_sso import OpenID
-from sqlalchemy import Engine
-from starlette.middleware import Middleware
-from authlib.jose import jwt, OctKey
+from authlib.jose import OctKey
 from dmsapi.core.stacdms import StacDmsApi
+from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
+from fastapi import FastAPI
+from fastapi_sso import OpenID
+from sqlalchemy import Engine
 from sqlmodel import SQLModel
+from starlette.middleware import Middleware
 
 ## This part is gross but it's the only way to get the settings to load withouth changing to much in the underlying package
 if "ES_HOST" not in os.environ:
@@ -20,16 +20,19 @@ if "ES_PORT" not in os.environ:
     os.environ["ES_PORT"] = "9200"
 
 
-from dmsapi.config import DMSAPISettings
-from dmsapi.database.db import create_db_engine
-import dmsapi.database.models
-from dmsapi.database.models import Facility, FacilityKeywordGroupLink, Keyword_Group, Role, User  # type: ignore
-from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
-
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-from stac_fastapi.core.session import Session
+from dmsapi.config import DMSAPISettings
+from dmsapi.database.db import create_db_engine
+from dmsapi.database.models import (  # type: ignore
+    Facility,
+    FacilityKeywordGroupLink,
+    Keyword_Group,
+    Role,
+    User,
+)
+from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
+from httpx import ASGITransport, AsyncClient
 from sqlmodel import Session as SQLModelSession
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
 from stac_fastapi.core.core import (
@@ -39,17 +42,16 @@ from stac_fastapi.core.core import (
     TransactionsClient,
 )
 from stac_fastapi.core.extensions import QueryExtension
-
-from stac_fastapi.opensearch.database_logic import (
-    DatabaseLogic,
-)
-
+from stac_fastapi.core.session import Session
 from stac_fastapi.extensions.core import (
     FieldsExtension,
     FilterExtension,
     SortExtension,
     TokenPaginationExtension,
     TransactionExtension,
+)
+from stac_fastapi.opensearch.database_logic import (
+    DatabaseLogic,
 )
 from stac_fastapi.types.config import Settings
 
@@ -132,8 +134,7 @@ async def app(db_engine):
     ]
 
     post_request_model = create_post_request_model(extensions)
-
-    return StacDmsApi(
+    stac_dms_api = StacDmsApi(
         settings=settings,
         client=CoreClient(
             database=database,
@@ -145,15 +146,18 @@ async def app(db_engine):
         middlewares=middlewares,
         search_get_request_model=create_get_request_model(extensions),
         search_post_request_model=post_request_model,
-    ).app
+    )
+    yield stac_dms_api.app
 
 
 @pytest_asyncio.fixture(scope="function")
-async def app_client(app):
+async def app_client(app: FastAPI):
     # await create_index_templates()
     # await create_collection_index()
 
-    async with AsyncClient(app=app, base_url="http://test-server") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test-server"
+    ) as c:
         yield c
 
 
