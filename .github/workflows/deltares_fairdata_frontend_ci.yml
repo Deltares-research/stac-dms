@@ -29,11 +29,14 @@ permissions:
   pull-requests: write
 
 env:
+  AWS_REGION: eu-west-1
   REGISTRY_ADDRESS: containers.deltares.nl
   HARBOR_PROJECT: fair-data
   TAG: ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
-  TARGET: ${{ github.ref == 'refs/heads/prod' && 'run-prod' || 'run-dev' }}
   API_URL: ${{ github.ref == 'refs/heads/prod' && 'https://deltares-fairdata.com' || 'https://dev.deltares-fairdata.com' }}
+  CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-cluster-prod' || 'dms-cluster-dev' }}
+  TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-frontend-prod' || 'dms-frontend-dev' }}
+  SERVICE_NAME: frontend-service
 
 jobs:
   build-image:
@@ -64,3 +67,34 @@ jobs:
           tags: |
             ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/frontend:${{ github.sha }}
             ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/frontend:${{ env.TAG }}
+
+      # When pushing we also restart the frontend service with the new image
+      - name: Login to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ github.event_name != 'pull_request'}}
+        with:
+          role-to-assume: arn:aws:iam::654654181948:role/github-actions-terraform-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      # - name: Restart frontend service
+      #   run: |
+      #     aws ecs update-service --cluster ${{ env.CLUSTER_NAME }} --service ${{ env.SERVICE_NAME }} --force-new-deployment
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION_NAME }} --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: frontend
+          image: ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/frontend:${{ env.TAG }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.SERVICE_NAME }}
+          cluster: ${{ env.CLUSTER_NAME }}
+          wait-for-service-stability: true
