@@ -1,17 +1,15 @@
+from dmsapi.database.models import (  # type: ignore
+    ErrorResponse,
+    Group,
+    OKResponse,
+    Role,
+    User,
+)
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from fastapi import APIRouter, FastAPI
-from stac_pydantic.shared import MimeTypes
 from sqlalchemy.engine import Engine
 from stac_fastapi.types.extension import ApiExtension
-
-from dmsapi.database.models import (  # type: ignore
-    PermissionResponse,
-    User,
-    Group,
-    Role,
-    ErrorResponse,
-    OKResponse,
-)
+from stac_pydantic.shared import MimeTypes
 
 
 class RBACExtension(ApiExtension):
@@ -65,11 +63,7 @@ class RBACExtension(ApiExtension):
             None
         """
         self.router.prefix = app.state.router_prefix
-        self.add_create_user()
-        self.add_update_user()
-        self.add_get_user()
         self.add_get_users()
-        self.add_delete_user()
         self.add_create_group()
         self.add_update_group()
         self.add_get_group()
@@ -77,12 +71,11 @@ class RBACExtension(ApiExtension):
         self.add_delete_group()
         self.add_get_roles()
         self.add_add_users_to_group()
-        self.add_delete_users_from_group()
         self.add_get_users_from_group()
-        self.add_add_group_permission_to_object()
-        self.add_delete_group_permission_to_object()
-        self.add_get_groups_with_permission_to_object()
-        self.add_check_group_permission_to_object()
+        self.add_delete_users_from_group()
+        # self.add_add_group_permission_to_object()
+        # self.add_delete_group_permission_to_object()
+        # self.add_check_group_permission_to_object()
         app.include_router(self.router, tags=["RBAC Extension"])
 
     def add_create_user(self):
@@ -307,7 +300,7 @@ class RBACExtension(ApiExtension):
     def add_add_users_to_group(self):
         self.router.add_api_route(
             name="Add users to group",
-            path="/groups_users_link",
+            path="/groups/{group_id}/members",
             endpoint=self.client.add_users_to_group,
             response_model=OKResponse,
             methods=["POST"],
@@ -316,7 +309,7 @@ class RBACExtension(ApiExtension):
     def add_delete_users_from_group(self):
         self.router.add_api_route(
             name="Delete users from group",
-            path="/groups_users_unlink",
+            path="/groups/{group_id}/members",
             endpoint=self.client.remove_users_from_group,
             response_model=OKResponse,
             methods=["DELETE"],
@@ -325,45 +318,36 @@ class RBACExtension(ApiExtension):
     def add_get_users_from_group(self):
         self.router.add_api_route(
             name="Get users from group",
-            path="/groups_users/{group_id}",
+            path="/groups/{group_id}/members",
             endpoint=self.client.get_users_from_group,
             response_model=list[User],
-            methods=["POST"],
+            methods=["GET"],
         )
 
-    def add_add_group_permission_to_object(self):
-        self.router.add_api_route(
-            name="Set group permissions on collection",
-            path="/permissions",
-            endpoint=self.client.assign_permission_to_collection,
-            response_model=OKResponse,
-            methods=["POST"],
-        )
+    # def add_add_group_permission_to_object(self):
+    #     self.router.add_api_route(
+    #         name="Set group permissions on collection",
+    #         path="/permissions",
+    #         endpoint=self.client.assign_permission_to_collection,
+    #         response_model=OKResponse,
+    #         methods=["POST"],
+    #     )
 
-    def add_delete_group_permission_to_object(self):
-        self.router.add_api_route(
-            name="Delete group permissions on collection",
-            path="/permissions",
-            endpoint=self.client.remove_permission_from_collection,
-            response_model=OKResponse,
-            methods=["DELETE"],
-        )
+    # def add_delete_group_permission_to_object(self):
+    #     self.router.add_api_route(
+    #         name="Delete group permissions on collection",
+    #         path="/permissions",
+    #         endpoint=self.client.remove_permission_from_collection,
+    #         response_model=OKResponse,
+    #         methods=["DELETE"],
+    #     )
 
-    def add_get_groups_with_permission_to_object(self):
-        self.router.add_api_route(
-            name="Get groups/permissions of object",
-            path="/permissions/{obj}",
-            endpoint=self.client.get_permissions,
-            response_model=list[PermissionResponse],
-            methods=["POST"],
-        )
-
-    # Review if next to add or not
-    def add_check_group_permission_to_object(self):
-        self.router.add_api_route(
-            name="Check if group has permission to collection",
-            path="/permissions_check",
-            endpoint=self.client.has_permission,
-            response_model=bool,
-            methods=["POST"],
-        )
+    # # Review if next to add or not
+    # def add_check_group_permission_to_object(self):
+    #     self.router.add_api_route(
+    #         name="Check if group has permission to collection",
+    #         path="/permissions_check",
+    #         endpoint=self.client.has_permission,
+    #         response_model=bool,
+    #         methods=["POST"],
+    #     )

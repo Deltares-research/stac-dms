@@ -23,7 +23,7 @@ if "ES_PORT" not in os.environ:
 import pytest
 import pytest_asyncio
 from dmsapi.config import DMSAPISettings
-from dmsapi.database.db import create_db_engine
+from dmsapi.database.db import create_db_engine, get_session
 from dmsapi.database.models import (  # type: ignore
     Facility,
     FacilityKeywordGroupLink,
@@ -92,7 +92,7 @@ def bulk_txn_client():
 
 @pytest.fixture(scope="function")
 def db_engine():
-    db_engine = create_db_engine(settings)
+    db_engine = create_db_engine()
     SQLModel.metadata.drop_all(db_engine)
     SQLModel.metadata.create_all(db_engine)
     yield db_engine
@@ -286,11 +286,13 @@ async def filled_db(keyword_client: KeywordClient):
 
 @pytest_asyncio.fixture(scope="function")
 async def user(rbac_client: RBACClient):
+    session = next(get_session())
     user = rbac_client.create_user(
         {
             "username": "test_user",
             "email": "test.test@deltares.nl",
-        }
+        },
+        session,
     )
     yield user
     try:
@@ -330,7 +332,6 @@ async def editor_role(db_engine: Engine):
 async def token(user: User):
     """Create a test JWT token for the given user."""
     user_openid = OpenID(
-        id=str(user.id),
         email=user.email,
         name=user.username,
     )

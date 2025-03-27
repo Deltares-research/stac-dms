@@ -1,4 +1,3 @@
-import os
 import ssl
 from typing import Any, Dict, Optional, Set
 
@@ -58,16 +57,16 @@ class DMSAPISettings(OpensearchSettings):
     Adds configuration of SSO
     """
 
-    azure_app_client_id: str
-    azure_app_client_secret: str
-    azure_tenant_id: str
-    app_domain: str
-    app_secret_key: str
-    db_connection_url: str
-    environment: str
+    azure_app_client_id: str = ""
+    azure_app_client_secret: str = ""
+    azure_tenant_id: str = ""
+    app_domain: str = ""
+    app_secret_key: str = ""
+    db_connection_url: str = ""
+    environment: str = "local"
     es_use_ssl: str = "true"
-    es_host: str
-    es_port: str
+    es_host: str = "0.0.0.0"
+    es_port: str = "9200"
     es_verify_certs: str = "true"
     curl_ca_bundle: Optional[str] = None
     es_user: Optional[str] = None
@@ -86,13 +85,13 @@ class AsyncDMSAPISettings(OpensearchSettings):
     Adds configuration of SSO
     """
 
-    azure_app_client_id: str
-    azure_app_client_secret: str
-    azure_tenant_id: str
-    app_domain: str
-    app_secret_key: str
-    db_connection_url: str
-    environment: str
+    azure_app_client_id: str = ""
+    azure_app_client_secret: str = ""
+    azure_tenant_id: str = ""
+    app_domain: str = ""
+    app_secret_key: str = ""
+    db_connection_url: str = ""
+    environment: str = "local"
     es_use_ssl: str = "true"
     es_host: str
     es_port: str
