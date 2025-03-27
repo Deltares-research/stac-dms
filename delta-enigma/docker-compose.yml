@@ -1,0 +1,106 @@
+services:
+  stac-api:
+    container_name: stac-fastapi-os
+    image: stac-dms/stac-fastapi-os
+    restart: always
+    build:
+      context: ./api
+      target: production
+    env_file:
+      - ./api/.env
+    ports:
+      - 8000:8000
+    expose:
+      - 8000
+    environment:
+      - STAC_FASTAPI_TITLE=Deltares Data Management Suite STAC API
+      - STAC_FASTAPI_DESCRIPTION=A STAC API containing Deltares datasets
+      - STAC_FASTAPI_VERSION=3.0.0a2
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - RELOAD=true
+      - ENVIRONMENT=local
+      - WEB_CONCURRENCY=10
+      - ES_HOST=opensearch
+      - ES_PORT=9202
+      - ES_USE_SSL=false
+      - ES_VERIFY_CERTS=false
+      - BACKEND=opensearch
+      - DB_CONNECTION_URL=postgresql+psycopg://postgres:postgres@postgres:5432/postgres
+    volumes:
+      - ./api:/app
+      - /app/.venv
+    depends_on:
+      - opensearch
+      - postgres
+    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && python -m dmsapi.app"
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    # Add any additional configuration for the Postgres container here
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+
+  opensearch:
+    container_name: os-container
+    image: opensearchproject/opensearch:2.15.0
+    hostname: opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - ./api/opensearch/config/opensearch.yml:/usr/share/opensearch/config/opensearch.yml
+      - ./api/opensearch/snapshots:/usr/share/opensearch/snapshots
+    ports:
+      - "9202:9202"
+      - 9600:9600
+
+  stac-dms:
+    build:
+      context: ./frontend
+      target: run-dev
+    env_file:
+      - ./frontend/.env
+    environment:
+      - API_URL=http://stac-api:8000
+    ports:
+      - 24678:24678
+      - 3000:3000
+    depends_on:
+      - stac-api
+    container_name: stac-dms-frontend
+    image: stac-dms/frontend
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./frontend:/src
+      - /src/node_modules
+      - /nuxt/.nuxt
+
+  stac-proxy:
+    container_name: stac-proxy
+    image: stac-dms/proxy
+    build:
+      context: ./proxy
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile
+      - ./proxy/data/data:/data
+      - ./proxy/data/config:/config
+    depends_on:
+      - stac-api
+      - stac-dms
+    environment:
+      - DOMAIN=localhost
+      - PROXY_BACKEND_HOST=stac-fastapi-os
+      - PROXY_BACKEND_PORT=8000
+      - PROXY_FRONTEND_HOST=stac-dms
+      - PROXY_FRONTEND_PORT=3000

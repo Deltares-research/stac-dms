@@ -1,0 +1,10 @@
+
+
+{$DOMAIN} {
+	log {
+		output stdout
+	}
+	redir /api /api/
+	reverse_proxy /api* {$PROXY_BACKEND_HOST}:{$PROXY_BACKEND_PORT}
+	reverse_proxy {$PROXY_FRONTEND_HOST}:{$PROXY_FRONTEND_PORT}
+}
