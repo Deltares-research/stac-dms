@@ -1,129 +1,42 @@
-from dmsapi.schemas.requests import GroupUserRequest, PermissionRequest
 import pytest
+from dmsapi.database.models import Group, User  # type: ignore
+from dmsapi.extensions.rbac.models import GLOBAL_SCOPE, Permission, Role
 from dmsapi.extensions.rbac.rbac_client import RBACClient
-from dmsapi.database.models import Role, User, Group  # type: ignore
-
 from httpx import AsyncClient
-
-
-# test create user
-@pytest.mark.asyncio
-async def test_create_user(app_client: AsyncClient, rbac_client: RBACClient):
-    username = "test_user"
-    email = "test.test@deltares.nl"
-    response = await app_client.post(
-        "/users", json={"username": username, "email": email}
-    )
-    assert response.status_code == 200
-    assert response.json()["username"] == username
-    assert response.json()["email"] == email
-    assert response.json()["id"] is not None
-    assert rbac_client.get_user(response.json()["id"]) is not None
-
-
-# test create user invalid
-@pytest.mark.asyncio
-async def test_create_user_invalid(app_client: AsyncClient):
-    response = await app_client.post("/users", json={"username": ""})
-    assert response.status_code == 400
-    assert response.json()["code"] == "RequestValidationError"
-
-
-# test get user
-@pytest.mark.asyncio
-async def test_update_user(app_client: AsyncClient, user: User):
-    response = await app_client.get(f"/users/{user.id}")
-    assert response.status_code == 200
-    user_obj = User(**response.json())
-    assert user_obj.username == "test_user"
-    update_response = await app_client.put(
-        f"/users/{user.id}", json={"username": "updated_user"}
-    )
-    assert update_response.status_code == 200
-    updated_obj = User(**update_response.json())
-    assert updated_obj.username == "updated_user"
-
-
-# test get user
-@pytest.mark.asyncio
-async def test_get_user(app_client: AsyncClient, user: User):
-    response = await app_client.get(f"/users/{user.id}")
-    assert response.status_code == 200
-    user_obj = User(**response.json())
-    assert user_obj.username == "test_user"
-
-
-# test get all users
-@pytest.mark.asyncio
-async def test_get_users(app_client: AsyncClient, user: User):
-    response = await app_client.get("/users")
-    assert response.status_code == 200
-    assert len(response.json()) > 0
-    user_obj = User(**response.json()[0])
-    assert user_obj.username == "test_user"
-
-
-# test get user by name
-@pytest.mark.asyncio
-async def test_get_user_by_email(user: User, rbac_client: RBACClient):
-    # username = "test_user"
-    # email = "test@deltares.nl"
-    # user = rbac_client.create_user({"username": username, "email": email})
-
-    user_obj = rbac_client.get_user_by_email(user.email)
-    assert user_obj.username == "test_user"
-
-
-# test delete user
-@pytest.mark.asyncio
-async def test_delete_user(app_client: AsyncClient, rbac_client: RBACClient):
-    username = "test_user_to_delete"
-    email = "test@deltares.nl"
-    user = rbac_client.create_user({"username": username, "email": email})
-
-    # check if user is created
-    response = await app_client.get(f"/users/{user.id}")
-    assert response.status_code == 200
-
-    # delete user
-    response = await app_client.delete(f"/users/{user.id}")
-    assert response.status_code == 200
-    assert response.json() == {"message": "User deleted"}
-    user_json = await app_client.get(f"/users/{user.id}")
-    assert user_json.status_code == 404
 
 
 # test create group
 @pytest.mark.asyncio
-async def test_create_group(app_client: AsyncClient, rbac_client: RBACClient):
+async def test_create_group(authenticated_client: AsyncClient, rbac_client: RBACClient):
     name = "test_group"
     description = "Test group"
-    response = await app_client.post(
+    response = await authenticated_client.post(
         "/groups", json={"name": name, "description": description}
     )
     assert response.status_code == 200
     assert response.json()["name"] == name
     assert response.json()["description"] == description
     assert response.json()["id"] is not None
-    assert rbac_client.get_group(response.json()["id"]) is not None
 
 
 # test create group invalid
 @pytest.mark.asyncio
-async def test_create_group_invalid(app_client: AsyncClient):
-    response = await app_client.post("/groups", json={"name": "", "description": ""})
+async def test_create_group_invalid(authenticated_client: AsyncClient):
+    response = await authenticated_client.post(
+        "/groups", json={"name": "", "description": ""}
+    )
     assert response.status_code == 400
     assert response.json()["code"] == "RequestValidationError"
 
 
 # test get group
 @pytest.mark.asyncio
-async def test_update_group(app_client: AsyncClient, group: Group):
-    response = await app_client.get(f"/groups/{group.id}")
+async def test_update_group(authenticated_client: AsyncClient, group: Group):
+    response = await authenticated_client.get(f"/groups/{group.id}")
     assert response.status_code == 200
     group_obj = Group(**response.json())
     assert group_obj.name == "test_group"
-    update_response = await app_client.put(
+    update_response = await authenticated_client.put(
         f"/groups/{group.id}",
         json={"name": "updated_group", "description": "updated_description"},
     )
@@ -135,8 +48,8 @@ async def test_update_group(app_client: AsyncClient, group: Group):
 
 # test get group
 @pytest.mark.asyncio
-async def test_get_group(app_client: AsyncClient, group: Group):
-    response = await app_client.get(f"/groups/{group.id}")
+async def test_get_group(authenticated_client: AsyncClient, group: Group):
+    response = await authenticated_client.get(f"/groups/{group.id}")
     assert response.status_code == 200
     group_obj = Group(**response.json())
     assert group_obj.name == "test_group"
@@ -145,8 +58,8 @@ async def test_get_group(app_client: AsyncClient, group: Group):
 
 # test get all groups
 @pytest.mark.asyncio
-async def test_get_groups(app_client: AsyncClient, group: Group):
-    response = await app_client.get("/groups")
+async def test_get_groups(authenticated_client: AsyncClient, group: Group):
+    response = await authenticated_client.get("/groups")
     assert response.status_code == 200
     assert len(response.json()) > 0
     group_obj = Group(**response.json()[0])
@@ -156,309 +69,410 @@ async def test_get_groups(app_client: AsyncClient, group: Group):
 
 # test delete group
 @pytest.mark.asyncio
-async def test_delete_group(app_client: AsyncClient, rbac_client: RBACClient):
+async def test_delete_group(authenticated_client: AsyncClient, rbac_client: RBACClient):
     name = "test_group_to_delete"
     description = "test_description"
     group = rbac_client.create_group({"name": name, "description": description})
 
     # check if group is created
-    response = await app_client.get(f"/groups/{group.id}")
+    response = await authenticated_client.get(f"/groups/{group.id}")
     assert response.status_code == 200
 
     # delete group
-    response = await app_client.delete(f"/groups/{group.id}")
+    response = await authenticated_client.delete(f"/groups/{group.id}")
     assert response.status_code == 200
     assert response.json() == {"message": "Group deleted"}
-    user_json = await app_client.get(f"/groups/{group.id}")
-    assert user_json.status_code == 404
+    group_json = await authenticated_client.get(f"/groups/{group.id}")
+    assert group_json.status_code == 404
 
 
-# test get all roles
+# test add members to group
 @pytest.mark.asyncio
-async def test_get_roles(app_client: AsyncClient):
-    response = await app_client.get("/roles")
-    assert response.status_code == 200
-    assert len(response.json()) > 0
-    # group_obj = Role(**response.json()[0])
-
-
-# test add users to group
-@pytest.mark.asyncio
-async def test_add_users_to_group(app_client: AsyncClient, rbac_client: RBACClient):
-    # create users
-    username = "test_user_to_delete_1"
-    email = "test_1@deltares.nl"
-    user = rbac_client.create_user({"username": username, "email": email})
-
-    username = "test_user_to_delete_2"
-    email = "test_2@deltares.nl"
-    user_2 = rbac_client.create_user({"username": username, "email": email})
-
-    # check if users are created
-    response = await app_client.get(f"/users/{user.id}")
-    assert response.status_code == 200
-
-    response = await app_client.get(f"/users/{user_2.id}")
-    assert response.status_code == 200
-
-    # create group
-    name = "test_group"
-    description = "test_description"
-    group = rbac_client.create_group({"name": name, "description": description})
-
-    # check if group is created
-    response = await app_client.get(f"/groups/{group.id}")
-    assert response.status_code == 200
-
-    # add users to group
-    response = await app_client.post(
-        "/groups_users_link",
-        json={"user_ids": [str(user.id), str(user_2.id)], "group_id": str(group.id)},
+async def test_add_members_to_group(
+    authenticated_client: AsyncClient, group: Group, user: User
+):
+    response = await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "Users added"}
+    assert response.json() == {"message": "Members added"}
+
+    # Verify member was added
+    response = await authenticated_client.get(f"/groups/{group.id}/members")
+    assert response.status_code == 200
+    members = response.json()
+    assert len(members) == 1
+    assert members[0]["id"] == str(user.id)
 
 
-# test add users to group invalid
+# test remove members from group
 @pytest.mark.asyncio
-async def test_add_users_to_group_invalid(
-    app_client: AsyncClient, rbac_client: RBACClient
+async def test_remove_members_from_group(
+    authenticated_client: AsyncClient, group: Group, user: User
 ):
-    # create users
-    username = "test_user_1"
-    email = "test_1@deltares.nl"
-    user = rbac_client.create_user({"username": username, "email": email})
-
-    username = "test_user_2"
-    email = "test_2@deltares.nl"
-    user_2 = rbac_client.create_user({"username": username, "email": email})
-
-    # check if users are created
-    response = await app_client.get(f"/users/{user.id}")
-    assert response.status_code == 200
-
-    response = await app_client.get(f"/users/{user_2.id}")
-    assert response.status_code == 200
-
-    # add users to group
-    response = await app_client.post(
-        "/groups_users_link",
-        json={"user_ids": [str(user.id), str(user_2.id)], "group_id": ""},
+    # First add the member
+    await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
     )
-    assert response.status_code == 400
-    assert response.json()["code"] == "InvalidQueryParameter"
-    # assert response.json() == {"message": "Users not added"}
 
-
-# test remove users from group
-@pytest.mark.asyncio
-async def test_remove_users_from_group(
-    app_client: AsyncClient, rbac_client: RBACClient
-):
-    # create users
-    username = "test_user_to_delete_1"
-    email = "test_1@deltares.nl"
-    user = rbac_client.create_user({"username": username, "email": email})
-
-    username = "test_user_to_delete_2"
-    email = "test_2@deltares.nl"
-    user_2 = rbac_client.create_user({"username": username, "email": email})
-
-    # check if users are created
-    response = await app_client.get(f"/users/{user.id}")
-    assert response.status_code == 200
-
-    response = await app_client.get(f"/users/{user_2.id}")
-    assert response.status_code == 200
-
-    # create group
-    name = "test_group"
-    description = "test_description"
-    group = rbac_client.create_group({"name": name, "description": description})
-
-    # check if group is created
-    response = await app_client.get(f"/groups/{group.id}")
-    assert response.status_code == 200
-
-    # add users to group
-    response = await app_client.delete(
-        "/groups_users_unlink",
-        json={"user_ids": [user.id, user_2.id], "group_id": group.id},
+    # Then remove
+    response = await authenticated_client.delete(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "Users deleted from group"}
+    assert response.json() == {"message": "Members removed"}
+
+    # Verify member was removed
+    response = await authenticated_client.get(f"/groups/{group.id}/members")
+    assert response.status_code == 200
+    members = response.json()
+    assert len(members) == 0
 
 
-# test remove users from group invalid
+# test assign group role to collection
 @pytest.mark.asyncio
-async def test_remove_users_from_group_invalid(
-    app_client: AsyncClient, rbac_client: RBACClient
-):
-    # create users
-    username = "test_user_1"
-    email = "test_1@deltares.nl"
-    user = rbac_client.create_user({"username": username, "email": email})
-
-    username = "test_user_2"
-    email = "test_2@deltares.nl"
-    user_2 = rbac_client.create_user({"username": username, "email": email})
-
-    # check if users are created
-    response = await app_client.get(f"/users/{user.id}")
-    assert response.status_code == 200
-
-    response = await app_client.get(f"/users/{user_2.id}")
-    assert response.status_code == 200
-
-    # add users to group
-    response = await app_client.delete(
-        "/groups_users_unlink", json={"user_ids": [user.id, user_2.id], "group_id": ""}
-    )
-    assert response.status_code == 200
-    assert response.json() == {"message": "Users not deleted from group"}
-
-
-# test assign group permissions to a collection
-@pytest.mark.asyncio
-async def test_assign_permission_to_collection(
-    app_client: AsyncClient, rbac_client: RBACClient
-):
-    # create group
-    name = "test_group"
-    description = "test_description"
-    group = rbac_client.create_group({"name": name, "description": description})
-
-    # check if group is created
-    response = await app_client.get(f"/groups/{group.id}")
-    assert response.status_code == 200
-
+async def test_assign_group_role(authenticated_client: AsyncClient, group: Group):
     obj = "test-collection"
-    role_name = "admin"
-    response = await app_client.get(
-        "/permissions",
-        json={"object": obj, "role_name": role_name, "group_id": group.id},
+    role = Role.EDITOR
+    response = await authenticated_client.post(
+        "/group-role",
+        json={"object_id": obj, "role": role.value, "group_id": str(group.id)},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "Group permission added for collection"}
+    assert response.json() == {"message": "Group role assigned"}
 
 
-# test assign group permissions to a collection invalid
+# test assign global group role
 @pytest.mark.asyncio
-async def test_assign_permission_to_collection_invalid(
-    app_client: AsyncClient, rbac_client: RBACClient
+async def test_assign_global_group_role(
+    authenticated_client: AsyncClient, group: Group
 ):
-    response = await app_client.get(
-        "/permissions", json={"object": "", "role_name": "", "group_id": ""}
-    )
-    assert response.status_code == 200
-    assert response.json() == {"message": "Group permission not added for collection"}
-
-
-# test remove group permissions to a collection
-@pytest.mark.asyncio
-async def test_remove_permission_to_collection(
-    app_client: AsyncClient, rbac_client: RBACClient
-):
-    # create group
-    name = "test_group"
-    description = "test_description"
-    group = rbac_client.create_group({"name": name, "description": description})
-
-    # check if group is created
-    response = await app_client.get(f"/groups/{group.id}")
-    assert response.status_code == 200
-
-    obj = "test-collection"
-    role_name = "admin"
-    response = await app_client.delete(
-        "/permissions",
-        json={"object": obj, "role_name": role_name, "group_id": group.id},
-    )
-    assert response.status_code == 200
-    assert response.json() == {"message": "Group permission added for collection"}
-
-
-# test remove group permissions to a collection invalid
-@pytest.mark.asyncio
-async def test_remove_permission_to_collection_invalid(
-    app_client: AsyncClient, rbac_client: RBACClient
-):
-    response = await app_client.delete(
-        "/permissions", json={"object": "", "role_name": "", "group_id": ""}
-    )
-    assert response.status_code == 200
-    assert response.json() == {"message": "Group permission not removed for collection"}
-
-
-# test collection edit permissions
-@pytest.mark.asyncio
-async def test_collection_edit_permissions(
-    app_client: AsyncClient,
-    rbac_client: RBACClient,
-    user: User,
-    group: Group,
-    token: str,
-    editor_role: Role,
-):
-    # Try to edit collection without permissions (should fail)
-    collection_id = "test-collection"
-    try:
-        response = await app_client.put(
-            f"/collections/{collection_id}",
-            json={
-                "id": collection_id,
-                "type": "Collection",
-                "stac_version": "1.0.0",
-                "description": "Test collection",
-                "license": "MIT",
-                "title": "Updated Title",
-                "extent": {
-                    "spatial": {"bbox": [[-180, -90, 180, 90]]},
-                    "temporal": {"interval": [["2020-01-01T00:00:00Z", None]]},
-                },
-            },
-            headers={"Cookie": f"DMS_TOKEN={token}"},
-        )
-        assert response.status_code == 403
-        assert response.json()["detail"] == "Unauthorized"
-    except Exception as e:
-        print(e)
-    # Add editor permissions to the group for the collection
-    rbac_client.assign_permission_to_collection(
-        PermissionRequest(
-            object=collection_id, role_name=editor_role.name, group_id=str(group.id)
-        )
-    )
-
-    # Add user to group
-    rbac_client.add_users_to_group(
-        GroupUserRequest(user_ids=[str(user.id)], group_id=str(group.id))
-    )
-
-    # Try to edit collection with permissions (should succeed)
-    # TODO: fix dependency on a running opensearch instance during testing
-    response = await app_client.put(
-        f"/collections/{collection_id}",
+    response = await authenticated_client.post(
+        "/group-role",
         json={
-            "id": collection_id,
-            "type": "Collection",
-            "stac_version": "1.0.0",
-            "description": "Test collection",
-            "license": "MIT",
-            "title": "Updated Title",
-            "extent": {
-                "spatial": {"bbox": [[-180, -90, 180, 90]]},
-                "temporal": {"interval": [["2020-01-01T00:00:00Z", None]]},
-            },
-            "links": [],
+            "object_id": GLOBAL_SCOPE,
+            "role": Role.ADMIN.value,
+            "group_id": str(group.id),
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {"message": "Group role assigned"}
+
+
+# test get group roles for object
+@pytest.mark.asyncio
+async def test_get_group_roles(authenticated_client: AsyncClient, group: Group):
+    obj = "test-collection"
+    # First assign a role
+    await authenticated_client.post(
+        "/group-role",
+        json={"object_id": obj, "role": Role.EDITOR.value, "group_id": str(group.id)},
+    )
+
+    # Then get roles
+    response = await authenticated_client.get(f"/group-role/{obj}")
+    assert response.status_code == 200
+    roles = response.json()
+    assert len(roles) > 0
+    assert roles[0]["role"] == Role.EDITOR.value
+    assert roles[0]["group_id"] == str(group.id)
+
+
+# test check permissions
+@pytest.mark.asyncio
+async def test_check_permissions(
+    authenticated_client: AsyncClient, group: Group, user: User
+):
+    # First assign role and add user to group
+    obj = "test-collection"
+    await authenticated_client.post(
+        "/group-role",
+        json={"object_id": obj, "role": Role.EDITOR.value, "group_id": str(group.id)},
+    )
+    await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
+    )
+
+    # Check permissions
+    response = await authenticated_client.get(
+        "/group-role/check",
+        params={
+            "object_id": obj,
+            "permission": Permission.UPDATE.value,
+            "user_email": user.email,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["has_permission"] is True
+
+
+# test check global permissions
+@pytest.mark.asyncio
+async def test_check_global_permissions(
+    authenticated_client: AsyncClient, group: Group, user: User
+):
+    # First assign global role and add user to group
+    await authenticated_client.post(
+        "/group-role",
+        json={
+            "object_id": "__global__",
+            "role": Role.ADMIN.value,
+            "group_id": str(group.id),
+        },
+    )
+    await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
+    )
+
+    # Check permissions
+    response = await authenticated_client.get(
+        "/group-role/check",
+        params={
+            "object_id": "any-collection",
+            "permission": Permission.MANAGE_GROUPS.value,
+            "user_email": user.email,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["has_permission"] is True
+
+
+# Authorization Tests
+
+
+# test unauthorized access to protected routes
+@pytest.mark.asyncio
+async def test_unauthorized_access(authenticated_client: AsyncClient):
+    # Try to create a group without authorization
+    response = await authenticated_client.post(
+        "/groups",
+        json={"name": "test_group", "description": "Test group"},
+        headers={"Cookie": "DMS_TOKEN=invalid_token"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+    # Try to modify group roles without authorization
+    response = await authenticated_client.post(
+        "/group-role",
+        json={
+            "object_id": "test-collection",
+            "role": Role.EDITOR.value,
+            "group_id": "some-id",
+        },
+        headers={"Cookie": "DMS_TOKEN=invalid_token"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+# test global admin access
+@pytest.mark.asyncio
+async def test_global_admin_access(
+    authenticated_client: AsyncClient, group: Group, user: User, token: str
+):
+    # Setup: Give user global admin role
+    await authenticated_client.post(
+        "/group-role",
+        json={
+            "object_id": GLOBAL_SCOPE,
+            "role": Role.ADMIN.value,
+            "group_id": str(group.id),
+        },
+    )
+    await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
+    )
+
+    # Test: Admin should be able to perform any action
+
+    # Create group
+    response = await authenticated_client.post(
+        "/groups",
+        json={"name": "admin_test_group", "description": "Test group"},
+        headers={"Cookie": f"DMS_TOKEN={token}"},
+    )
+    assert response.status_code == 200
+
+    # Assign roles
+    response = await authenticated_client.post(
+        "/group-role",
+        json={
+            "object_id": "test-collection",
+            "role": Role.EDITOR.value,
+            "group_id": str(group.id),
         },
         headers={"Cookie": f"DMS_TOKEN={token}"},
     )
     assert response.status_code == 200
 
-    # Cleanup
-    rbac_client.remove_users_from_group(
-        {"user_ids": [str(user.id)], "group_id": str(group.id)}
+    # Manage members
+    response = await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
+        headers={"Cookie": f"DMS_TOKEN={token}"},
     )
-    rbac_client.delete_group(str(group.id))
-    rbac_client.delete_user(str(user.id))
+    assert response.status_code == 200
+
+
+# test editor role permissions
+@pytest.mark.asyncio
+async def test_editor_role_permissions(
+    authenticated_client: AsyncClient, group: Group, user: User, token: str
+):
+    # Setup: Give user editor role for specific collection
+    collection_id = "test-collection"
+    await authenticated_client.post(
+        "/group-role",
+        json={
+            "object_id": collection_id,
+            "role": Role.EDITOR.value,
+            "group_id": str(group.id),
+        },
+    )
+    await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
+    )
+
+    # Test: Editor should be able to update the collection
+    response = await authenticated_client.put(
+        f"/collections/{collection_id}",
+        json={
+            "id": collection_id,
+            "type": "Collection",
+            "stac_version": "1.0.0",
+            "description": "Updated by editor",
+            "license": "MIT",
+            "extent": {
+                "spatial": {"bbox": [[-180, -90, 180, 90]]},
+                "temporal": {"interval": [["2020-01-01T00:00:00Z", None]]},
+            },
+        },
+        headers={"Cookie": f"DMS_TOKEN={token}"},
+    )
+    assert response.status_code == 200
+
+    # Test: Editor should NOT be able to manage groups
+    response = await authenticated_client.post(
+        "/groups",
+        json={"name": "test_group", "description": "Test group"},
+        headers={"Cookie": f"DMS_TOKEN={token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Insufficient permissions"
+
+
+# test viewer role permissions
+@pytest.mark.asyncio
+async def test_viewer_role_permissions(
+    authenticated_client: AsyncClient, group: Group, user: User, token: str
+):
+    # Setup: Give user viewer role for specific collection
+    collection_id = "test-collection"
+    await authenticated_client.post(
+        "/group-role",
+        json={
+            "object_id": collection_id,
+            "role": Role.VIEWER.value,
+            "group_id": str(group.id),
+        },
+    )
+    await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
+    )
+
+    # Test: Viewer should be able to read the collection
+    response = await authenticated_client.get(
+        f"/collections/{collection_id}", headers={"Cookie": f"DMS_TOKEN={token}"}
+    )
+    assert response.status_code == 200
+
+    # Test: Viewer should NOT be able to update the collection
+    response = await authenticated_client.put(
+        f"/collections/{collection_id}",
+        json={
+            "id": collection_id,
+            "type": "Collection",
+            "stac_version": "1.0.0",
+            "description": "Updated by viewer",
+            "license": "MIT",
+            "extent": {
+                "spatial": {"bbox": [[-180, -90, 180, 90]]},
+                "temporal": {"interval": [["2020-01-01T00:00:00Z", None]]},
+            },
+        },
+        headers={"Cookie": f"DMS_TOKEN={token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Insufficient permissions"
+
+
+# test role hierarchy
+@pytest.mark.asyncio
+async def test_role_hierarchy(
+    authenticated_client: AsyncClient, group: Group, user: User, token: str
+):
+    collection_id = "test-collection"
+
+    # Setup: Give user owner role
+    await authenticated_client.post(
+        "/group-role",
+        json={
+            "object_id": collection_id,
+            "role": Role.OWNER.value,
+            "group_id": str(group.id),
+        },
+    )
+    await authenticated_client.post(
+        f"/groups/{group.id}/members",
+        json={"user_ids": [str(user.id)]},
+    )
+
+    # Test: Owner should have all collection-level permissions
+
+    # Can read
+    response = await authenticated_client.get(
+        f"/collections/{collection_id}", headers={"Cookie": f"DMS_TOKEN={token}"}
+    )
+    assert response.status_code == 200
+
+    # Can update
+    response = await authenticated_client.put(
+        f"/collections/{collection_id}",
+        json={
+            "id": collection_id,
+            "type": "Collection",
+            "stac_version": "1.0.0",
+            "description": "Updated by owner",
+            "license": "MIT",
+            "extent": {
+                "spatial": {"bbox": [[-180, -90, 180, 90]]},
+                "temporal": {"interval": [["2020-01-01T00:00:00Z", None]]},
+            },
+        },
+        headers={"Cookie": f"DMS_TOKEN={token}"},
+    )
+    assert response.status_code == 200
+
+    # Can delete
+    response = await authenticated_client.delete(
+        f"/collections/{collection_id}", headers={"Cookie": f"DMS_TOKEN={token}"}
+    )
+    assert response.status_code == 200
+
+    # But cannot manage groups (system-level permission)
+    response = await authenticated_client.post(
+        "/groups",
+        json={"name": "test_group", "description": "Test group"},
+        headers={"Cookie": f"DMS_TOKEN={token}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Insufficient permissions"
