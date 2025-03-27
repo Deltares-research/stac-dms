@@ -2,6 +2,7 @@ import pytest
 from dmsapi.database.models import (  # type: ignore
     GLOBAL_SCOPE,
     Group,
+    GroupRoleResponse,
     Permission,
     Role,
     User,
@@ -144,10 +145,13 @@ async def test_assign_group_role(authenticated_client: AsyncClient, group: Group
     role = Role.DATA_PRODUCER
     response = await authenticated_client.post(
         "/group-role",
-        json={"object_id": obj, "role": role.value, "group_id": str(group.id)},
+        json={"object": obj, "role": role.value, "group_id": str(group.id)},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "Group role assigned"}
+    result = GroupRoleResponse(**response.json())
+    assert result.group_id == group.id
+    assert result.object_id == obj
+    assert result.role == role
 
 
 # test assign global group role
