@@ -1,6 +1,11 @@
 import pytest
-from dmsapi.database.models import Group, User  # type: ignore
-from dmsapi.extensions.rbac.models import GLOBAL_SCOPE, Permission, Role
+from dmsapi.database.models import (  # type: ignore
+    GLOBAL_SCOPE,
+    Group,
+    Permission,
+    Role,
+    User,
+)
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from httpx import AsyncClient
 
@@ -93,7 +98,7 @@ async def test_add_members_to_group(
 ):
     response = await authenticated_client.post(
         f"/groups/{group.id}/members",
-        json={"user_ids": [str(user.id)]},
+        json={"users": [user.email]},
     )
     assert response.status_code == 200
     assert response.json() == {"message": "Members added"}
@@ -103,7 +108,7 @@ async def test_add_members_to_group(
     assert response.status_code == 200
     members = response.json()
     assert len(members) == 1
-    assert members[0]["id"] == str(user.id)
+    assert members[0]["email"] == user.email
 
 
 # test remove members from group
@@ -114,16 +119,16 @@ async def test_remove_members_from_group(
     # First add the member
     await authenticated_client.post(
         f"/groups/{group.id}/members",
-        json={"user_ids": [str(user.id)]},
+        json={"users": [user.email]},
     )
 
     # Then remove
     response = await authenticated_client.delete(
         f"/groups/{group.id}/members",
-        json={"user_ids": [str(user.id)]},
+        params={"user_email": user.email},
     )
     assert response.status_code == 200
-    assert response.json() == {"message": "Members removed"}
+    assert response.json() == {"message": "User removed from group"}
 
     # Verify member was removed
     response = await authenticated_client.get(f"/groups/{group.id}/members")
@@ -136,7 +141,7 @@ async def test_remove_members_from_group(
 @pytest.mark.asyncio
 async def test_assign_group_role(authenticated_client: AsyncClient, group: Group):
     obj = "test-collection"
-    role = Role.EDITOR
+    role = Role.DATA_PRODUCER
     response = await authenticated_client.post(
         "/group-role",
         json={"object_id": obj, "role": role.value, "group_id": str(group.id)},

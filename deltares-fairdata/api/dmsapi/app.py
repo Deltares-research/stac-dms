@@ -29,10 +29,9 @@ from stac_fastapi.opensearch.database_logic import (
     create_collection_index,
     create_index_templates,
 )
-from stac_fastapi.types.config import Settings
 from starlette.middleware import Middleware
 
-from dmsapi.config import DMSAPISettings
+from dmsapi.config import settings
 from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.database.db import create_db_engine
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
@@ -40,11 +39,9 @@ from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 
-settings = DMSAPISettings()
-Settings.set(settings)
 _LOGGER = logging.getLogger("uvicorn.default")
 session = Session.create_from_settings(settings)
-db_engine = create_db_engine(settings)
+db_engine = create_db_engine()
 
 sso_client = MicrosoftSSO(
     client_id=settings.azure_app_client_id,
@@ -98,8 +95,10 @@ post_request_model = create_post_request_model(extensions)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
+    _LOGGER.info("Creating collection index")
     await create_index_templates()
     await create_collection_index()
+    _LOGGER.info("Collection index created")
     yield
 
 
