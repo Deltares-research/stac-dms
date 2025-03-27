@@ -29,7 +29,7 @@ This will start a Postgres database running on port 5432 with the username and p
 To create the database tables you can run the following command:
 
 ```bash
-docker compose exec stac-api alembic upgrade head
+docker compose exec backend alembic upgrade head
 ```
 
 ### Migrations
@@ -37,11 +37,11 @@ docker compose exec stac-api alembic upgrade head
 When developing new database models, you will need to create a new migration. You can do this by running the following command:
  (replace `Add new table` with a description of the migration)
 ```bash
-docker compose exec stac-api alembic revision --autogenerate -m "Add new table"
+docker compose exec backend alembic revision --autogenerate -m "Add new table"
 ```
 
 This will create a new migration file in the `alembic/versions` folder. You can then apply this migration by running:
 
 ```bash
-docker compose exec stac-api alembic upgrade head
+docker compose exec backend alembic upgrade head
 ```

@@ -13,6 +13,7 @@ dependencies = [
     "psycopg[binary]>=3.2.1,<4",
     "stac-fastapi-opensearch==3.0.0",
     "fastapi[standard]>=0.115.11",
+    "alembic-postgresql-enum>=1.7.0",
 ]
 
 [dependency-groups]

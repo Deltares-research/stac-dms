@@ -1,5 +1,6 @@
 from logging.config import fileConfig
 
+import alembic_postgresql_enum  # noqa: F401
 import dmsapi.database.models  # noqa: F401
 from alembic import context
 from dmsapi.app import settings
