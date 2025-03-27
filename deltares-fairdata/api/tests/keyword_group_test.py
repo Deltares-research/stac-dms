@@ -1,14 +1,14 @@
 import pytest
-from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from dmsapi.database.models import Keyword_Group  # type: ignore
+from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
 async def test_create_keywordgroup(
-    app_client: AsyncClient, keyword_client: KeywordClient
+    authenticated_client: AsyncClient, keyword_client: KeywordClient
 ):
-    response = await app_client.post(
+    response = await authenticated_client.post(
         "/keywordgroup", json={"group_name_nl": "test", "group_name_en": "engelse_test"}
     )
     assert response.status_code == 200
@@ -19,24 +19,28 @@ async def test_create_keywordgroup(
 
 @pytest.mark.asyncio
 async def test_create_keywordgroup_invalid(
-    app_client: AsyncClient, keyword_client: KeywordClient
+    authenticated_client: AsyncClient, keyword_client: KeywordClient
 ):
-    response = await app_client.post("/keywordgroup", json={"group_name": "test"})
+    response = await authenticated_client.post(
+        "/keywordgroup", json={"group_name": "test"}
+    )
     assert response.status_code == 400
     assert response.json()["code"] == "RequestValidationError"
 
 
 @pytest.mark.asyncio
 async def test_update_keywordgroup(
-    app_client: AsyncClient, keyword_group: Keyword_Group
+    authenticated_client: AsyncClient, keyword_group: Keyword_Group
 ):
-    keyword_group_json = await app_client.get(f"/keywordgroup/{keyword_group.id}")
+    keyword_group_json = await authenticated_client.get(
+        f"/keywordgroup/{keyword_group.id}"
+    )
     assert keyword_group is not None
     keyword_group_obj = Keyword_Group(**keyword_group_json.json())
     assert keyword_group_obj.group_name_nl == "test"
     assert keyword_group_obj.group_name_en == "engelse_test"
 
-    response = await app_client.put(
+    response = await authenticated_client.put(
         f"/keywordgroup/{keyword_group.id}",
         json={"group_name_nl": "updated_test", "group_name_en": "updated_engelse_test"},
     )
@@ -46,8 +50,12 @@ async def test_update_keywordgroup(
 
 
 @pytest.mark.asyncio
-async def test_get_keywordgroup(app_client: AsyncClient, keyword_group: Keyword_Group):
-    keyword_group_json = await app_client.get(f"/keywordgroup/{keyword_group.id}")
+async def test_get_keywordgroup(
+    authenticated_client: AsyncClient, keyword_group: Keyword_Group
+):
+    keyword_group_json = await authenticated_client.get(
+        f"/keywordgroup/{keyword_group.id}"
+    )
     assert keyword_group is not None
     keyword_group_obj = Keyword_Group(**keyword_group_json.json())
     assert keyword_group_obj.group_name_nl == "test"
@@ -56,8 +64,10 @@ async def test_get_keywordgroup(app_client: AsyncClient, keyword_group: Keyword_
 
 # test get all keyword groups
 @pytest.mark.asyncio
-async def test_get_keywordgroups(app_client: AsyncClient, keyword_group: Keyword_Group):
-    response = await app_client.get(f"/keywordgroups")
+async def test_get_keywordgroups(
+    authenticated_client: AsyncClient, keyword_group: Keyword_Group
+):
+    response = await authenticated_client.get("/keywordgroups")
     assert response.status_code == 200
     assert len(response.json()) > 0
     keyword_group_obj = Keyword_Group(**response.json()[0])
@@ -66,14 +76,16 @@ async def test_get_keywordgroups(app_client: AsyncClient, keyword_group: Keyword
 
 @pytest.mark.asyncio
 async def test_delete_keywordgroup(
-    app_client: AsyncClient, keyword_group: Keyword_Group
+    authenticated_client: AsyncClient, keyword_group: Keyword_Group
 ):
-    response = await app_client.get(f"/keywordgroup/{keyword_group.id}")
+    response = await authenticated_client.get(f"/keywordgroup/{keyword_group.id}")
     assert response.status_code == 200
     assert Keyword_Group(**response.json()).group_name_nl == "test"
 
-    response = await app_client.delete(f"/keywordgroup/{keyword_group.id}")
+    response = await authenticated_client.delete(f"/keywordgroup/{keyword_group.id}")
     assert response.status_code == 200
     assert response.json() == {"message": "Keyword group deleted"}
-    keyword_group_json = await app_client.get(f"/keywordgroup/{keyword_group.id}")
+    keyword_group_json = await authenticated_client.get(
+        f"/keywordgroup/{keyword_group.id}"
+    )
     assert keyword_group_json.status_code == 404

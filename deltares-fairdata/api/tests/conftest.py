@@ -2,13 +2,13 @@ import os
 
 from authlib.jose import OctKey
 from dmsapi.core.stacdms import StacDmsApi
-from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
+from dmsapi.extensions.core.sso_auth_extension import COOKIE_NAME, SSOAuthExtension
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 from fastapi import FastAPI
-from fastapi_sso import OpenID
+from fastapi_sso import MicrosoftSSO, OpenID
 from sqlalchemy import Engine
 from sqlmodel import SQLModel
 from starlette.middleware import Middleware
@@ -58,7 +58,7 @@ from stac_fastapi.types.config import Settings
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 
-settings = DMSAPISettings(
+dms_settings = DMSAPISettings(
     azure_app_client_id="",
     azure_app_client_secret="",
     azure_tenant_id="",
@@ -68,7 +68,7 @@ settings = DMSAPISettings(
     environment="test",
 )
 
-Settings.set(settings)
+Settings.set(dms_settings)
 
 
 database = DatabaseLogic()
@@ -125,6 +125,13 @@ async def app(db_engine):
         TokenPaginationExtension(),
         filter_extension,
         KeywordExtension(db_engine=db_engine),
+        SSOAuthExtension(
+            settings=settings,
+            sso_client=MicrosoftSSO(
+                client_id=settings.azure_app_client_id,
+                client_secret=settings.azure_app_client_secret,
+            ),
+        ),
         RBACExtension(db_engine=db_engine),
     ]
     SQLModel.metadata.create_all(db_engine)
@@ -331,3 +338,9 @@ async def token(user: User):
         user_openid, OctKey.import_key(settings.app_secret_key)
     )
     return token
+
+
+@pytest_asyncio.fixture(scope="function")
+async def authenticated_client(app_client: AsyncClient, token: str):
+    app_client.headers["Cookie"] = f"{COOKIE_NAME}={token}"
+    return app_client
