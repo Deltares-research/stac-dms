@@ -1,6 +1,7 @@
 from dmsapi.database.models import (  # type: ignore
     ErrorResponse,
     Group,
+    GroupRoleResponse,
     OKResponse,
     Role,
     User,
@@ -73,6 +74,7 @@ class RBACExtension(ApiExtension):
         self.add_add_users_to_group()
         self.add_get_users_from_group()
         self.add_delete_users_from_group()
+        self.add_assign_group_role()
         # self.add_add_group_permission_to_object()
         # self.add_delete_group_permission_to_object()
         # self.add_check_group_permission_to_object()
@@ -322,6 +324,15 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.get_users_from_group,
             response_model=list[User],
             methods=["GET"],
+        )
+
+    def add_assign_group_role(self):
+        self.router.add_api_route(
+            name="Assign group role",
+            path="/group-role",
+            endpoint=self.client.assign_group_role,
+            response_model=GroupRoleResponse,
+            methods=["POST"],
         )
 
     # def add_add_group_permission_to_object(self):

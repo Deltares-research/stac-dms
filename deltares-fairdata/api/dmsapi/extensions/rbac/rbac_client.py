@@ -7,6 +7,8 @@ from dmsapi.database.models import (  # type: ignore
     Group,
     GroupCreate,
     GroupList,
+    GroupRole,
+    GroupRoleResponse,
     GroupUserLink,
     OKResponse,
     Role,
@@ -16,6 +18,7 @@ from dmsapi.database.models import (  # type: ignore
     Users,
     UserUpdate,
 )
+from dmsapi.schemas.requests import GroupRoleRequest
 from fastapi import Path
 from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
@@ -342,6 +345,37 @@ class RBACClient:
             list of all roles.
         """
         return Role.__members__.values()
+
+    @staticmethod
+    def assign_group_role(
+        request: GroupRoleRequest, session: SessionDep
+    ) -> GroupRoleResponse:
+        """Assign a role to a group.
+
+        Args:
+            request: GroupRoleRequest
+
+        Returns:
+            GroupRoleResponse"""
+        group = session.exec(select(Group).where(Group.id == request.group_id)).first()
+        if group is None:
+            raise NotFoundError(f"Group with ID {request.group_id} not found")
+
+        group_role = GroupRole(
+            group_id=request.group_id,
+            role=request.role,
+            object_id=request.object,
+        )
+        session.add(group_role)
+        session.commit()
+        session.refresh(group_role)
+        return GroupRoleResponse(
+            id=group_role.id,
+            group_id=group_role.group_id,
+            group_name=group.name,
+            object_id=group_role.object_id,
+            role=group_role.role,
+        )
 
     # def assign_permission_to_collection(self, request: PermissionRequest) -> bool:
     #     """Assign a role to a group for a specific object."""
