@@ -15,7 +15,6 @@ from dmsapi.database.models import (  # type: ignore
     User,
     UserCreate,
     UserList,
-    Users,
     UserUpdate,
 )
 from dmsapi.schemas.requests import GroupRoleRequest
@@ -256,7 +255,7 @@ class RBACClient:
             session.commit()
             return OKResponse(message="Group deleted")
 
-    def add_users_to_group(self, group_id: UUID, users: Users) -> OKResponse:
+    def add_users_to_group(self, group_id: UUID, users: list[UserUpdate]) -> OKResponse:
         """Add multiple users to a group.
 
         Args:
@@ -266,12 +265,13 @@ class RBACClient:
         Returns:
             OKResponse
         """
+        email_list = [user.email for user in users]
         with Session(self.db_engine) as session:
             # Check existing links to avoid duplicates
             existing_links = session.exec(
                 select(GroupUserLink).where(
                     GroupUserLink.group_id == group_id,
-                    GroupUserLink.user_email.in_(users.users),
+                    GroupUserLink.user_email.in_(email_list),
                 )
             ).all()
             existing_user_emails = {link.user_email for link in existing_links}
@@ -279,9 +279,9 @@ class RBACClient:
             try:
                 # Add users that are not already in the group
                 new_links = [
-                    GroupUserLink(user_email=user_email, group_id=group_id)
-                    for user_email in users.users
-                    if user_email not in existing_user_emails
+                    GroupUserLink(user_email=user.email, group_id=group_id)
+                    for user in users
+                    if user.email not in existing_user_emails
                 ]
 
                 if len(new_links) != 0:
@@ -293,7 +293,7 @@ class RBACClient:
                 print(err)
                 return ErrorResponse(code="500", message="Internal server error")
 
-    def remove_users_from_group(self, group_id: UUID, user_email: EmailStr) -> bool:
+    def remove_user_from_group(self, group_id: UUID, user_email: EmailStr) -> bool:
         """Remove multiple users from a group.
 
         Args:

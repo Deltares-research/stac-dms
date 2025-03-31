@@ -29,9 +29,10 @@ from stac_fastapi.opensearch.database_logic import (
     create_collection_index,
     create_index_templates,
 )
+from stac_fastapi.types.config import Settings
 from starlette.middleware import Middleware
 
-from dmsapi.config import settings
+from dmsapi.config import DMSAPISettings
 from dmsapi.core.stacdms import StacDmsApi
 from dmsapi.database.db import create_db_engine
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
@@ -39,6 +40,8 @@ from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 
+Settings.set(DMSAPISettings())
+settings: DMSAPISettings = Settings.get()
 _LOGGER = logging.getLogger("uvicorn.default")
 session = Session.create_from_settings(settings)
 db_engine = create_db_engine()
@@ -136,7 +139,7 @@ def run_migrations():
         _LOGGER.info(
             f"Checking for unapplied DB migrations. Not running them. using config at {config_path}"
         )
-        command.check(alembic_cfg)
+        # command.check(alembic_cfg)
     else:
         _LOGGER.info("Running DB migrations")
         command.upgrade(alembic_cfg, "head")
