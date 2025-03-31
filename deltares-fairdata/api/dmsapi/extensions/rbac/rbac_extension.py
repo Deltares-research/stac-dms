@@ -3,6 +3,7 @@ from dmsapi.database.models import (  # type: ignore
     GLOBAL_SCOPE,
     ErrorResponse,
     Group,
+    GroupRole,
     GroupRoleResponse,
     OKResponse,
     Permission,
@@ -11,7 +12,6 @@ from dmsapi.database.models import (  # type: ignore
 )
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from fastapi import APIRouter, Depends, FastAPI
-from sqlalchemy.engine import Engine
 from stac_fastapi.types.extension import ApiExtension
 from stac_pydantic.shared import MimeTypes
 
@@ -52,9 +52,9 @@ class RBACExtension(ApiExtension):
     client: RBACClient
     router: APIRouter
 
-    def __init__(self, db_engine: Engine):
+    def __init__(self):
         """Initialize the extension."""
-        self.client = RBACClient(db_engine)
+        self.client = RBACClient()
         self.router = APIRouter()
 
     def register(self, app: FastAPI) -> None:
@@ -78,6 +78,7 @@ class RBACExtension(ApiExtension):
         self.add_get_users_from_group()
         self.add_delete_users_from_group()
         self.add_assign_group_role()
+        self.add_get_group_roles()
         # self.add_add_group_permission_to_object()
         # self.add_delete_group_permission_to_object()
         # self.add_check_group_permission_to_object()
@@ -338,14 +339,6 @@ class RBACExtension(ApiExtension):
             name="Get Roles",
             path="/roles",
             endpoint=self.client.get_roles,
-            dependencies=[
-                Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
-                        permission=Permission.GroupRead,
-                    )
-                )
-            ],
             response_model=list[Role],
             methods=["GET"],
         )
@@ -408,6 +401,15 @@ class RBACExtension(ApiExtension):
             ],
             response_model=GroupRoleResponse,
             methods=["POST"],
+        )
+
+    def add_get_group_roles(self):
+        self.router.add_api_route(
+            name="Get group roles",
+            path="/group-role/{object_id}",
+            endpoint=self.client.get_group_roles,
+            response_model=list[GroupRole],
+            methods=["GET"],
         )
 
     # def add_add_group_permission_to_object(self):

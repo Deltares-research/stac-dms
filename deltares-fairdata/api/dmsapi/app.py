@@ -82,13 +82,11 @@ extensions = [
     TokenPaginationExtension(),
     filter_extension,
     KeywordExtension(db_engine=db_engine),
-    RBACExtension(db_engine=db_engine),
+    RBACExtension(),
     SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]),
 ]
 
-middlewares = [
-    Middleware(AuthorizationMiddleware, db_engine=db_engine, settings=settings)
-]
+middlewares = [Middleware(AuthorizationMiddleware, settings=settings)]
 
 database_logic.extensions = [type(ext).__name__ for ext in extensions]
 
