@@ -7,9 +7,9 @@ from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
 from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
+from dmsapi.schemas.requests import GroupRoleRequest
 from fastapi import FastAPI
 from fastapi_sso import MicrosoftSSO, OpenID
-from sqlalchemy import Engine
 from sqlmodel import SQLModel
 from starlette.middleware import Middleware
 
@@ -25,15 +25,17 @@ import pytest_asyncio
 from dmsapi.config import DMSAPISettings
 from dmsapi.database.db import create_db_engine, get_session
 from dmsapi.database.models import (  # type: ignore
+    GLOBAL_SCOPE,
     Facility,
     FacilityKeywordGroupLink,
+    Group,
+    GroupCreate,
     Keyword_Group,
     Role,
     User,
 )
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 from httpx import ASGITransport, AsyncClient
-from sqlmodel import Session as SQLModelSession
 from stac_fastapi.api.models import create_get_request_model, create_post_request_model
 from stac_fastapi.core.core import (
     BulkTransactionsClient,
@@ -317,19 +319,90 @@ async def group(rbac_client: RBACClient):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def editor_role(db_engine: Engine):
-    with SQLModelSession(db_engine) as session:
-        role = Role(name="editor")
-        session.add(role)
-        session.commit()
-        session.refresh(role)
-        yield role
-        session.delete(role)
-        session.commit()
+async def data_producer_group(rbac_client: RBACClient):
+    session = next(get_session())
+    group = rbac_client.create_group(
+        GroupCreate(
+            name="data_producer_group",
+            description="data_producer_group",
+        )
+    )
+    rbac_client.assign_group_role(
+        GroupRoleRequest(
+            group_id=group.id,
+            role=Role.DATA_PRODUCER,
+            object="test_object",
+        ),
+        session,
+    )
+    yield group
+    try:
+        rbac_client.delete_group(str(group.id))
+    except Exception:
+        pass
 
 
 @pytest_asyncio.fixture(scope="function")
-async def token(user: User):
+async def admin_group(rbac_client: RBACClient):
+    session = next(get_session())
+    group = rbac_client.create_group(
+        GroupCreate(
+            name="admin_group",
+            description="admin_group",
+        )
+    )
+    rbac_client.assign_group_role(
+        GroupRoleRequest(
+            group_id=group.id,
+            role=Role.ADMIN,
+            object=GLOBAL_SCOPE,
+        ),
+        session,
+    )
+    yield group
+    try:
+        rbac_client.delete_group(str(group.id))
+    except Exception:
+        pass
+
+
+@pytest_asyncio.fixture(scope="function")
+async def data_producer_user(rbac_client: RBACClient, data_producer_group: Group):
+    session = next(get_session())
+    user = rbac_client.create_user(
+        {
+            "username": "data_producer_user",
+            "email": "data_producer_user@deltares.nl",
+        },
+        session,
+    )
+    rbac_client.add_users_to_group(data_producer_group.id, [user])
+    yield user
+    try:
+        rbac_client.delete_user(str(user.id))
+    except Exception:
+        pass
+
+
+@pytest_asyncio.fixture(scope="function")
+async def admin_user(rbac_client: RBACClient, admin_group: Group):
+    session = next(get_session())
+    user = rbac_client.create_user(
+        {
+            "username": "admin_user",
+            "email": "admin_user@deltares.nl",
+        },
+        session,
+    )
+    rbac_client.add_users_to_group(admin_group.id, [user])
+    yield user
+    try:
+        rbac_client.delete_user(str(user.id))
+    except Exception:
+        pass
+
+
+def _token(user: User):
     """Create a test JWT token for the given user."""
     user_openid = OpenID(
         email=user.email,
@@ -342,6 +415,21 @@ async def token(user: User):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def authenticated_client(app_client: AsyncClient, token: str):
+async def authenticated_client(app_client: AsyncClient, user: User):
+    token = _token(user)
+    app_client.headers["Cookie"] = f"{COOKIE_NAME}={token}"
+    return app_client
+
+
+@pytest_asyncio.fixture(scope="function")
+async def data_producer_client(app_client: AsyncClient, data_producer_user: User):
+    token = _token(data_producer_user)
+    app_client.headers["Cookie"] = f"{COOKIE_NAME}={token}"
+    return app_client
+
+
+@pytest_asyncio.fixture(scope="function")
+async def admin_client(app_client: AsyncClient, admin_user: User):
+    token = _token(admin_user)
     app_client.headers["Cookie"] = f"{COOKIE_NAME}={token}"
     return app_client

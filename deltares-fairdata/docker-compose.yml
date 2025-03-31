@@ -35,7 +35,7 @@ services:
     depends_on:
       - opensearch
       - postgres
-    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && uv run --no-dev fastapi dev dmsapi/app.py --port 8000"
+    command: bash -c "./scripts/wait-for-it.sh os-container:9202 && uv run --no-dev fastapi dev dmsapi/app.py --host 0.0.0.0 --port 8000"
 
   postgres:
     image: postgres:16

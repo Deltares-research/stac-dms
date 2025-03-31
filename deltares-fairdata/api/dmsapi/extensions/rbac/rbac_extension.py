@@ -1,13 +1,16 @@
+from dmsapi.core.dependencies import user_has_permission_on_object
 from dmsapi.database.models import (  # type: ignore
+    GLOBAL_SCOPE,
     ErrorResponse,
     Group,
     GroupRoleResponse,
     OKResponse,
+    Permission,
     Role,
     User,
 )
 from dmsapi.extensions.rbac.rbac_client import RBACClient
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from sqlalchemy.engine import Engine
 from stac_fastapi.types.extension import ApiExtension
 from stac_pydantic.shared import MimeTypes
@@ -190,6 +193,14 @@ class RBACExtension(ApiExtension):
             name="Create Group",
             path="/groups",
             endpoint=self.client.create_group,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GroupCreate,
+                    )
+                )
+            ],
             response_model=Group,
             methods=["POST"],
         )
@@ -199,6 +210,14 @@ class RBACExtension(ApiExtension):
             name="Update Group",
             path="/groups/{group_id}",
             endpoint=self.client.update_group,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GroupUpdate,
+                    )
+                )
+            ],
             response_model=Group,
             responses={
                 200: {
@@ -228,6 +247,14 @@ class RBACExtension(ApiExtension):
             name="Get Group",
             path="/groups/{group_id}",
             endpoint=self.client.get_group,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GroupRead,
+                    )
+                )
+            ],
             response_model=Group,
             responses={
                 200: {
@@ -257,6 +284,14 @@ class RBACExtension(ApiExtension):
             name="Get Groups",
             path="/groups",
             endpoint=self.client.get_groups,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GroupRead,
+                    )
+                )
+            ],
             response_model=list[Group],
             methods=["GET"],
         )
@@ -266,6 +301,14 @@ class RBACExtension(ApiExtension):
             name="Delete Group",
             path="/groups/{group_id}",
             endpoint=self.client.delete_group,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GroupDelete,
+                    )
+                )
+            ],
             response_model=OKResponse,
             responses={
                 200: {
@@ -295,6 +338,14 @@ class RBACExtension(ApiExtension):
             name="Get Roles",
             path="/roles",
             endpoint=self.client.get_roles,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GroupRead,
+                    )
+                )
+            ],
             response_model=list[Role],
             methods=["GET"],
         )
@@ -304,6 +355,14 @@ class RBACExtension(ApiExtension):
             name="Add users to group",
             path="/groups/{group_id}/members",
             endpoint=self.client.add_users_to_group,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GlobalGroupRoleAssign,
+                    )
+                )
+            ],
             response_model=OKResponse,
             methods=["POST"],
         )
@@ -312,7 +371,15 @@ class RBACExtension(ApiExtension):
         self.router.add_api_route(
             name="Delete users from group",
             path="/groups/{group_id}/members",
-            endpoint=self.client.remove_users_from_group,
+            endpoint=self.client.remove_user_from_group,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GlobalGroupRoleAssign,
+                    )
+                )
+            ],
             response_model=OKResponse,
             methods=["DELETE"],
         )
@@ -331,6 +398,14 @@ class RBACExtension(ApiExtension):
             name="Assign group role",
             path="/group-role",
             endpoint=self.client.assign_group_role,
+            dependencies=[
+                Depends(
+                    user_has_permission_on_object(
+                        object=GLOBAL_SCOPE,
+                        permission=Permission.GlobalGroupRoleAssign,
+                    )
+                )
+            ],
             response_model=GroupRoleResponse,
             methods=["POST"],
         )
