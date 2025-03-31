@@ -1,5 +1,6 @@
 from authlib.jose import OctKey, jwt
 from dmsapi.config import DMSAPISettings
+from dmsapi.database.db import create_db_engine
 from dmsapi.database.models import ErrorResponse, UserCreate
 from dmsapi.extensions.core.sso_auth_extension import COOKIE_NAME
 from dmsapi.extensions.rbac.rbac_client import RBACClient
@@ -7,20 +8,24 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyCookie
 from fastapi_sso import OpenID
-from sqlalchemy.engine import Engine
+from sqlmodel import Session
 from stac_fastapi.types.errors import NotFoundError
 from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class AuthorizationMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, settings: DMSAPISettings, db_engine: Engine):
+    def __init__(
+        self,
+        app,
+        settings: DMSAPISettings,
+    ):
         super().__init__(app)
-        self.db_engine = db_engine
         self.settings = settings
         self.app_secret_key = OctKey.import_key(settings.app_secret_key)
         self.api_key_cookie = APIKeyCookie(name=COOKIE_NAME, auto_error=False)
-        self.rbac_client = RBACClient(db_engine)
+        self.rbac_client = RBACClient()
+        self.db_engine = create_db_engine()
 
     async def dispatch(self, request: Request, call_next):
         cookie = await self.api_key_cookie(request)
@@ -35,15 +40,17 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
             path = path[4:]
         # Create user if not exists
         if user.email:
-            try:
-                self.rbac_client.get_user_by_email(user.email)
-            except NotFoundError as _:
-                self.rbac_client.create_user(
-                    UserCreate(
-                        username=f"{user.first_name} {user.last_name}",
-                        email=user.email,
+            with Session(self.db_engine) as session:
+                try:
+                    self.rbac_client.get_user_by_email(user.email, session)
+                except NotFoundError as _:
+                    self.rbac_client.create_user(
+                        UserCreate(
+                            username=f"{user.first_name} {user.last_name}",
+                            email=user.email,
+                        ),
+                        session,
                     )
-                )
         ## Permission model
         # Admins can
         #   - create and delete collections
@@ -68,7 +75,7 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
                 )
             # These are requests that edit collections or items in that collection
             if not self.rbac_client.has_permission(
-                self.db_engine, claims.get("email", "").lower(), "editor", collection
+                self.session, claims.get("email", "").lower(), "editor", collection
             ):
                 return JSONResponse(
                     content=ErrorResponse(

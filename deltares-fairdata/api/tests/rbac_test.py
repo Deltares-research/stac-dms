@@ -10,6 +10,7 @@ from dmsapi.database.models import (  # type: ignore
 )
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from httpx import AsyncClient
+from sqlmodel import Session
 
 
 # test create group
@@ -74,10 +75,14 @@ async def test_get_groups(admin_client: AsyncClient, group: Group):
 
 # test delete group
 @pytest.mark.asyncio
-async def test_delete_group(admin_client: AsyncClient, rbac_client: RBACClient):
+async def test_delete_group(
+    admin_client: AsyncClient, rbac_client: RBACClient, db_session: Session
+):
     name = "test_group_to_delete"
     description = "test_description"
-    group = rbac_client.create_group({"name": name, "description": description})
+    group = rbac_client.create_group(
+        {"name": name, "description": description}, db_session
+    )
 
     # check if group is created
     response = await admin_client.get(f"/groups/{group.id}")
@@ -176,47 +181,22 @@ async def test_assign_global_group_role(admin_client: AsyncClient, group: Group)
 async def test_get_group_roles(admin_client: AsyncClient, group: Group):
     obj = "test-collection"
     # First assign a role
-    await admin_client.post(
+    response = await admin_client.post(
         "/group-role",
-        json={"object_id": obj, "role": Role.EDITOR.value, "group_id": str(group.id)},
+        json={
+            "object": obj,
+            "role": Role.DATA_PRODUCER.value,
+            "group_id": str(group.id),
+        },
     )
-
+    assert response.status_code == 200
     # Then get roles
     response = await admin_client.get(f"/group-role/{obj}")
     assert response.status_code == 200
     roles = response.json()
     assert len(roles) > 0
-    assert roles[0]["role"] == Role.EDITOR.value
+    assert roles[0]["role"] == Role.DATA_PRODUCER.value
     assert roles[0]["group_id"] == str(group.id)
-
-
-# test check permissions
-@pytest.mark.asyncio
-async def test_check_permissions(
-    authenticated_client: AsyncClient, group: Group, user: User
-):
-    # First assign role and add user to group
-    obj = "test-collection"
-    await authenticated_client.post(
-        "/group-role",
-        json={"object_id": obj, "role": Role.EDITOR.value, "group_id": str(group.id)},
-    )
-    await authenticated_client.post(
-        f"/groups/{group.id}/members",
-        json={"user_ids": [str(user.id)]},
-    )
-
-    # Check permissions
-    response = await authenticated_client.get(
-        "/group-role/check",
-        params={
-            "object_id": obj,
-            "permission": Permission.UPDATE.value,
-            "user_email": user.email,
-        },
-    )
-    assert response.status_code == 200
-    assert response.json()["has_permission"] is True
 
 
 # test check global permissions

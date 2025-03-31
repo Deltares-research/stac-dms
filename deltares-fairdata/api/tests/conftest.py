@@ -134,13 +134,11 @@ async def app(db_engine):
                 client_secret=settings.azure_app_client_secret,
             ),
         ),
-        RBACExtension(db_engine=db_engine),
+        RBACExtension(),
     ]
     SQLModel.metadata.create_all(db_engine)
 
-    middlewares = [
-        Middleware(AuthorizationMiddleware, db_engine=db_engine, settings=settings)
-    ]
+    middlewares = [Middleware(AuthorizationMiddleware, settings=settings)]
 
     post_request_model = create_post_request_model(extensions)
     stac_dms_api = StacDmsApi(
@@ -171,8 +169,13 @@ async def app_client(app: FastAPI):
 
 
 @pytest.fixture(scope="function")
-def rbac_client(db_engine):
-    return RBACExtension(db_engine=db_engine).client
+def db_session():
+    return next(get_session())
+
+
+@pytest.fixture(scope="function")
+def rbac_client():
+    return RBACExtension().client
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -204,7 +207,7 @@ async def facility_keyword_group_link(
     link = FacilityKeywordGroupLink(
         facility_id=str(facility.id), keyword_group_id=str(keyword_group.id)
     )
-    result = keyword_client.link_keywordgroup_to_facility(link)
+    _ = keyword_client.link_keywordgroup_to_facility(link)
     yield link
     try:
         keyword_client.unlink_keywordgroup_from_facility(link)
@@ -287,14 +290,13 @@ async def filled_db(keyword_client: KeywordClient):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def user(rbac_client: RBACClient):
-    session = next(get_session())
+async def user(rbac_client: RBACClient, db_session: Session):
     user = rbac_client.create_user(
         {
             "username": "test_user",
             "email": "test.test@deltares.nl",
         },
-        session,
+        db_session,
     )
     yield user
     try:
@@ -304,12 +306,13 @@ async def user(rbac_client: RBACClient):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def group(rbac_client: RBACClient):
+async def group(rbac_client: RBACClient, db_session: Session):
     group = rbac_client.create_group(
         {
             "name": "test_group",
             "description": "test_description",
-        }
+        },
+        db_session,
     )
     yield group
     try:
@@ -319,13 +322,13 @@ async def group(rbac_client: RBACClient):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def data_producer_group(rbac_client: RBACClient):
-    session = next(get_session())
+async def data_producer_group(rbac_client: RBACClient, db_session: Session):
     group = rbac_client.create_group(
         GroupCreate(
             name="data_producer_group",
             description="data_producer_group",
-        )
+        ),
+        db_session,
     )
     rbac_client.assign_group_role(
         GroupRoleRequest(
@@ -333,7 +336,7 @@ async def data_producer_group(rbac_client: RBACClient):
             role=Role.DATA_PRODUCER,
             object="test_object",
         ),
-        session,
+        db_session,
     )
     yield group
     try:
@@ -343,13 +346,13 @@ async def data_producer_group(rbac_client: RBACClient):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def admin_group(rbac_client: RBACClient):
-    session = next(get_session())
+async def admin_group(rbac_client: RBACClient, db_session: Session):
     group = rbac_client.create_group(
         GroupCreate(
             name="admin_group",
             description="admin_group",
-        )
+        ),
+        db_session,
     )
     rbac_client.assign_group_role(
         GroupRoleRequest(
@@ -357,7 +360,7 @@ async def admin_group(rbac_client: RBACClient):
             role=Role.ADMIN,
             object=GLOBAL_SCOPE,
         ),
-        session,
+        db_session,
     )
     yield group
     try:
@@ -367,16 +370,17 @@ async def admin_group(rbac_client: RBACClient):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def data_producer_user(rbac_client: RBACClient, data_producer_group: Group):
-    session = next(get_session())
+async def data_producer_user(
+    rbac_client: RBACClient, data_producer_group: Group, db_session: Session
+):
     user = rbac_client.create_user(
         {
             "username": "data_producer_user",
             "email": "data_producer_user@deltares.nl",
         },
-        session,
+        db_session,
     )
-    rbac_client.add_users_to_group(data_producer_group.id, [user])
+    rbac_client.add_users_to_group(data_producer_group.id, [user], db_session)
     yield user
     try:
         rbac_client.delete_user(str(user.id))
@@ -385,16 +389,15 @@ async def data_producer_user(rbac_client: RBACClient, data_producer_group: Group
 
 
 @pytest_asyncio.fixture(scope="function")
-async def admin_user(rbac_client: RBACClient, admin_group: Group):
-    session = next(get_session())
+async def admin_user(rbac_client: RBACClient, admin_group: Group, db_session: Session):
     user = rbac_client.create_user(
         {
             "username": "admin_user",
             "email": "admin_user@deltares.nl",
         },
-        session,
+        db_session,
     )
-    rbac_client.add_users_to_group(admin_group.id, [user])
+    rbac_client.add_users_to_group(admin_group.id, [user], db_session)
     yield user
     try:
         rbac_client.delete_user(str(user.id))

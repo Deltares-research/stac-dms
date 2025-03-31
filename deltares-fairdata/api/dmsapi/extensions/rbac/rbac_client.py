@@ -21,20 +21,13 @@ from dmsapi.schemas.requests import GroupRoleRequest
 from fastapi import Path
 from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
-from sqlalchemy.engine import Engine
 from sqlalchemy.orm import selectinload
-from sqlmodel import Session, select
+from sqlmodel import select
 from stac_fastapi.types.errors import InvalidQueryParameter, NotFoundError
 
 
 class RBACClient:
     """Client for managing and retrieving users/permissions."""
-
-    db_engine: Engine
-
-    def __init__(self, db_engine: Engine):
-        """Initialize the client."""
-        self.db_engine = db_engine
 
     def create_user(self, user: UserCreate, session: SessionDep) -> User:
         """Create a new user.
@@ -52,7 +45,9 @@ class RBACClient:
         session.refresh(db_user)
         return db_user
 
-    def update_user(self, user_id: str, user_update: UserUpdate) -> User:
+    def update_user(
+        self, user_id: str, user_update: UserUpdate, session: SessionDep
+    ) -> User:
         """Update a user by ID.
 
         Args:
@@ -65,21 +60,23 @@ class RBACClient:
             uuid = UUID(user_id)
         except ValueError:
             raise InvalidQueryParameter(f"User ID {user_id} invalid UUID")
-        with Session(self.db_engine) as session:
-            user = session.get(User, uuid)
-            if user is None:
-                raise NotFoundError(f"User with ID {user_id} not found")
 
-            for key, value in user_update.model_dump().items():
-                if value:
-                    setattr(user, key, value)
-            session.add(user)
-            session.commit()
-            session.refresh(user)
-            return user
+        user = session.get(User, uuid)
+        if user is None:
+            raise NotFoundError(f"User with ID {user_id} not found")
+
+        for key, value in user_update.model_dump().items():
+            if value:
+                setattr(user, key, value)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
 
     def get_user(
-        self, user_id: Annotated[str, Path(title="The ID of the user to get")]
+        self,
+        user_id: Annotated[str, Path(title="The ID of the user to get")],
+        session: SessionDep,
     ) -> User:
         """Retrieve a user by ID.
 
@@ -93,14 +90,15 @@ class RBACClient:
             uuid = UUID(user_id)
         except ValueError:
             raise InvalidQueryParameter(f"User ID {user_id} invalid UUID")
-        with Session(self.db_engine) as session:
-            result = session.exec(select(User).where(User.id == uuid)).first()
-            if result is None:
-                raise NotFoundError(f"User with ID {user_id} not found")
+        result = session.exec(select(User).where(User.id == uuid)).first()
+        if result is None:
+            raise NotFoundError(f"User with ID {user_id} not found")
             return result
 
     def get_user_by_email(
-        self, user_email: Annotated[str, Path(title="The Name of the user to get")]
+        self,
+        user_email: Annotated[str, Path(title="The Name of the user to get")],
+        session: SessionDep,
     ) -> User:
         """Retrieve a user by ID.
 
@@ -110,25 +108,24 @@ class RBACClient:
         Returns:
             retrieved user.
         """
-        with Session(self.db_engine) as session:
-            result = session.exec(select(User).where(User.email == user_email)).first()
-            if result is None:
-                raise NotFoundError(f"User with ID {user_email} not found")
-            return result
+        result = session.exec(select(User).where(User.email == user_email)).first()
+        if result is None:
+            raise NotFoundError(f"User with ID {user_email} not found")
+        return result
 
-    def get_users(self) -> List[UserList]:
+    def get_users(self, session: SessionDep) -> List[UserList]:
         """Retrieve all users.
 
         Returns:
             list of all users.
         """
-        with Session(self.db_engine) as session:
-            results = session.exec(select(User))
-            return list(results.all())
+        results = session.exec(select(User))
+        return list(results.all())
 
     def delete_user(
         self,
         user_id: Annotated[str, Path(title="The ID of the user to delete")],
+        session: SessionDep,
     ) -> OKResponse:
         """Delete a user by ID.
 
@@ -142,15 +139,14 @@ class RBACClient:
             uuid = UUID(user_id)
         except ValueError:
             raise InvalidQueryParameter(f"User ID {user_id} invalid UUID")
-        with Session(self.db_engine) as session:
-            result = session.get(User, uuid)
-            if result is None:
-                raise NotFoundError(f"User with ID {user_id} not found")
-            session.delete(result)
-            session.commit()
-            return OKResponse(message="User deleted")
+        result = session.get(User, uuid)
+        if result is None:
+            raise NotFoundError(f"User with ID {user_id} not found")
+        session.delete(result)
+        session.commit()
+        return OKResponse(message="User deleted")
 
-    def create_group(self, group: GroupCreate) -> Group:
+    def create_group(self, group: GroupCreate, session: SessionDep) -> Group:
         """Create a new group.
 
         Args:
@@ -159,14 +155,15 @@ class RBACClient:
         Returns:
             created group.
         """
-        with Session(self.db_engine) as session:
-            db_group = Group.model_validate(group)
-            session.add(db_group)
-            session.commit()
-            session.refresh(db_group)
-            return db_group
+        db_group = Group.model_validate(group)
+        session.add(db_group)
+        session.commit()
+        session.refresh(db_group)
+        return db_group
 
-    def update_group(self, group_id: str, group_update: GroupCreate) -> Group:
+    def update_group(
+        self, group_id: str, group_update: GroupCreate, session: SessionDep
+    ) -> Group:
         """Update a group by ID.
 
         Args:
@@ -179,21 +176,23 @@ class RBACClient:
             uuid = UUID(group_id)
         except ValueError:
             raise InvalidQueryParameter(f"Group ID {group_id} invalid UUID")
-        with Session(self.db_engine) as session:
-            group = session.get(Group, uuid)
-            if group is None:
-                raise NotFoundError(f"Group with ID {group_id} not found")
 
-            for key, value in group_update.model_dump().items():
-                if value:
-                    setattr(group, key, value)
-            session.add(group)
-            session.commit()
-            session.refresh(group)
-            return group
+        group = session.get(Group, uuid)
+        if group is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+
+        for key, value in group_update.model_dump().items():
+            if value:
+                setattr(group, key, value)
+        session.add(group)
+        session.commit()
+        session.refresh(group)
+        return group
 
     def get_group(
-        self, group_id: Annotated[str, Path(title="The ID of the group to get")]
+        self,
+        group_id: Annotated[str, Path(title="The ID of the group to get")],
+        session: SessionDep,
     ) -> Group:
         """Retrieve a group by ID, including users and permissions.
 
@@ -208,32 +207,31 @@ class RBACClient:
         except ValueError:
             raise InvalidQueryParameter(f"Group ID {group_id} invalid UUID")
 
-        with Session(self.db_engine) as session:
-            statement = (
-                select(Group).where(Group.id == uuid).options(selectinload(Group.users))
-            )
+        statement = (
+            select(Group).where(Group.id == uuid).options(selectinload(Group.users))
+        )
 
-            result = session.exec(statement).first()
+        result = session.exec(statement).first()
 
-            print(jsonable_encoder(result))
-            if result is None:
-                raise NotFoundError(f"Group with ID {group_id} not found")
+        print(jsonable_encoder(result))
+        if result is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
 
-            return result
+        return result
 
-    def get_groups(self) -> List[GroupList]:
+    def get_groups(self, session: SessionDep) -> List[GroupList]:
         """Retrieve all groups.
 
         Returns:
             list of all groups.
         """
-        with Session(self.db_engine) as session:
-            results = session.exec(select(Group))
-            return list(results.all())
+        results = session.exec(select(Group))
+        return list(results.all())
 
     def delete_group(
         self,
-        group_id: Annotated[str, Path(title="The ID of the group to delete")],
+        group_id: Annotated[UUID, Path(title="The ID of the group to delete")],
+        session: SessionDep,
     ) -> OKResponse:
         """Delete a group by ID.
 
@@ -243,19 +241,16 @@ class RBACClient:
         Returns:
             OKResponse
         """
-        try:
-            uuid = UUID(group_id)
-        except ValueError:
-            raise InvalidQueryParameter(f"Group ID {group_id} invalid UUID")
-        with Session(self.db_engine) as session:
-            result = session.get(Group, uuid)
-            if result is None:
-                raise NotFoundError(f"Group with ID {group_id} not found")
-            session.delete(result)
-            session.commit()
-            return OKResponse(message="Group deleted")
+        result = session.get(Group, group_id)
+        if result is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+        session.delete(result)
+        session.commit()
+        return OKResponse(message="Group deleted")
 
-    def add_users_to_group(self, group_id: UUID, users: list[UserUpdate]) -> OKResponse:
+    def add_users_to_group(
+        self, group_id: UUID, users: list[UserUpdate], session: SessionDep
+    ) -> OKResponse:
         """Add multiple users to a group.
 
         Args:
@@ -266,34 +261,35 @@ class RBACClient:
             OKResponse
         """
         email_list = [user.email for user in users]
-        with Session(self.db_engine) as session:
-            # Check existing links to avoid duplicates
-            existing_links = session.exec(
-                select(GroupUserLink).where(
-                    GroupUserLink.group_id == group_id,
-                    GroupUserLink.user_email.in_(email_list),
-                )
-            ).all()
-            existing_user_emails = {link.user_email for link in existing_links}
+        # Check existing links to avoid duplicates
+        existing_links = session.exec(
+            select(GroupUserLink).where(
+                GroupUserLink.group_id == group_id,
+                GroupUserLink.user_email.in_(email_list),
+            )
+        ).all()
+        existing_user_emails = {link.user_email for link in existing_links}
 
-            try:
-                # Add users that are not already in the group
-                new_links = [
-                    GroupUserLink(user_email=user.email, group_id=group_id)
-                    for user in users
-                    if user.email not in existing_user_emails
-                ]
+        try:
+            # Add users that are not already in the group
+            new_links = [
+                GroupUserLink(user_email=user.email, group_id=group_id)
+                for user in users
+                if user.email not in existing_user_emails
+            ]
 
-                if len(new_links) != 0:
-                    session.add_all(new_links)
-                    session.commit()
-                    return OKResponse(message="Members added")
-                return OKResponse(message="Members not added")
-            except Exception as err:
-                print(err)
-                return ErrorResponse(code="500", message="Internal server error")
+            if len(new_links) != 0:
+                session.add_all(new_links)
+                session.commit()
+                return OKResponse(message="Members added")
+            return OKResponse(message="Members not added")
+        except Exception as err:
+            print(err)
+            return ErrorResponse(code="500", message="Internal server error")
 
-    def remove_user_from_group(self, group_id: UUID, user_email: EmailStr) -> bool:
+    def remove_user_from_group(
+        self, group_id: UUID, user_email: EmailStr, session: SessionDep
+    ) -> bool:
         """Remove multiple users from a group.
 
         Args:
@@ -303,21 +299,20 @@ class RBACClient:
         Returns:
             OKResponse
         """
-        with Session(self.db_engine) as session:
-            links_to_remove = session.exec(
-                select(GroupUserLink).where(
-                    GroupUserLink.group_id == group_id,
-                    GroupUserLink.user_email == user_email,
-                )
-            ).first()
+        links_to_remove = session.exec(
+            select(GroupUserLink).where(
+                GroupUserLink.group_id == group_id,
+                GroupUserLink.user_email == user_email,
+            )
+        ).first()
 
-            if links_to_remove:
-                session.delete(links_to_remove)
-                session.commit()
-                return OKResponse(message="User removed from group")
-            return OKResponse(message="User not removed from group")
+        if links_to_remove:
+            session.delete(links_to_remove)
+            session.commit()
+            return OKResponse(message="User removed from group")
+        return OKResponse(message="User not removed from group")
 
-    def get_users_from_group(self, group_id: UUID) -> List[User]:
+    def get_users_from_group(self, group_id: UUID, session: SessionDep) -> List[User]:
         """Get all users in a group.
 
         Args:
@@ -326,17 +321,13 @@ class RBACClient:
         Returns:
             List of users in the group
         """
+        users = session.exec(
+            select(GroupUserLink.user_email).where(GroupUserLink.group_id == group_id)
+        ).all()
 
-        with Session(self.db_engine) as session:
-            users = session.exec(
-                select(GroupUserLink.user_email).where(
-                    GroupUserLink.group_id == group_id
-                )
-            ).all()
+        result = session.exec(select(User).where(User.email.in_(users)))
 
-            result = session.exec(select(User).where(User.email.in_(users)))
-
-            return result.all()
+        return result.all()
 
     def get_roles(self) -> List[Role]:
         """Retrieve all roles.
@@ -376,6 +367,19 @@ class RBACClient:
             object_id=group_role.object_id,
             role=group_role.role,
         )
+
+    def get_group_roles(self, object_id: str, session: SessionDep) -> List[GroupRole]:
+        """Get all roles for a given object.
+
+        Args:
+            object_id: ID of the object to get roles for
+
+        Returns:
+            List of GroupRole objects
+        """
+        return session.exec(
+            select(GroupRole).where(GroupRole.object_id == object_id)
+        ).all()
 
     # def assign_permission_to_collection(self, request: PermissionRequest) -> bool:
     #     """Assign a role to a group for a specific object."""
