@@ -10,10 +10,14 @@ let geoJson = new GeoJSON({
   featureProjection: "EPSG:3857",
 })
 
-let { onValueChange, initialValue } = defineProps<{
+let {
+  onValueChange,
+  initialValue,
+  readOnly = false,
+} = defineProps<{
   onValueChange?: (newValue: FeatureCollection) => void
   initialValue?: FeatureCollection
-  readOnly: Boolean
+  readOnly?: Boolean
 }>()
 
 let initialFeatures = geoJson.readFeatures(initialValue)
