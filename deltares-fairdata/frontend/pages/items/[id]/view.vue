@@ -3,7 +3,7 @@ import Container from "~/components/deltares/Container.vue"
 import ItemDetailView from "~/components/items/ItemDetailView.vue"
 
 const route = useRoute()
-const id = String(route.params.id) // Convert to string to fix the type error
+const id = String(route.params.id)
 
 let { data: items } = await useApi("/search", {
   query: { ids: id },
