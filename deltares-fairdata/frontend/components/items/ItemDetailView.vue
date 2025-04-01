@@ -9,6 +9,8 @@ import {
   FileIcon,
   InfoIcon,
   UsersIcon,
+  CopyIcon,
+  CheckIcon,
 } from "lucide-vue-next"
 import ItemMap from "~/components/items/ItemMap.vue"
 import startCase from "lodash/startCase"
@@ -156,6 +158,24 @@ const isUrl = (value: any): boolean => {
   }
 }
 
+// Store which asset URLs have been copied recently
+const copiedAssets = ref<Record<string, boolean>>({})
+
+// Copy text to clipboard
+const copyToClipboard = async (text: string, assetKey: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    // Set copied state for this asset
+    copiedAssets.value[assetKey] = true
+    // Reset after 2 seconds
+    setTimeout(() => {
+      copiedAssets.value[assetKey] = false
+    }, 2000)
+  } catch (err) {
+    console.error("Failed to copy text: ", err)
+  }
+}
+
 // Format date-like strings
 const formatDate = (value: any): string => {
   if (!value || typeof value !== "string") return String(value)
@@ -259,15 +279,39 @@ const formatDate = (value: any): string => {
                     {{ asset.description }}
                   </p>
 
+                  <!-- Display asset href -->
+                  <div class="text-sm text-gray-600 mb-3 break-all">
+                    <div class="flex items-center">
+                      <LinkIcon class="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span>{{ asset.href }}</span>
+                    </div>
+                  </div>
+
                   <div class="flex space-x-2">
+                    <!-- HTTP URL: Open in new tab -->
                     <a
+                      v-if="isUrl(asset.href)"
                       :href="asset.href"
                       target="_blank"
                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                     >
                       <LinkIcon class="w-4 h-4 mr-1" />
-                      Download
+                      Open
                     </a>
+
+                    <!-- Non-HTTP URL: Copy to clipboard -->
+                    <button
+                      v-else
+                      @click="copyToClipboard(asset.href, asset.key)"
+                      class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      <CheckIcon
+                        v-if="copiedAssets[asset.key]"
+                        class="w-4 h-4 mr-1 text-green-500"
+                      />
+                      <CopyIcon v-else class="w-4 h-4 mr-1" />
+                      {{ copiedAssets[asset.key] ? "Copied!" : "Copy" }}
+                    </button>
                   </div>
                 </div>
               </div>
