@@ -116,7 +116,7 @@ const selectedCollection = update
 
 const collectionOptions = collections.map((collection) => ({
   value: collection.id,
-  label: collection.description,
+  label: collection.title,
 }))
 
 const languages = [
