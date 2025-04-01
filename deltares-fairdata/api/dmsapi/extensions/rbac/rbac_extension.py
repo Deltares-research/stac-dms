@@ -1,6 +1,11 @@
-from dmsapi.core.dependencies import user_has_permission_on_object
+from dataclasses import dataclass
+from typing import Dict
+
+from dmsapi.core.dependencies import (
+    user_has_collection_permission,
+    user_has_global_permission,
+)
 from dmsapi.database.models import (  # type: ignore
-    GLOBAL_SCOPE,
     ErrorResponse,
     Group,
     GroupRole,
@@ -12,8 +17,25 @@ from dmsapi.database.models import (  # type: ignore
 )
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from fastapi import APIRouter, Depends, FastAPI
+from fastapi.routing import APIRoute
+from stac_fastapi.api.routes import Scope, add_route_dependencies
 from stac_fastapi.types.extension import ApiExtension
 from stac_pydantic.shared import MimeTypes
+
+
+@dataclass(frozen=True)
+class ScopeKey:
+    """A hashable version of Scope for use as dictionary keys."""
+
+    path: str
+    method: str
+
+    @classmethod
+    def from_scope(cls, scope: Scope) -> "ScopeKey":
+        return cls(path=scope["path"], method=scope["method"])
+
+    def to_scope(self) -> Scope:
+        return {"path": self.path, "method": self.method}
 
 
 class RBACExtension(ApiExtension):
@@ -23,9 +45,6 @@ class RBACExtension(ApiExtension):
 
     Manage users:
         GET /users
-        POST /users
-        PUT /users/{user_id}
-        DELETE /facility/{facility_id}
 
     Manage groups:
         GET /groups
@@ -33,20 +52,17 @@ class RBACExtension(ApiExtension):
         PUT /groups/{group_id}
         DELETE /groups/{group_id}
 
-        POST /groups/user {group_id, user_id}
-        DELETE /groups/user {group_id, user_id}
-
-        GET /groups/{group_id}/users
+        POST /groups/{group_id}/members
+        DELETE /groups/{group_id}/members
+        GET /groups/{group_id}/members
 
         GET /roles (return fixed list of roles)
 
-    Manage permissions:
-        POST /permissions/{group_id, object, role} check role is applicable for object
-        DELETE /permissions/{group_id, object, role} remove role from group
-        GET /permissions?group_id={group_id}
+    Manage group roles:
+        POST /group-role assign role to group
+        GET /group-role/{object} get roles for object
+        DELETE /group-role/{object} remove role from group
 
-    Args:
-        ApiExtension (_type_): _description_
     """
 
     client: RBACClient
@@ -79,77 +95,80 @@ class RBACExtension(ApiExtension):
         self.add_delete_users_from_group()
         self.add_assign_group_role()
         self.add_get_group_roles()
-        # self.add_add_group_permission_to_object()
-        # self.add_delete_group_permission_to_object()
-        # self.add_check_group_permission_to_object()
         app.include_router(self.router, tags=["RBAC Extension"])
 
-    def add_create_user(self):
-        self.router.add_api_route(
-            name="Create User",
-            path="/users",
-            endpoint=self.client.create_user,
-            response_model=User,
-            methods=["POST"],
-        )
+        collection_route_dependencies: Dict[ScopeKey, Permission] = {
+            ScopeKey(
+                path="/collections/{collection_id}/items/{item_id}",
+                method="PUT",
+            ): Permission.CollectionUpdate,
+            ScopeKey(
+                path="/collections/{collection_id}/items/{item_id}",
+                method="DELETE",
+            ): Permission.CollectionDelete,
+            ScopeKey(
+                path="/collections/{collection_id}/items",
+                method="POST",
+            ): Permission.CollectionCreate,
+            ScopeKey(
+                path="/collections/{collection_id}",
+                method="PUT",
+            ): Permission.CollectionUpdate,
+            ScopeKey(
+                path="/collections/{collection_id}",
+                method="DELETE",
+            ): Permission.CollectionDelete,
+            ScopeKey(
+                path="/collections",
+                method="POST",
+            ): Permission.CollectionCreate,
+        }
 
-    def add_update_user(self):
-        self.router.add_api_route(
-            name="Update User",
-            path="/users/{user_id}",
-            endpoint=self.client.update_user,
-            response_model=User,
-            responses={
-                200: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": User,
-                },
-                400: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-                404: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-            },
-            methods=["PUT"],
-        )
+        global_route_dependencies: Dict[ScopeKey, Permission] = {
+            ScopeKey(
+                path="/keyword",
+                method="POST",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/keyword",
+                method="DELETE",
+            ): Permission.KeywordAll,
+        }
 
-    def add_get_user(self):
-        self.router.add_api_route(
-            name="Get User",
-            path="/users/{user_id}",
-            endpoint=self.client.get_user,
-            response_model=User,
-            responses={
-                200: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": User,
-                },
-                400: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-                404: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-            },
-            methods=["GET"],
-        )
+        for route in app.routes:
+            if isinstance(route, APIRoute):
+                for method in route.methods:
+                    endpoint = ScopeKey(path=route.path, method=method)
+
+                    # Add dependencies for collection routes
+                    if endpoint in collection_route_dependencies:
+                        add_route_dependencies(
+                            app.router.routes,
+                            [endpoint.to_scope()],
+                            [
+                                Depends(
+                                    user_has_collection_permission(
+                                        permission=collection_route_dependencies[
+                                            endpoint
+                                        ]
+                                    )
+                                )
+                            ],
+                        )
+
+                    # Add dependencies for global routes
+                    if endpoint in global_route_dependencies:
+                        add_route_dependencies(
+                            app.router.routes,
+                            [endpoint.to_scope()],
+                            [
+                                Depends(
+                                    user_has_global_permission(
+                                        permission=global_route_dependencies[endpoint]
+                                    )
+                                )
+                            ],
+                        )
 
     def add_get_users(self):
         self.router.add_api_route(
@@ -160,35 +179,6 @@ class RBACExtension(ApiExtension):
             methods=["GET"],
         )
 
-    def add_delete_user(self):
-        self.router.add_api_route(
-            name="Delete User",
-            path="/users/{user_id}",
-            endpoint=self.client.delete_user,
-            response_model=OKResponse,
-            responses={
-                200: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": OKResponse,
-                },
-                400: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-                404: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-            },
-            methods=["DELETE"],
-        )
-
     def add_create_group(self):
         self.router.add_api_route(
             name="Create Group",
@@ -196,8 +186,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.create_group,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GroupCreate,
                     )
                 )
@@ -213,8 +202,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.update_group,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GroupUpdate,
                     )
                 )
@@ -250,8 +238,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.get_group,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GroupRead,
                     )
                 )
@@ -287,8 +274,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.get_groups,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GroupRead,
                     )
                 )
@@ -304,8 +290,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.delete_group,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GroupDelete,
                     )
                 )
@@ -350,8 +335,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.add_users_to_group,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GlobalGroupRoleAssign,
                     )
                 )
@@ -367,8 +351,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.remove_user_from_group,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GlobalGroupRoleAssign,
                     )
                 )
@@ -393,8 +376,7 @@ class RBACExtension(ApiExtension):
             endpoint=self.client.assign_group_role,
             dependencies=[
                 Depends(
-                    user_has_permission_on_object(
-                        object=GLOBAL_SCOPE,
+                    user_has_global_permission(
                         permission=Permission.GlobalGroupRoleAssign,
                     )
                 )

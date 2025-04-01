@@ -6,19 +6,16 @@ from dmsapi.extensions.core.sso_auth_extension import COOKIE_NAME, SSOAuthExtens
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
-from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 from dmsapi.schemas.requests import GroupRoleRequest
 from fastapi import FastAPI
 from fastapi_sso import MicrosoftSSO, OpenID
 from sqlmodel import SQLModel
-from starlette.middleware import Middleware
 
 ## This part is gross but it's the only way to get the settings to load withouth changing to much in the underlying package
 if "ES_HOST" not in os.environ:
     os.environ["ES_HOST"] = "opensearch"
 if "ES_PORT" not in os.environ:
     os.environ["ES_PORT"] = "9200"
-
 
 import pytest
 import pytest_asyncio
@@ -52,10 +49,9 @@ from stac_fastapi.extensions.core import (
     TokenPaginationExtension,
     TransactionExtension,
 )
-from stac_fastapi.opensearch.database_logic import (
-    DatabaseLogic,
-)
 from stac_fastapi.types.config import Settings
+
+from .mocks import MockDatabaseLogic
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
@@ -72,8 +68,8 @@ dms_settings = DMSAPISettings(
 
 Settings.set(dms_settings)
 
-
-database = DatabaseLogic()
+# Use MockDatabaseLogic for testing without actual OpenSearch operations
+database = MockDatabaseLogic()
 settings = Settings.get()
 
 
@@ -136,10 +132,9 @@ async def app(db_engine):
         ),
         RBACExtension(),
     ]
-    SQLModel.metadata.create_all(db_engine)
+    # SQLModel.metadata.create_all(db_engine)
 
-    middlewares = [Middleware(AuthorizationMiddleware, settings=settings)]
-
+    middlewares = []
     post_request_model = create_post_request_model(extensions)
     stac_dms_api = StacDmsApi(
         settings=settings,
@@ -346,6 +341,30 @@ async def data_producer_group(rbac_client: RBACClient, db_session: Session):
 
 
 @pytest_asyncio.fixture(scope="function")
+async def keyword_editor_group(rbac_client: RBACClient, db_session: Session):
+    group = rbac_client.create_group(
+        GroupCreate(
+            name="keyword_editor_group",
+            description="keyword_editor_group",
+        ),
+        db_session,
+    )
+    rbac_client.assign_group_role(
+        GroupRoleRequest(
+            group_id=group.id,
+            role=Role.KEYWORD_EDITOR,
+            object=GLOBAL_SCOPE,
+        ),
+        db_session,
+    )
+    yield group
+    try:
+        rbac_client.delete_group(str(group.id))
+    except Exception:
+        pass
+
+
+@pytest_asyncio.fixture(scope="function")
 async def admin_group(rbac_client: RBACClient, db_session: Session):
     group = rbac_client.create_group(
         GroupCreate(
@@ -389,6 +408,25 @@ async def data_producer_user(
 
 
 @pytest_asyncio.fixture(scope="function")
+async def keyword_editor_user(
+    rbac_client: RBACClient, keyword_editor_group: Group, db_session: Session
+):
+    user = rbac_client.create_user(
+        {
+            "username": "keyword_editor_user",
+            "email": "keyword_editor_user@deltares.nl",
+        },
+        db_session,
+    )
+    rbac_client.add_users_to_group(keyword_editor_group.id, [user], db_session)
+    yield user
+    try:
+        rbac_client.delete_user(str(user.id))
+    except Exception:
+        pass
+
+
+@pytest_asyncio.fixture(scope="function")
 async def admin_user(rbac_client: RBACClient, admin_group: Group, db_session: Session):
     user = rbac_client.create_user(
         {
@@ -418,21 +456,40 @@ def _token(user: User):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def authenticated_client(app_client: AsyncClient, user: User):
+async def authenticated_client(app: FastAPI, user: User):
     token = _token(user)
-    app_client.headers["Cookie"] = f"{COOKIE_NAME}={token}"
-    return app_client
+    headers = {"Cookie": f"{COOKIE_NAME}={token}"}
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test-server", headers=headers
+    ) as c:
+        yield c
 
 
 @pytest_asyncio.fixture(scope="function")
-async def data_producer_client(app_client: AsyncClient, data_producer_user: User):
+async def data_producer_client(app: FastAPI, data_producer_user: User):
     token = _token(data_producer_user)
-    app_client.headers["Cookie"] = f"{COOKIE_NAME}={token}"
-    return app_client
+    headers = {"Cookie": f"{COOKIE_NAME}={token}"}
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test-server", headers=headers
+    ) as c:
+        yield c
 
 
 @pytest_asyncio.fixture(scope="function")
-async def admin_client(app_client: AsyncClient, admin_user: User):
+async def keyword_editor_client(app: FastAPI, keyword_editor_user: User):
+    token = _token(keyword_editor_user)
+    headers = {"Cookie": f"{COOKIE_NAME}={token}"}
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test-server", headers=headers
+    ) as c:
+        yield c
+
+
+@pytest_asyncio.fixture(scope="function")
+async def admin_client(app: FastAPI, admin_user: User):
     token = _token(admin_user)
-    app_client.headers["Cookie"] = f"{COOKIE_NAME}={token}"
-    return app_client
+    headers = {"Cookie": f"{COOKIE_NAME}={token}"}
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test-server", headers=headers
+    ) as c:
+        yield c

@@ -7,11 +7,11 @@ from httpx import AsyncClient
 # test add keyword
 @pytest.mark.asyncio
 async def test_add_keyword(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_client: KeywordClient,
     keyword_group: Keyword_Group,
 ):
-    response = await authenticated_client.post(
+    response = await keyword_editor_client.post(
         "/keyword",
         json={
             "group_id": str(keyword_group.id),
@@ -29,10 +29,10 @@ async def test_add_keyword(
 # test add keyword invalid
 @pytest.mark.asyncio
 async def test_add_keyword_invalid(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_group: Keyword_Group,
 ):
-    response = await authenticated_client.post(
+    response = await keyword_editor_client.post(
         "/keyword",
         json={
             "group_id": str(keyword_group.id),
@@ -47,11 +47,11 @@ async def test_add_keyword_invalid(
 # test update keyword
 @pytest.mark.asyncio
 async def test_update_keyword(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_client: KeywordClient,
     keyword: Keyword,
 ):
-    response = await authenticated_client.put(
+    response = await keyword_editor_client.put(
         f"/keyword/{keyword.id}",
         json={
             "nl_keyword": "testwoord_updated",
@@ -68,12 +68,12 @@ async def test_update_keyword(
 # test delete keyword
 @pytest.mark.asyncio
 async def test_delete_keyword(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_client: KeywordClient,
     keyword: Keyword,
 ):
-    response = await authenticated_client.delete(f"/keyword/{keyword.id}")
+    response = await keyword_editor_client.delete(f"/keyword/{keyword.id}")
     assert response.status_code == 200
     assert response.json() == {"message": "Keyword deleted"}
-    keyword_json = await authenticated_client.get(f"/keyword/{keyword.id}")
+    keyword_json = await keyword_editor_client.get(f"/keyword/{keyword.id}")
     assert keyword_json.status_code == 404
