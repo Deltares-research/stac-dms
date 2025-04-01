@@ -3,7 +3,7 @@ import { ref } from "vue"
 import { cn } from "@/lib/utils"
 import { nanoid } from "nanoid"
 import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
-import { DateFormatter, parseDate } from "@internationalized/date"
+import { parseDate } from "@internationalized/date"
 import dateFormat from "dateformat"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
@@ -21,12 +21,13 @@ import { FormField, FormItem } from "~/components/ui/form"
 import { useForm } from "vee-validate"
 import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
-import type { FeatureCollection } from "geojson"
+import type { FeatureCollection, Geometry } from "geojson"
 import { bbox } from "@turf/turf"
 import spatialReferenceSystemRaw from "../../lib/spatialReferenceSystem.txt?raw"
-
+import { nullToUndefined } from "~/lib/null-to-undefined"
+import type { Keyword } from "~/lib/types"
 const route = useRoute()
-const id = route.params.id
+const id = route.params.id === "create" ? undefined : String(route.params.id)
 
 let crsArray = spatialReferenceSystemRaw.split("\n")
 let spatialReferenceSystem = crsArray.sort().map((item) => {
@@ -37,11 +38,63 @@ spatialReferenceSystem.unshift({
   value: "not applicable",
 })
 
-let keywords = ref([])
+function handleChange(kw: Keyword) {
+  const index = keywords.value.findIndex((item) => item.id == kw.id)
+  if (index == -1) {
+    keywords.value.push(kw)
+  } else {
+    keywords.value.splice(index, 1)
+  }
+}
 
-let assets = ref({
-  [nanoid()]: {},
+function isSelected(kw: Keyword) {
+  return keywords.value.find((item) => item.id == kw.id) !== undefined
+}
+
+let { data: collectionsResponse } = await useApi("/collections", {
+  server: true,
 })
+
+let searchResult = id
+  ? await useApi("/search", {
+      query: { ids: id },
+    })
+  : undefined
+
+let initialValues = computed(() => {
+  if (!id) return
+
+  let feature = searchResult?.data.value?.features[0]
+
+  if (!feature) return
+
+  return feature
+})
+
+let keywords = ref<Keyword[]>(
+  (initialValues.value?.properties?.keywords as Keyword[]) ?? [],
+)
+
+let geometry = ref<FeatureCollection>({
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      geometry: toRaw(initialValues.value?.geometry) as unknown as Geometry,
+      properties: null,
+    },
+  ],
+})
+
+function setValue(updateGeometry: FeatureCollection) {
+  geometry.value = updateGeometry
+}
+
+let assets = ref(
+  initialValues.value?.assets ?? {
+    [nanoid()]: {},
+  },
+)
 
 function addAsset() {
   assets.value[nanoid()] = {}
@@ -51,64 +104,19 @@ function removeAsset(id: string | number) {
   delete assets.value[id]
 }
 
-function handleChange(e) {
-  const index = keywords.value.findIndex((item) => item.id == e.id)
-  if (index == -1) {
-    keywords.value.push(e)
-  } else {
-    keywords.value.splice(index, 1)
-  }
-}
-
-let updatedGeometry = ref<FeatureCollection>()
-let geometry = ref<FeatureCollection>({
-  type: "FeatureCollection",
-  features: [],
-})
-
-function setValue(updateGeometry) {
-  updatedGeometry.value = updateGeometry
-}
-
-function isSelected(e) {
-  return keywords.value.find((item) => item.id == e.id) !== undefined
-}
-
-const df = new DateFormatter("en-US", {
-  dateStyle: "long",
-})
-
-let { data: collectionsResponse, error } = await useApi("/collections", {
-  server: true,
-})
-const update = id !== "create"
-
-let feature = null
-if (update) {
-  let { data: item } = await useApi("/search", {
-    query: { ids: id },
-  })
-  feature = item.value.features[0]
-  keywords.value = feature.properties.keywords
-  if (feature.geometry) {
-    geometry.value.features.push(feature.geometry)
-    updatedGeometry.value = geometry.value
-  }
-  assets.value = feature.assets
-}
-
-let { data: userData } = await useApi("/api/auth/me")
-
-const title = update ? "Update an existing registration" : "Register a new item"
+const title = initialValues.value
+  ? "Update an existing registration"
+  : "Register a new item"
 
 let collections = collectionsResponse.value?.collections ?? []
-const selectedCollection = update
-  ? collections.find((item) => item.id == feature.collection)
+
+const selectedCollection = initialValues.value
+  ? collections.find((item) => item.id == initialValues.value?.collection)
   : null
 
 const collectionOptions = collections.map((collection) => ({
   value: collection.id,
-  label: collection.title,
+  label: collection.title ?? "",
 }))
 
 const languages = [
@@ -133,150 +141,154 @@ const legalRestrictionsOptions = [
 
 let { $api } = useNuxtApp()
 
-let formSchema = toTypedSchema(
-  z.object({
-    collectionId: z.string(),
-    requestBody: z.object({
-      bbox: z
-        .union([
-          z.tuple([z.number(), z.number(), z.number(), z.number()]),
-          z.tuple([
-            z.number(),
-            z.number(),
-            z.number(),
-            z.number(),
-            z.number(),
-            z.number(),
-          ]),
-        ])
-        .nullable()
-        .optional(),
-      type: z.literal("Feature").default("Feature"),
-      // TODO: Fix any type to the complicated geometry type. Perhaps using turf.js or something
-      geometry: z
-        .union([
-          zu.geojson.point(),
-          zu.geojson.multiPoint(),
-          zu.geojson.lineString(),
-          zu.geojson.multiLineString(),
-          zu.geojson.polygon(),
-          zu.geojson.multiPolygon(),
-          zu.geojson.geometryCollection(),
-        ])
-        .nullable()
-        .default(null),
-      properties: z
-        .object({
-          title: z.string(),
-          projectNumber: z.string(),
-          description: z.string(),
-          datetime: z.string(),
-          spatialReferenceSystem: z.string(),
-          dataQualityInfoStatement: z.string(),
-          dataQualityInfoScore: z.string().default("dataSet"),
-          dateType: z.string().optional().default("publication"),
-          legalRestrictions: z.string(),
-          restrictionsOfUse: z.string(),
-          metadataStandardName: z.string().default("ISO 19115"),
-          metadataStandardVersion: z.string().default("2.1.0"),
-          progressCode: z.string().default("completed"),
-          language: z.string(),
-          hierarchyLevel: z.string().default("dataSet"),
-          originatorDataEmail: z.string(),
-          originatorDataRoleCode: z.string().default("originator"),
-          originatorDataOrganisation: z.string().default("Deltares"),
-          originatorMetaDataOrganisation: z.string().default("Deltares"),
-          originatorMetaDataEmail: z.string(),
-          originatorMetaDataRoleCode: z.string().default("originator"),
-          metaDataLanguage: z.string().default("eng"),
-          metaDataDateTime: z.string(),
-          created: z.string().nullable().optional(),
-          updated: z.string().nullable().optional(),
-          start_datetime: z.string().nullable().optional(),
-          end_datetime: z.string().nullable().optional(),
-          license: z.string().nullable().optional(),
-          providers: z
-            .array(
-              z.object({
-                name: z.string(),
-                description: z.string().nullable().optional(),
-                role: z.array(z.string()).nullable().optional(),
-                url: z.string().nullable().optional(),
-              }),
-            )
-            .nullable()
-            .optional(),
-          constellation: z.string().nullable().optional(),
-          mission: z.string().nullable().optional(),
-          gsd: z.number().nullable().optional(),
-        })
-        .passthrough(),
-      id: z.string().default(nanoid()),
-      stac_version: z.string().default("1.0.0"),
-      stac_extensions: z.array(z.string()).nullable().optional().default([]),
-      assets: z.record(
-        z.object({
-          href: z.string(),
-          type: z.string().nullable().optional(),
-          title: z.string().nullable().optional(),
-          description: z.string().nullable().optional(),
-          roles: z.array(z.string()).nullable().optional(),
-        }),
-      ),
-      // links: z
-      //   .record(
-      //     z.object({
-      //       href: z.string(),
-      //       rel: z.string(),
-      //       type: z
-      //         .union([
-      //           z.literal("image/tiff; application=geotiff"),
-      //           z.literal(
-      //             "image/tiff; application=geotiff; profile=cloud-optimized",
-      //           ),
-      //           z.literal("image/jp2"),
-      //           z.literal("image/png"),
-      //           z.literal("image/jpeg"),
-      //           z.literal("application/geo+json"),
-      //           z.literal("application/geopackage+sqlite3"),
-      //           z.literal("application/vnd.google-earth.kml+xml"),
-      //           z.literal("application/vnd.google-earth.kmz"),
-      //           z.literal("application/x-hdf"),
-      //           z.literal("application/x-hdf5"),
-      //           z.literal("application/xml"),
-      //           z.literal("application/json"),
-      //           z.literal("text/html"),
-      //           z.literal("text/plain"),
-      //           z.literal("application/vnd.oai.openapi+json;version=3.0"),
-      //           z.literal("application/schema+json"),
-      //         ])
-      //         .nullable()
-      //         .optional(),
-      //       title: z.string().nullable().optional(),
-      //       "label:assets": z.string().nullable().optional(),
-      //     }),
-      //   )
-      //   .default({})
-      //   .transform((val) => Object.values(val)),
-    }),
-    // TODO: extract type
-  }) satisfies z.ZodType<any>,
-)
+let schema = z.object({
+  collectionId: z.string(),
+  requestBody: z.object({
+    bbox: z
+      .union([
+        z.tuple([z.number(), z.number(), z.number(), z.number()]),
+        z.tuple([
+          z.number(),
+          z.number(),
+          z.number(),
+          z.number(),
+          z.number(),
+          z.number(),
+        ]),
+      ])
+      .nullable()
+      .optional(),
+    type: z.literal("Feature").default("Feature"),
+    // TODO: Fix any type to the complicated geometry type. Perhaps using turf.js or something
+    geometry: z
+      .union([
+        zu.geojson.point(),
+        zu.geojson.multiPoint(),
+        zu.geojson.lineString(),
+        zu.geojson.multiLineString(),
+        zu.geojson.polygon(),
+        zu.geojson.multiPolygon(),
+        zu.geojson.geometryCollection(),
+      ])
+      .nullable()
+      .default(null),
+    properties: z
+      .object({
+        title: z.string(),
+        projectNumber: z.string(),
+        description: z.string(),
+        datetime: z.string(),
+        spatialReferenceSystem: z.string(),
+        dataQualityInfoStatement: z.string(),
+        dataQualityInfoScore: z.string().default("dataSet"),
+        dateType: z.string().optional().default("publication"),
+        legalRestrictions: z.string(),
+        restrictionsOfUse: z.string(),
+        metadataStandardName: z.string().default("ISO 19115"),
+        metadataStandardVersion: z.string().default("2.1.0"),
+        progressCode: z.string().default("completed"),
+        language: z.string(),
+        hierarchyLevel: z.string().default("dataSet"),
+        originatorDataEmail: z.string(),
+        originatorDataRoleCode: z.string().default("originator"),
+        originatorDataOrganisation: z.string().default("Deltares"),
+        originatorMetaDataOrganisation: z.string().default("Deltares"),
+        originatorMetaDataEmail: z.string(),
+        originatorMetaDataRoleCode: z.string().default("originator"),
+        metaDataLanguage: z.string().default("eng"),
+        metaDataDateTime: z.string(),
+        created: z.string().nullable().optional(),
+        updated: z.string().nullable().optional(),
+        start_datetime: z.string().nullable().optional(),
+        end_datetime: z.string().nullable().optional(),
+        license: z.string().nullable().optional(),
+        providers: z
+          .array(
+            z.object({
+              name: z.string(),
+              description: z.string().nullable().optional(),
+              role: z.array(z.string()).nullable().optional(),
+              url: z.string().nullable().optional(),
+            }),
+          )
+          .nullable()
+          .optional(),
+        constellation: z.string().nullable().optional(),
+        mission: z.string().nullable().optional(),
+        gsd: z.number().nullable().optional(),
+      })
+      .passthrough(),
+    id: z.string().default(nanoid()),
+    stac_version: z.string().default("1.0.0"),
+    stac_extensions: z.array(z.string()).nullable().optional().default([]),
+    assets: z.record(
+      z.object({
+        href: z.string(),
+        type: z.string().nullable().optional(),
+        title: z.string().nullable().optional(),
+        description: z.string().nullable().optional(),
+        roles: z.array(z.string()).nullable().optional(),
+      }),
+    ),
+    // links: z
+    //   .record(
+    //     z.object({
+    //       href: z.string(),
+    //       rel: z.string(),
+    //       type: z
+    //         .union([
+    //           z.literal("image/tiff; application=geotiff"),
+    //           z.literal(
+    //             "image/tiff; application=geotiff; profile=cloud-optimized",
+    //           ),
+    //           z.literal("image/jp2"),
+    //           z.literal("image/png"),
+    //           z.literal("image/jpeg"),
+    //           z.literal("application/geo+json"),
+    //           z.literal("application/geopackage+sqlite3"),
+    //           z.literal("application/vnd.google-earth.kml+xml"),
+    //           z.literal("application/vnd.google-earth.kmz"),
+    //           z.literal("application/x-hdf"),
+    //           z.literal("application/x-hdf5"),
+    //           z.literal("application/xml"),
+    //           z.literal("application/json"),
+    //           z.literal("text/html"),
+    //           z.literal("text/plain"),
+    //           z.literal("application/vnd.oai.openapi+json;version=3.0"),
+    //           z.literal("application/schema+json"),
+    //         ])
+    //         .nullable()
+    //         .optional(),
+    //       title: z.string().nullable().optional(),
+    //       "label:assets": z.string().nullable().optional(),
+    //     }),
+    //   )
+    //   .default({})
+    //   .transform((val) => Object.values(val)),
+  }),
+  // TODO: extract type
+})
+
+type Schema = z.infer<typeof schema>
+
+let formSchema = toTypedSchema(schema)
 
 let { toast } = useToast()
 
 let form = useForm({
   validationSchema: formSchema,
   initialValues: {
-    collectionId: feature?.collection,
+    collectionId: initialValues.value?.collection ?? undefined,
     requestBody: {
       properties: {
-        ...feature?.properties,
-        datetime: feature?.properties.datetime
-          ? dateFormat(feature?.properties.datetime, "yyyy-mm-dd")
+        ...nullToUndefined(toRaw(initialValues.value?.properties)),
+        datetime: initialValues.value?.properties.datetime
+          ? dateFormat(initialValues.value?.properties.datetime, "yyyy-mm-dd")
           : undefined,
-        legalRestrictions: feature?.properties.legalRestrictions ?? "license",
-        language: feature?.properties.language ?? "eng",
+        legalRestrictions:
+          (initialValues.value?.properties.legalRestrictions as string) ??
+          "license",
+        language: (initialValues.value?.properties.language as string) ?? "eng",
       },
       assets: assets.value,
     },
@@ -284,17 +296,25 @@ let form = useForm({
 })
 
 const keywordsGroups = computedAsync(async () => {
-  const collectionId = update ? feature?.collection : form.values.collectionId
+  const collectionId = initialValues.value?.collection
+
+  if (!collectionId) return []
+
   const collection = await $api("/collections/{collection_id}", {
     path: {
       collection_id: collectionId,
     },
   })
   const keywordsLink = collection.links.find(
-    (item) => (item.rel = "keywords" && item.id),
+    (item) => item.rel === "keywords" && item.id,
   )
-  const facilityId = keywordsLink.id
-  return await $api("/api/keywords", {
+
+  // TODO: Fix type assertion
+  const facilityId = keywordsLink?.id as string
+
+  if (!facilityId) return []
+
+  return await $api("/keywords", {
     query: {
       facility_id: facilityId,
     },
@@ -303,44 +323,97 @@ const keywordsGroups = computedAsync(async () => {
 
 let onSubmit = form.handleSubmit(async (values) => {
   try {
-    let url = "/collections/{collection_id}/items"
-    if (update) url = url + "/" + feature.id
+    if (id && id !== "create") {
+      // Update
 
-    const newItem = {
-      ...values.requestBody,
-      collection: update ? feature.collection : values.collectionId,
-      links: [],
+      const newItem = {
+        ...values.requestBody,
+        collection: values.collectionId,
+        links: [],
+      }
+
+      newItem.properties.datetime = new Date(
+        newItem.properties.datetime,
+      ).toISOString()
+
+      newItem.properties.keywords = keywords.value
+
+      let newGeometry = geometry.value?.features[0]
+      if (newGeometry) {
+        newItem.geometry =
+          newGeometry.geometry as unknown as Schema["requestBody"]["geometry"]
+        newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
+      }
+
+      let result = await useApi(
+        "/collections/{collection_id}/items/{item_id}",
+        {
+          method: "put",
+          body: newItem,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          path: {
+            collection_id: values.collectionId,
+            item_id: id,
+          },
+        },
+      )
+
+      if (!result.error.value) {
+        toast({
+          title: "Data updated successfully",
+        })
+      } else {
+        throw result.error.value
+      }
+
+      await navigateTo(`/items`)
+    } else {
+      // Create
+
+      const newItem = {
+        ...values.requestBody,
+        collection: values.collectionId,
+        links: [],
+      }
+
+      newItem.properties.datetime = new Date(
+        newItem.properties.datetime,
+      ).toISOString()
+
+      newItem.properties.keywords = keywords.value
+
+      let newGeometry = geometry.value?.features[0]
+      if (newGeometry) {
+        newItem.geometry =
+          newGeometry.geometry as unknown as Schema["requestBody"]["geometry"]
+        newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
+      }
+
+      let result = await useApi("/collections/{collection_id}/items", {
+        method: "post",
+        body: newItem,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        path: {
+          collection_id: values.collectionId,
+        },
+      })
+
+      if (!result.error.value) {
+        toast({
+          title: "Data registered successfully",
+        })
+      } else {
+        throw result.error.value
+      }
+
+      await navigateTo(`/items`)
     }
-    newItem.properties.datetime = new Date(
-      newItem.properties.datetime,
-    ).toISOString()
-    newItem.properties.keywords = keywords.value
-    if (updatedGeometry.value?.features[0]) {
-      newItem.geometry = updatedGeometry.value?.features[0].geometry
-        ? updatedGeometry.value?.features[0].geometry
-        : feature?.geometry
-
-      newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
-    }
-    let data = await $api(url, {
-      method: update ? "put" : "post",
-      body: newItem,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      path: {
-        collection_id: values.collectionId,
-      },
-    })
-
-    toast({
-      title: "Data registered successfully",
-    })
-
-    // TODO: data is typed unknown
-    await navigateTo(`/items`)
   } catch (error) {
-    console.log(error)
+    console.error(error)
     toast({
       title: "Something went wrong!",
       variant: "destructive",
@@ -358,10 +431,9 @@ let datetimeValue = computed({
 })
 
 function getDisplayTime() {
-  if (!datetimeValue.value && update) {
-    return dateFormat(new Date(feature?.properties.datetime), "yyyy-mm-dd")
-  }
-  return datetimeValue.value ? datetimeValue.value : "Pick a date"
+  let value = form.values.requestBody?.properties?.datetime
+
+  return value ?? "Pick a date"
 }
 </script>
 
@@ -383,10 +455,8 @@ function getDisplayTime() {
             <FormField v-slot="{ componentField }" name="collectionId">
               <FormItem class="flex flex-col gap-1">
                 <FormLabel>Collection</FormLabel>
-                <FormLabel v-if="update"
-                  >{{ selectedCollection?.description }}
-                </FormLabel>
-                <FormControl v-if="!update">
+                <FormLabel>{{ selectedCollection?.description }} </FormLabel>
+                <FormControl>
                   <CustomDropDownComponent
                     :options="collectionOptions"
                     v-bind="componentField"
@@ -398,7 +468,7 @@ function getDisplayTime() {
           </CardContent>
         </Card>
 
-        <Card v-if="update || form.values.collectionId">
+        <Card v-if="form.values.collectionId">
           <CardHeader>
             <CardTitle class="text-lg">General information</CardTitle>
           </CardHeader>
@@ -578,7 +648,7 @@ function getDisplayTime() {
             </div>
           </CardContent>
         </Card>
-        <Card v-if="update || form.values.collectionId">
+        <Card v-if="form.values.collectionId">
           <CardHeader>
             <CardTitle class="text-lg">Data quality</CardTitle>
             <CardContent>
@@ -604,7 +674,7 @@ function getDisplayTime() {
             </CardContent>
           </CardHeader>
         </Card>
-        <Card v-if="update || form.values.collectionId">
+        <Card v-if="form.values.collectionId">
           <CardHeader>
             <CardTitle class="text-lg">Originator data set</CardTitle>
             <CardContent>
@@ -636,7 +706,7 @@ function getDisplayTime() {
             </CardContent>
           </CardHeader>
         </Card>
-        <Card v-if="update || form.values.collectionId">
+        <Card v-if="form.values.collectionId">
           <CardHeader>
             <CardTitle class="text-lg">Originator meta data</CardTitle>
             <CardContent>
@@ -667,7 +737,7 @@ function getDisplayTime() {
             </CardContent>
           </CardHeader>
         </Card>
-        <Card v-if="update || form.values.collectionId">
+        <Card v-if="form.values.collectionId">
           <CardHeader>Geometry</CardHeader>
           <CardContent>
             <div class="container mx-auto">
@@ -689,7 +759,7 @@ function getDisplayTime() {
               <FormField
                 v-for="item in group.keywords"
                 v-slot="{ value }"
-                :key="item"
+                :key="item.id"
                 type="checkbox"
                 :value="item.nl_keyword"
                 :checked="isSelected(item)"
@@ -713,7 +783,7 @@ function getDisplayTime() {
           </Card>
         </div>
         <div>
-          <Card v-if="update || form.values.collectionId">
+          <Card v-if="form.values.collectionId">
             <CardHeader>
               <div class="flex items-center justify-between space-x-4 px-4">
                 <CardTitle>Storage location data set</CardTitle>
@@ -809,5 +879,3 @@ function getDisplayTime() {
     </form>
   </Container>
 </template>
-
-<style></style>
