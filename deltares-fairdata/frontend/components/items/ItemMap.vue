@@ -15,7 +15,10 @@ const props = withDefaults(defineProps<ItemMapProps>(), {
 })
 
 // Create a GeoJSON format instance
-const geoJson = new GeoJSON()
+const geoJson = new GeoJSON({
+  dataProjection: "EPSG:4326",
+  featureProjection: "EPSG:3857",
+})
 
 // Map view state
 const center = ref([0, 0])
@@ -61,10 +64,7 @@ const initialFeatures = computed(() => {
     properties: {},
   }
 
-  return geoJson.readFeatures(geojson, {
-    featureProjection: "EPSG:4326",
-    dataProjection: "EPSG:4326",
-  })
+  return geoJson.readFeatures(geojson)
 })
 
 // Watch for changes to fit map to features
@@ -120,13 +120,7 @@ onMounted(() => {
         :loadTilesWhileAnimating="true"
         :loadTilesWhileInteracting="true"
       >
-        <Map.OlView
-          ref="viewRef"
-          :projection="projection"
-          :rotation="0"
-          :center="center"
-          :zoom="zoom"
-        />
+        <Map.OlView ref="viewRef" :rotation="0" :center="center" :zoom="zoom" />
 
         <Layers.OlTileLayer>
           <Sources.OlSourceOsm />
