@@ -32,6 +32,8 @@ let onSubmitCreateFacilityForm = createFacilityForm.handleSubmit(
     })
 
     refresh()
+
+    createFacilityForm.resetForm()
   },
 )
 
