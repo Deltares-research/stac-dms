@@ -1,22 +1,25 @@
-import logging
 import datetime
+import logging
 from typing import (
+    Annotated,
     List,
     Optional,
 )  # to calculate expiration of the JWT
+
+from authlib.jose import Key, OctKey, jwt
 from dmsapi.config import DMSAPISettings
-from fastapi import FastAPI, Depends, HTTPException, Security, Request
+from dmsapi.database.db import get_session
+from dmsapi.database.models import User
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Security
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRoute
 from fastapi.security import (
     APIKeyCookie,
 )  # this is the part that puts the lock icon to the docs
-from fastapi_sso import SSOBase, OpenID
-
-from stac_fastapi.api.routes import add_route_dependencies, Scope
+from fastapi_sso import OpenID, SSOBase
+from sqlmodel import Session
+from stac_fastapi.api.routes import Scope, add_route_dependencies
 from stac_fastapi.types.extension import ApiExtension
-
-from authlib.jose import jwt, Key, OctKey
 
 _LOGGER = logging.getLogger("uvicorn.default")
 
@@ -135,7 +138,16 @@ class SSOAuthExtension(ApiExtension):
         response.delete_cookie(key=COOKIE_NAME)
         return response
 
-    async def login_callback(self, request: Request):
+    @staticmethod
+    async def _add_user(
+        user: OpenID, session: Session = Annotated[Session, Depends(get_session)]
+    ):
+        """Add user to database."""
+        session.add(User(email=user.email, username=user.display_name))
+        session.commit()
+        session.refresh(user)
+
+    async def login_callback(self, request: Request, background_tasks: BackgroundTasks):
         """Process login and redirect the user to the protected endpoint."""
         with self.sso_client:
             openid = await self.sso_client.verify_and_process(request)
@@ -146,6 +158,7 @@ class SSOAuthExtension(ApiExtension):
         response.set_cookie(
             key=COOKIE_NAME, value=token, expires=expiration
         )  # This cookie will make sure /protected knows the user
+        background_tasks.add_task(self._add_user, openid)
         return response
 
     @staticmethod
@@ -172,3 +185,6 @@ class SSOAuthExtension(ApiExtension):
             key=key,
         ).decode("utf-8")
         return expiration, token
+
+
+UserDep = Annotated[User, Depends(SSOAuthExtension.get_logged_user)]

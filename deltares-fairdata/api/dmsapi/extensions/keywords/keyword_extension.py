@@ -1,9 +1,3 @@
-from dmsapi.extensions.keywords.keyword_client import KeywordClient
-from fastapi import APIRouter, FastAPI, Path
-from stac_pydantic.shared import MimeTypes
-from sqlalchemy.engine import Engine
-from stac_fastapi.types.extension import ApiExtension
-
 from dmsapi.database.models import (  # type: ignore
     ErrorResponse,
     Facility,
@@ -12,6 +6,11 @@ from dmsapi.database.models import (  # type: ignore
     Keyword_GroupPublicWithKeywords,
     OKResponse,
 )
+from dmsapi.extensions.keywords.keyword_client import KeywordClient
+from fastapi import APIRouter, FastAPI
+from sqlalchemy.engine import Engine
+from stac_fastapi.types.extension import ApiExtension
+from stac_pydantic.shared import MimeTypes
 
 
 class KeywordExtension(ApiExtension):
