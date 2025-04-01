@@ -26,11 +26,7 @@ import { bbox } from "@turf/turf"
 import spatialReferenceSystemRaw from "../../lib/spatialReferenceSystem.txt?raw"
 
 const route = useRoute()
-const router = useRouter()
 const id = route.params.id
-
-const readOnly = route.query.readonly ? "readonly" : ""
-const readOnlyTag = readOnly ? "readOnly" : undefined
 
 let crsArray = spatialReferenceSystemRaw.split("\n")
 let spatialReferenceSystem = crsArray.sort().map((item) => {
@@ -56,7 +52,6 @@ function removeAsset(id: string | number) {
 }
 
 function handleChange(e) {
-  if (readOnly) return
   const index = keywords.value.findIndex((item) => item.id == e.id)
   if (index == -1) {
     keywords.value.push(e)
@@ -104,10 +99,7 @@ if (update) {
 
 let { data: userData } = await useApi("/api/auth/me")
 
-const createOrUpdateTitle = update
-  ? "Update an existing registration"
-  : "Register a new item"
-const title = readOnly ? "View registration" : createOrUpdateTitle
+const title = update ? "Update an existing registration" : "Register a new item"
 
 let collections = collectionsResponse.value?.collections ?? []
 const selectedCollection = update
@@ -143,7 +135,7 @@ let { $api } = useNuxtApp()
 
 let formSchema = toTypedSchema(
   z.object({
-    collectionId: z.string().default(feature?.collection),
+    collectionId: z.string(),
     requestBody: z.object({
       bbox: z
         .union([
@@ -175,48 +167,29 @@ let formSchema = toTypedSchema(
         .default(null),
       properties: z
         .object({
-          title: z.string().default(feature?.properties.title),
-          projectNumber: z.string().default(feature?.properties.projectNumber),
-          description: z.string().default(feature?.properties.description),
-          datetime: z
-            .string()
-            .default(feature?.properties.datetime)
-            .transform((v) => {
-              return new Date(v).toISOString()
-            }),
-          spatialReferenceSystem: z
-            .string()
-            .default(feature?.properties.spatialReferenceSystem),
-          dataQualityInfoStatement: z
-            .string()
-            .default(feature?.properties.dataQualityInfoStatement),
+          title: z.string(),
+          projectNumber: z.string(),
+          description: z.string(),
+          datetime: z.string(),
+          spatialReferenceSystem: z.string(),
+          dataQualityInfoStatement: z.string(),
           dataQualityInfoScore: z.string().default("dataSet"),
           dateType: z.string().optional().default("publication"),
-          legalRestrictions: z
-            .string()
-            .default(
-              feature ? feature.properties.legalRestrictions : "license",
-            ),
-          restrictionsOfUse: z
-            .string()
-            .default(feature?.properties.restrictionsOfUse),
+          legalRestrictions: z.string(),
+          restrictionsOfUse: z.string(),
           metadataStandardName: z.string().default("ISO 19115"),
           metadataStandardVersion: z.string().default("2.1.0"),
           progressCode: z.string().default("completed"),
-          language: z
-            .string()
-            .default(feature ? feature.properties.language : "eng"),
+          language: z.string(),
           hierarchyLevel: z.string().default("dataSet"),
-          originatorDataEmail: z
-            .string()
-            .default(feature?.properties.originatorDataEmail),
+          originatorDataEmail: z.string(),
           originatorDataRoleCode: z.string().default("originator"),
           originatorDataOrganisation: z.string().default("Deltares"),
           originatorMetaDataOrganisation: z.string().default("Deltares"),
           originatorMetaDataEmail: z.string(),
           originatorMetaDataRoleCode: z.string().default("originator"),
           metaDataLanguage: z.string().default("eng"),
-          metaDataDateTime: z.date().default(new Date()),
+          metaDataDateTime: z.string(),
           created: z.string().nullable().optional(),
           updated: z.string().nullable().optional(),
           start_datetime: z.string().nullable().optional(),
@@ -241,52 +214,50 @@ let formSchema = toTypedSchema(
       id: z.string().default(nanoid()),
       stac_version: z.string().default("1.0.0"),
       stac_extensions: z.array(z.string()).nullable().optional().default([]),
-      assets: z
-        .record(
-          z.object({
-            href: z.string(),
-            type: z.string().nullable().optional(),
-            title: z.string().nullable().optional(),
-            description: z.string().nullable().optional(),
-            roles: z.array(z.string()).nullable().optional(),
-          }),
-        )
-        .default(assets.value),
-      links: z
-        .record(
-          z.object({
-            href: z.string(),
-            rel: z.string(),
-            type: z
-              .union([
-                z.literal("image/tiff; application=geotiff"),
-                z.literal(
-                  "image/tiff; application=geotiff; profile=cloud-optimized",
-                ),
-                z.literal("image/jp2"),
-                z.literal("image/png"),
-                z.literal("image/jpeg"),
-                z.literal("application/geo+json"),
-                z.literal("application/geopackage+sqlite3"),
-                z.literal("application/vnd.google-earth.kml+xml"),
-                z.literal("application/vnd.google-earth.kmz"),
-                z.literal("application/x-hdf"),
-                z.literal("application/x-hdf5"),
-                z.literal("application/xml"),
-                z.literal("application/json"),
-                z.literal("text/html"),
-                z.literal("text/plain"),
-                z.literal("application/vnd.oai.openapi+json;version=3.0"),
-                z.literal("application/schema+json"),
-              ])
-              .nullable()
-              .optional(),
-            title: z.string().nullable().optional(),
-            "label:assets": z.string().nullable().optional(),
-          }),
-        )
-        .default({})
-        .transform((val) => Object.values(val)),
+      assets: z.record(
+        z.object({
+          href: z.string(),
+          type: z.string().nullable().optional(),
+          title: z.string().nullable().optional(),
+          description: z.string().nullable().optional(),
+          roles: z.array(z.string()).nullable().optional(),
+        }),
+      ),
+      // links: z
+      //   .record(
+      //     z.object({
+      //       href: z.string(),
+      //       rel: z.string(),
+      //       type: z
+      //         .union([
+      //           z.literal("image/tiff; application=geotiff"),
+      //           z.literal(
+      //             "image/tiff; application=geotiff; profile=cloud-optimized",
+      //           ),
+      //           z.literal("image/jp2"),
+      //           z.literal("image/png"),
+      //           z.literal("image/jpeg"),
+      //           z.literal("application/geo+json"),
+      //           z.literal("application/geopackage+sqlite3"),
+      //           z.literal("application/vnd.google-earth.kml+xml"),
+      //           z.literal("application/vnd.google-earth.kmz"),
+      //           z.literal("application/x-hdf"),
+      //           z.literal("application/x-hdf5"),
+      //           z.literal("application/xml"),
+      //           z.literal("application/json"),
+      //           z.literal("text/html"),
+      //           z.literal("text/plain"),
+      //           z.literal("application/vnd.oai.openapi+json;version=3.0"),
+      //           z.literal("application/schema+json"),
+      //         ])
+      //         .nullable()
+      //         .optional(),
+      //       title: z.string().nullable().optional(),
+      //       "label:assets": z.string().nullable().optional(),
+      //     }),
+      //   )
+      //   .default({})
+      //   .transform((val) => Object.values(val)),
     }),
     // TODO: extract type
   }) satisfies z.ZodType<any>,
@@ -296,10 +267,24 @@ let { toast } = useToast()
 
 let form = useForm({
   validationSchema: formSchema,
+  initialValues: {
+    collectionId: feature?.collection,
+    requestBody: {
+      properties: {
+        ...feature?.properties,
+        datetime: feature?.properties.datetime
+          ? dateFormat(feature?.properties.datetime, "yyyy-mm-dd")
+          : undefined,
+        legalRestrictions: feature?.properties.legalRestrictions ?? "license",
+        language: feature?.properties.language ?? "eng",
+      },
+      assets: assets.value,
+    },
+  },
 })
 
 const keywordsGroups = computedAsync(async () => {
-  const collectionId = update ? feature.collection : form.values.collectionId
+  const collectionId = update ? feature?.collection : form.values.collectionId
   const collection = await $api("/collections/{collection_id}", {
     path: {
       collection_id: collectionId,
@@ -324,7 +309,11 @@ let onSubmit = form.handleSubmit(async (values) => {
     const newItem = {
       ...values.requestBody,
       collection: update ? feature.collection : values.collectionId,
+      links: [],
     }
+    newItem.properties.datetime = new Date(
+      newItem.properties.datetime,
+    ).toISOString()
     newItem.properties.keywords = keywords.value
     if (updatedGeometry.value?.features[0]) {
       newItem.geometry = updatedGeometry.value?.features[0].geometry
@@ -359,8 +348,6 @@ let onSubmit = form.handleSubmit(async (values) => {
   }
 })
 
-watch(form.errors, () => {})
-
 let datetimeValue = computed({
   get: () => {
     return form.values.requestBody?.properties?.datetime
@@ -372,7 +359,7 @@ let datetimeValue = computed({
 
 function getDisplayTime() {
   if (!datetimeValue.value && update) {
-    return dateFormat(new Date(feature.properties.datetime), "yyyy-mm-dd")
+    return dateFormat(new Date(feature?.properties.datetime), "yyyy-mm-dd")
   }
   return datetimeValue.value ? datetimeValue.value : "Pick a date"
 }
@@ -424,11 +411,7 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Project number</FormLabel>
                   <FormControl>
-                    <Input
-                      :readonly="readOnlyTag"
-                      type="text"
-                      v-bind="componentField"
-                    />
+                    <Input type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -441,11 +424,7 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Project title</FormLabel>
                   <FormControl>
-                    <Input
-                      :readonly="readOnlyTag"
-                      type="text"
-                      v-bind="componentField"
-                    />
+                    <Input type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -465,7 +444,6 @@ function getDisplayTime() {
                     <PopoverTrigger as-child>
                       <FormControl>
                         <Button
-                          v-if="!readOnly"
                           variant="outline"
                           :class="
                             cn(
@@ -477,7 +455,6 @@ function getDisplayTime() {
                           <span>{{ getDisplayTime() }}</span>
                           <CalendarIcon class="ms-auto h-4 w-4 opacity-50" />
                         </Button>
-                        <Label v-if="readOnly">{{ getDisplayTime() }}</Label>
                         <input hidden />
                       </FormControl>
                     </PopoverTrigger>
@@ -515,11 +492,7 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea
-                      :readonly="readOnlyTag"
-                      type="text"
-                      v-bind="componentField"
-                    />
+                    <Textarea type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -531,7 +504,6 @@ function getDisplayTime() {
                 <FormItem class="flex flex-col gap-1">
                   <FormLabel>Language</FormLabel>
                   <CustomDropDownComponent
-                    v-if="!readOnly"
                     :options="languages"
                     v-bind="componentField"
                   />
@@ -555,7 +527,6 @@ function getDisplayTime() {
                     </FormLabel>
                   </div>
                   <CustomDropDownComponent
-                    v-if="!readOnly"
                     :options="legalRestrictionsOptions"
                     v-bind="componentField"
                   />
@@ -579,11 +550,7 @@ function getDisplayTime() {
                       >
                     </FormLabel>
                   </div>
-                  <Textarea
-                    :readonly="readOnlyTag"
-                    type="text"
-                    v-bind="componentField"
-                  />
+                  <Textarea type="text" v-bind="componentField" />
                   <FormControl></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -602,11 +569,7 @@ function getDisplayTime() {
                       :options="spatialReferenceSystem"
                       v-bind="componentField"
                     />
-                    <Input
-                      :readonly="readOnlyTag"
-                      type="text"
-                      v-bind="componentField"
-                    />
+                    <Input type="text" v-bind="componentField" />
                   </div>
                   <FormControl></FormControl>
                   <FormMessage />
@@ -633,11 +596,7 @@ function getDisplayTime() {
                     >
                   </FormLabel>
                   <FormControl>
-                    <Textarea
-                      :readonly="readOnlyTag"
-                      type="text"
-                      v-bind="componentField"
-                    />
+                    <Textarea type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -656,11 +615,7 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Organisation</FormLabel>
                   <FormControl>
-                    <Input
-                      :readonly="readOnlyTag"
-                      type="text"
-                      v-bind="componentField"
-                    />
+                    <Input type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -673,11 +628,7 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input
-                      :readonly="readOnlyTag"
-                      type="text"
-                      v-bind="componentField"
-                    />
+                    <Input type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -696,7 +647,7 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>Organisation</FormLabel>
                   <FormControl>
-                    <Input readonly type="text" v-bind="componentField" />
+                    <Input type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -708,7 +659,7 @@ function getDisplayTime() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input readonly type="text" v-bind="componentField" />
+                    <Input type="text" v-bind="componentField" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -722,7 +673,6 @@ function getDisplayTime() {
             <div class="container mx-auto">
               <ClientOnly fallback="Loading...">
                 <LazyGeometryDraw
-                  :read-only="readOnly != ''"
                   :initialValue="geometry"
                   @valueChange="setValue"
                 />
@@ -742,7 +692,7 @@ function getDisplayTime() {
                 :key="item"
                 type="checkbox"
                 :value="item.nl_keyword"
-                :ch
+                :checked="isSelected(item)"
                 :unchecked-value="false"
                 name="items"
               >
@@ -826,7 +776,6 @@ function getDisplayTime() {
                   </FormField>
 
                   <Button
-                    v-if="!readOnly"
                     type="button"
                     @click="removeAsset(id)"
                     variant="outline"
@@ -838,7 +787,6 @@ function getDisplayTime() {
               </div>
               <div>
                 <Button
-                  v-if="!readOnly"
                   @click="addAsset"
                   variant="outline"
                   class="mt-5"
@@ -853,20 +801,10 @@ function getDisplayTime() {
         </div>
       </div>
       <div class="flex justify-between px-6 pb-6 mt-4">
-        <Button v-if="!readOnly" as-child variant="outline">
+        <Button as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
-        <Button
-          v-if="readOnly"
-          variant="outline"
-          @click.stop.prevent="$router.back()"
-          >Back to search
-        </Button>
-        <Button
-          type="submit"
-          v-if="!readOnly && (update || form.values.collectionId)"
-          >Publish project data
-        </Button>
+        <Button type="submit">Publish project data </Button>
       </div>
     </form>
   </Container>
