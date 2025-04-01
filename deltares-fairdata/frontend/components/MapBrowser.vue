@@ -232,7 +232,7 @@ function outsideClick() {
         positioning="bottom-center"
       >
         <template v-slot="slotProps">
-          <Card class="min-w-[300px]">
+          <Card class="min-w-[300px] max-w-[420px]">
             <CardHeader>
               <CardTitle class="text-xl">
                 {{
