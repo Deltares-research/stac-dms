@@ -10,10 +10,14 @@ let geoJson = new GeoJSON({
   featureProjection: "EPSG:3857",
 })
 
-let { onValueChange, initialValue } = defineProps<{
+let {
+  onValueChange,
+  initialValue,
+  readOnly = false,
+} = defineProps<{
   onValueChange?: (newValue: FeatureCollection) => void
   initialValue?: FeatureCollection
-  readOnly: Boolean
+  readOnly?: Boolean
 }>()
 
 let initialFeatures = geoJson.readFeatures(initialValue)
@@ -44,10 +48,7 @@ function featureSelected(event) {
 
 function onChange(event) {
   let features = event.target.getFeatures()
-  let featureCollection = geoJson.writeFeaturesObject(features, {
-    dataProjection: "EPSG:4326",
-    featureProjection: "EPSG:4326",
-  })
+  let featureCollection = geoJson.writeFeaturesObject(features)
   onValueChange?.(featureCollection)
 }
 
