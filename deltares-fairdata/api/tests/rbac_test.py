@@ -383,5 +383,5 @@ async def test_editor_role_permissions(
     assert response.status_code == 403
     assert (
         response.json()["detail"]
-        == f"User {user.email} does not have permission Permission.GroupCreate"
+        == f"User {user.email} does not have permission 'group:create'"
     )

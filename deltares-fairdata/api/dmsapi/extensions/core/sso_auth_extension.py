@@ -138,15 +138,6 @@ class SSOAuthExtension(ApiExtension):
         response.delete_cookie(key=COOKIE_NAME)
         return response
 
-    @staticmethod
-    async def _add_user(
-        user: OpenID, session: Session = Annotated[Session, Depends(get_session)]
-    ):
-        """Add user to database."""
-        session.add(User(email=user.email, username=user.display_name))
-        session.commit()
-        session.refresh(user)
-
     async def login_callback(self, request: Request, background_tasks: BackgroundTasks):
         """Process login and redirect the user to the protected endpoint."""
         with self.sso_client:
@@ -158,7 +149,7 @@ class SSOAuthExtension(ApiExtension):
         response.set_cookie(
             key=COOKIE_NAME, value=token, expires=expiration
         )  # This cookie will make sure /protected knows the user
-        background_tasks.add_task(self._add_user, openid)
+        background_tasks.add_task(add_user, openid)
         return response
 
     @staticmethod
@@ -185,6 +176,22 @@ class SSOAuthExtension(ApiExtension):
             key=key,
         ).decode("utf-8")
         return expiration, token
+
+
+def add_user(
+    user: OpenID,
+):
+    """Add user to database."""
+    _LOGGER.info(f"Adding user {user.email} to database")
+    session: Session = next(get_session())
+    db_user = session.get(entity=User, ident=user.email)
+    if not db_user:
+        db_user = User(email=user.email, username=user.display_name)
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+    else:
+        _LOGGER.debug(f"User {user.email} already exists in database")
 
 
 UserDep = Annotated[User, Depends(SSOAuthExtension.get_logged_user)]

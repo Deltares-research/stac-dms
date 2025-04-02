@@ -42,7 +42,7 @@ def user_has_global_permission(
                 return
         raise HTTPException(
             status_code=403,
-            detail=f"User {user.email} does not have permission {permission}",
+            detail=f"User {user.email} does not have permission '{permission.value}'",
         )
 
     return permission_dependency
@@ -71,7 +71,7 @@ def user_has_collection_permission(
                 return
         raise HTTPException(
             status_code=403,
-            detail=f"User {user.email} does not have permission {permission} on collection {collection_id}",
+            detail=f"User {user.email} does not have permission {permission.value} on collection {collection_id}",
         )
 
     return permission_dependency

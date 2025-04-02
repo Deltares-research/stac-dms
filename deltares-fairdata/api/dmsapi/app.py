@@ -30,7 +30,6 @@ from stac_fastapi.opensearch.database_logic import (
     create_index_templates,
 )
 from stac_fastapi.types.config import Settings
-from starlette.middleware import Middleware
 
 from dmsapi.config import DMSAPISettings
 from dmsapi.core.stacdms import StacDmsApi
@@ -38,7 +37,6 @@ from dmsapi.database.db import create_db_engine
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
-from dmsapi.middlewares.authorization_middleware import AuthorizationMiddleware
 
 Settings.set(DMSAPISettings())
 settings: DMSAPISettings = Settings.get()
@@ -86,7 +84,7 @@ extensions = [
     SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]),
 ]
 
-middlewares = [Middleware(AuthorizationMiddleware, settings=settings)]
+middlewares = []
 
 database_logic.extensions = [type(ext).__name__ for ext in extensions]
 

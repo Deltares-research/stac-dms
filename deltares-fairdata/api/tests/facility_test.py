@@ -7,10 +7,10 @@ from httpx import AsyncClient
 # test create facility
 @pytest.mark.asyncio
 async def test_create_facility(
-    authenticated_client: AsyncClient, keyword_client: KeywordClient
+    keyword_editor_client: AsyncClient, keyword_client: KeywordClient
 ):
     facility_name = "test_facility"
-    response = await authenticated_client.post(
+    response = await keyword_editor_client.post(
         "/facility", json={"name": facility_name}
     )
     assert response.status_code == 200
@@ -21,20 +21,20 @@ async def test_create_facility(
 
 # test create facility invalid
 @pytest.mark.asyncio
-async def test_create_facility_invalid(authenticated_client: AsyncClient):
-    response = await authenticated_client.post("/facility", json={"name": ""})
+async def test_create_facility_invalid(keyword_editor_client: AsyncClient):
+    response = await keyword_editor_client.post("/facility", json={"name": ""})
     assert response.status_code == 400
     assert response.json()["code"] == "RequestValidationError"
 
 
 # test get facility
 @pytest.mark.asyncio
-async def test_update_facility(authenticated_client: AsyncClient, facility: Facility):
-    response = await authenticated_client.get(f"/facility/{facility.id}")
+async def test_update_facility(keyword_editor_client: AsyncClient, facility: Facility):
+    response = await keyword_editor_client.get(f"/facility/{facility.id}")
     assert response.status_code == 200
     facility_obj = Facility(**response.json())
     assert facility_obj.name == "test_facility"
-    update_response = await authenticated_client.put(
+    update_response = await keyword_editor_client.put(
         f"/facility/{facility.id}", json={"name": "updated_facility"}
     )
     assert update_response.status_code == 200
@@ -44,8 +44,8 @@ async def test_update_facility(authenticated_client: AsyncClient, facility: Faci
 
 # test get facility
 @pytest.mark.asyncio
-async def test_get_facility(authenticated_client: AsyncClient, facility: Facility):
-    response = await authenticated_client.get(f"/facility/{facility.id}")
+async def test_get_facility(keyword_editor_client: AsyncClient, facility: Facility):
+    response = await keyword_editor_client.get(f"/facility/{facility.id}")
     assert response.status_code == 200
     facility_obj = Facility(**response.json())
     assert facility_obj.name == "test_facility"
@@ -53,8 +53,8 @@ async def test_get_facility(authenticated_client: AsyncClient, facility: Facilit
 
 # test get all facilities
 @pytest.mark.asyncio
-async def test_get_facilities(authenticated_client: AsyncClient, facility: Facility):
-    response = await authenticated_client.get("/facilities")
+async def test_get_facilities(keyword_editor_client: AsyncClient, facility: Facility):
+    response = await keyword_editor_client.get("/facilities")
     assert response.status_code == 200
     assert len(response.json()) > 0
     facility_obj = Facility(**response.json()[0])
@@ -64,18 +64,18 @@ async def test_get_facilities(authenticated_client: AsyncClient, facility: Facil
 # test delete facility
 @pytest.mark.asyncio
 async def test_delete_facility(
-    authenticated_client: AsyncClient, keyword_client: KeywordClient
+    keyword_editor_client: AsyncClient, keyword_client: KeywordClient
 ):
     facility_name = "test_facility_to_delete"
     facility = keyword_client.create_facility({"name": facility_name})
 
     # check if facility is created
-    response = await authenticated_client.get(f"/facility/{facility.id}")
+    response = await keyword_editor_client.get(f"/facility/{facility.id}")
     assert response.status_code == 200
 
     # delete facility
-    response = await authenticated_client.delete(f"/facility/{facility.id}")
+    response = await keyword_editor_client.delete(f"/facility/{facility.id}")
     assert response.status_code == 200
     assert response.json() == {"message": "Facility deleted"}
-    facility_json = await authenticated_client.get(f"/facility/{facility.id}")
+    facility_json = await keyword_editor_client.get(f"/facility/{facility.id}")
     assert facility_json.status_code == 404
