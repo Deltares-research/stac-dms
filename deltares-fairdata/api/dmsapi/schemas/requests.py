@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal
 from uuid import UUID
 
 from dmsapi.database.models import Role
@@ -22,7 +22,15 @@ class PermissionCheckRequest(BaseModel):
     role_name: str
 
 
-class GroupRoleRequest(BaseModel):
+class GroupCollectionRoleRequest(BaseModel):
     group_id: UUID
-    role: Role
-    object: str
+    role: Literal[Role.COLLECTION_DATA_STEWARD, Role.DATA_PRODUCER]
+
+
+class GroupGlobalRoleRequest(BaseModel):
+    group_id: UUID
+    role: Literal[
+        Role.ADMIN,
+        Role.KEYWORD_EDITOR,
+        Role.APPLICATION_DATA_STEWARD,
+    ]

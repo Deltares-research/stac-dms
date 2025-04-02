@@ -1,7 +1,6 @@
 from typing import Annotated, Callable
 
 from dmsapi.database.models import (
-    GLOBAL_SCOPE,
     GroupRole,
     GroupUserLink,
     Permission,
@@ -32,13 +31,14 @@ def user_has_global_permission(
         group_roles = session.exec(
             select(GroupRole)
             .join(GroupUserLink, GroupRole.group_id == GroupUserLink.group_id)
-            .where(func.lower(GroupUserLink.user_email) == func.lower(user.email))
+            .where(
+                func.lower(GroupUserLink.user_email) == func.lower(user.email),
+                GroupRole.object.is_(None),
+            )
         ).all()
 
         for group_role in group_roles:
-            if (group_role.object_id == GLOBAL_SCOPE) and (
-                permission in role_permissions[group_role.role]
-            ):
+            if permission in role_permissions[group_role.role]:
                 return
         raise HTTPException(
             status_code=403,
@@ -63,7 +63,7 @@ def user_has_collection_permission(
             select(GroupRole)
             .join(GroupUserLink, GroupRole.group_id == GroupUserLink.group_id)
             .where(func.lower(GroupUserLink.user_email) == func.lower(user.email))
-            .where(GroupRole.object_id == collection_id)
+            .where(GroupRole.object == collection_id)
         ).all()
 
         for group_role in group_roles:
