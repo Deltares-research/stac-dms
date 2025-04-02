@@ -80,9 +80,6 @@ role_permissions = {
 }
 
 
-GLOBAL_SCOPE = "__GLOBAL__"
-
-
 class FacilityKeywordGroupLink(SQLModel, table=True):
     facility_id: uuid.UUID = Field(foreign_key="facility.id", primary_key=True)
     keyword_group_id: uuid.UUID = Field(
