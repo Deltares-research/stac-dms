@@ -97,19 +97,24 @@ class RBACExtension(ApiExtension):
         self.add_get_group_roles()
         app.include_router(self.router, tags=["RBAC Extension"])
 
+        # A list of the collection endpoints and the permissions required to access them
         collection_route_dependencies: Dict[ScopeKey, Permission] = {
             ScopeKey(
                 path="/collections/{collection_id}/items/{item_id}",
                 method="PUT",
-            ): Permission.CollectionUpdate,
+            ): Permission.ItemUpdate,
             ScopeKey(
                 path="/collections/{collection_id}/items/{item_id}",
                 method="DELETE",
-            ): Permission.CollectionDelete,
+            ): Permission.ItemDelete,
             ScopeKey(
                 path="/collections/{collection_id}/items",
                 method="POST",
-            ): Permission.CollectionCreate,
+            ): Permission.ItemCreate,
+            ScopeKey(
+                path="/collections/{collection_id}/bulk_items",
+                method="POST",
+            ): Permission.ItemCreate,
             ScopeKey(
                 path="/collections/{collection_id}",
                 method="PUT",
@@ -118,21 +123,57 @@ class RBACExtension(ApiExtension):
                 path="/collections/{collection_id}",
                 method="DELETE",
             ): Permission.CollectionDelete,
-            ScopeKey(
-                path="/collections",
-                method="POST",
-            ): Permission.CollectionCreate,
         }
 
         global_route_dependencies: Dict[ScopeKey, Permission] = {
             ScopeKey(
+                path="/facility",
+                method="POST",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/facility/{facility_id}",
+                method="PUT",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/facility/{facility_id}",
+                method="DELETE",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/facility_keywordgroup_link",
+                method="POST",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/facility_keywordgroup_link",
+                method="DELETE",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/keywordgroup",
+                method="POST",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/keywordgroup/{keywordgroup_id}",
+                method="PUT",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/keywordgroup/{keywordgroup_id}",
+                method="DELETE",
+            ): Permission.KeywordAll,
+            ScopeKey(
                 path="/keyword",
                 method="POST",
             ): Permission.KeywordAll,
             ScopeKey(
-                path="/keyword",
+                path="/keyword/{keyword_id}",
+                method="PUT",
+            ): Permission.KeywordAll,
+            ScopeKey(
+                path="/keyword/{keyword_id}",
                 method="DELETE",
             ): Permission.KeywordAll,
+            ScopeKey(
+                path="/collections",
+                method="POST",
+            ): Permission.CollectionCreate,
         }
 
         for route in app.routes:

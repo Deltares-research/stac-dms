@@ -13,12 +13,12 @@ from httpx import AsyncClient
 # test create link
 @pytest.mark.asyncio
 async def test_create_link(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_client: KeywordClient,
     facility: Facility,
     keyword_group: Keyword_Group,
 ):
-    response = await authenticated_client.post(
+    response = await keyword_editor_client.post(
         "/facility_keywordgroup_link",
         json={
             "facility_id": str(facility.id),
@@ -34,11 +34,11 @@ async def test_create_link(
 # test create link invalid
 @pytest.mark.asyncio
 async def test_create_link_invalid_facility(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_group: Keyword_Group,
 ):
     fake_facility_id = uuid4()
-    response = await authenticated_client.post(
+    response = await keyword_editor_client.post(
         "/facility_keywordgroup_link",
         json={
             "facility_id": str(fake_facility_id),
@@ -51,11 +51,11 @@ async def test_create_link_invalid_facility(
 # test create link invalid
 @pytest.mark.asyncio
 async def test_create_link_invalid_keyword_group(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     facility: Facility,
 ):
     fake_keyword_group_id = uuid4()
-    response = await authenticated_client.post(
+    response = await keyword_editor_client.post(
         "/facility_keywordgroup_link",
         json={
             "facility_id": str(facility.id),
@@ -68,7 +68,7 @@ async def test_create_link_invalid_keyword_group(
 # test delete link
 @pytest.mark.asyncio
 async def test_delete_link(
-    authenticated_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_client: KeywordClient,
     facility_keyword_group_link: FacilityKeywordGroupLink,
 ):
@@ -77,7 +77,7 @@ async def test_delete_link(
         facility_keyword_group_link.keyword_group_id
     )
 
-    response_delete = await authenticated_client.request(
+    response_delete = await keyword_editor_client.request(
         method="DELETE",
         url="/facility_keywordgroup_link",
         json={
