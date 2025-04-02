@@ -10,27 +10,28 @@ from sqlmodel import Field, Relationship, SQLModel
 
 class Role(str, Enum):
     # object roles
-    DATA_STEWARD = "data_steward"
     DATA_PRODUCER = "data_producer"
+    COLLECTION_DATA_STEWARD = "collection_data_steward"
 
     # global roles
     ADMIN = "admin"
     KEYWORD_EDITOR = "keyword_editor"
+    APPLICATION_DATA_STEWARD = "application_data_steward"
 
 
 class Permission(str, Enum):
-    # object permissions
+    # collection permissions
     ItemCreate = "item:create"
     ItemUpdate = "item:update"
     ItemDelete = "item:delete"
-    CollectionCreate = "collection:create"
     CollectionUpdate = "collection:update"
     CollectionDelete = "collection:delete"
+    CollectionGroupRoleAssign = "collection:group_role:assign"
 
     # global permissions
     KeywordAll = "keyword:all"
 
-    CollectionGroupRoleAssign = "collection:group_role:assign"
+    CollectionCreate = "collection:create"
     GroupCreate = "group:create"
     GroupRead = "group:read"
     GroupUpdate = "group:update"
@@ -40,32 +41,37 @@ class Permission(str, Enum):
 
 role_permissions = {
     Role.ADMIN: [
-        # Admin has all permissions
-        Permission.ItemCreate,
-        Permission.ItemUpdate,
-        Permission.ItemDelete,
-        Permission.CollectionCreate,
-        Permission.CollectionUpdate,
-        Permission.CollectionDelete,
+        # Admin has all global permissions
         Permission.KeywordAll,
-        Permission.CollectionGroupRoleAssign,
+        Permission.CollectionCreate,
         Permission.GroupCreate,
         Permission.GroupRead,
         Permission.GroupUpdate,
         Permission.GroupDelete,
         Permission.GlobalGroupRoleAssign,
+        # And permission to assign roles on collections
+        Permission.CollectionGroupRoleAssign,
     ],
     Role.KEYWORD_EDITOR: [
         Permission.KeywordAll,
     ],
-    Role.DATA_STEWARD: [
+    Role.APPLICATION_DATA_STEWARD: [
+        Permission.GroupCreate,
+        Permission.GroupRead,
+        Permission.GroupUpdate,
+        Permission.GroupDelete,
+        Permission.CollectionGroupRoleAssign,
+        Permission.CollectionCreate,
+    ],
+    Role.COLLECTION_DATA_STEWARD: [
+        # Data Steward has all collection permissions
         Permission.ItemCreate,
         Permission.ItemUpdate,
         Permission.ItemDelete,
-        Permission.CollectionCreate,
         Permission.CollectionUpdate,
         Permission.CollectionDelete,
         Permission.CollectionGroupRoleAssign,
+        Permission.CollectionCreate,
     ],
     Role.DATA_PRODUCER: [
         Permission.ItemCreate,
@@ -236,7 +242,7 @@ class GroupUserLink(SQLModel, table=True):
 
 class GroupRole(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    object_id: str  # includes special __global__ identifier
+    object: Optional[str] = Field(default=None)  # None indicates global role
     role: "Role" = Field(
         sa_type=SQLAlchemyEnum(
             Role,
@@ -247,12 +253,15 @@ class GroupRole(SQLModel, table=True):
     group: Group = Relationship(back_populates="group_roles")
 
 
-class GroupRoleResponse(SQLModel):
+class GroupGlobalRoleResponse(SQLModel):
     id: uuid.UUID
-    object_id: str
     role: "Role"
     group_id: uuid.UUID
     group_name: str
+
+
+class GroupCollectionRoleResponse(GroupGlobalRoleResponse):
+    object: str
 
 
 class ErrorResponse(SQLModel):

@@ -8,8 +8,8 @@ from dmsapi.core.dependencies import (
 from dmsapi.database.models import (  # type: ignore
     ErrorResponse,
     Group,
-    GroupRole,
-    GroupRoleResponse,
+    GroupCollectionRoleResponse,
+    GroupGlobalRoleResponse,
     OKResponse,
     Permission,
     Role,
@@ -94,7 +94,9 @@ class RBACExtension(ApiExtension):
         self.add_get_users_from_group()
         self.add_delete_users_from_group()
         self.add_assign_group_role()
-        self.add_get_group_roles()
+        self.add_get_my_global_permissions()
+        self.add_get_my_collection_permissions()
+        self.add_get_permissions_on_collection()
         app.include_router(self.router, tags=["RBAC Extension"])
 
         # A list of the collection endpoints and the permissions required to access them
@@ -412,9 +414,9 @@ class RBACExtension(ApiExtension):
 
     def add_assign_group_role(self):
         self.router.add_api_route(
-            name="Assign group role",
+            name="Assign global group role",
             path="/group-role",
-            endpoint=self.client.assign_group_role,
+            endpoint=self.client.assign_group_global_role,
             dependencies=[
                 Depends(
                     user_has_global_permission(
@@ -422,43 +424,40 @@ class RBACExtension(ApiExtension):
                     )
                 )
             ],
-            response_model=GroupRoleResponse,
+            response_model=GroupGlobalRoleResponse,
             methods=["POST"],
         )
 
-    def add_get_group_roles(self):
+    def add_get_my_global_permissions(self):
         self.router.add_api_route(
-            name="Get group roles",
-            path="/group-role/{object_id}",
-            endpoint=self.client.get_group_roles,
-            response_model=list[GroupRole],
+            name="Get my global permissions",
+            path="/global-role",
+            endpoint=self.client.get_my_global_permissions,
+            response_model=list[Permission],
             methods=["GET"],
         )
 
-    # def add_add_group_permission_to_object(self):
-    #     self.router.add_api_route(
-    #         name="Set group permissions on collection",
-    #         path="/permissions",
-    #         endpoint=self.client.assign_permission_to_collection,
-    #         response_model=OKResponse,
-    #         methods=["POST"],
-    #     )
+    def add_get_my_collection_permissions(self):
+        self.router.add_api_route(
+            name="Assign collection group role",
+            path="/group-role/{collection_id}",
+            endpoint=self.client.assign_collection_group_role,
+            dependencies=[
+                Depends(
+                    user_has_global_permission(
+                        permission=Permission.CollectionGroupRoleAssign,
+                    )
+                )
+            ],
+            response_model=GroupCollectionRoleResponse,
+            methods=["POST"],
+        )
 
-    # def add_delete_group_permission_to_object(self):
-    #     self.router.add_api_route(
-    #         name="Delete group permissions on collection",
-    #         path="/permissions",
-    #         endpoint=self.client.remove_permission_from_collection,
-    #         response_model=OKResponse,
-    #         methods=["DELETE"],
-    #     )
-
-    # # Review if next to add or not
-    # def add_check_group_permission_to_object(self):
-    #     self.router.add_api_route(
-    #         name="Check if group has permission to collection",
-    #         path="/permissions_check",
-    #         endpoint=self.client.has_permission,
-    #         response_model=bool,
-    #         methods=["POST"],
-    #     )
+    def add_get_permissions_on_collection(self):
+        self.router.add_api_route(
+            name="Get permissions on collection",
+            path="/group-role/{collection_id}",
+            endpoint=self.client.get_permissions_on_collection,
+            response_model=list[Permission],
+            methods=["GET"],
+        )

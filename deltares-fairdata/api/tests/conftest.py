@@ -6,7 +6,7 @@ from dmsapi.extensions.core.sso_auth_extension import COOKIE_NAME, SSOAuthExtens
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
-from dmsapi.schemas.requests import GroupRoleRequest
+from dmsapi.schemas.requests import GroupGlobalRoleRequest
 from fastapi import FastAPI
 from fastapi_sso import MicrosoftSSO, OpenID
 from sqlmodel import SQLModel
@@ -22,7 +22,6 @@ import pytest_asyncio
 from dmsapi.config import DMSAPISettings
 from dmsapi.database.db import create_db_engine, get_session
 from dmsapi.database.models import (  # type: ignore
-    GLOBAL_SCOPE,
     Facility,
     FacilityKeywordGroupLink,
     Group,
@@ -301,7 +300,7 @@ async def user(rbac_client: RBACClient, db_session: Session):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def group(rbac_client: RBACClient, db_session: Session):
+async def group(rbac_client: RBACClient, db_session: Session, user: User):
     group = rbac_client.create_group(
         {
             "name": "test_group",
@@ -309,6 +308,23 @@ async def group(rbac_client: RBACClient, db_session: Session):
         },
         db_session,
     )
+    yield group
+    try:
+        rbac_client.delete_group(str(group.id))
+    except Exception:
+        pass
+
+
+@pytest_asyncio.fixture(scope="function")
+async def group_with_user(rbac_client: RBACClient, db_session: Session, user: User):
+    group = rbac_client.create_group(
+        {
+            "name": "test_group",
+            "description": "test_description",
+        },
+        db_session,
+    )
+    rbac_client.add_users_to_group(group.id, [user], db_session)
     yield group
     try:
         rbac_client.delete_group(str(group.id))
@@ -325,11 +341,10 @@ async def data_producer_group(rbac_client: RBACClient, db_session: Session):
         ),
         db_session,
     )
-    rbac_client.assign_group_role(
-        GroupRoleRequest(
+    rbac_client.assign_group_global_role(
+        GroupGlobalRoleRequest(
             group_id=group.id,
             role=Role.DATA_PRODUCER,
-            object="test_object",
         ),
         db_session,
     )
@@ -349,11 +364,10 @@ async def keyword_editor_group(rbac_client: RBACClient, db_session: Session):
         ),
         db_session,
     )
-    rbac_client.assign_group_role(
-        GroupRoleRequest(
+    rbac_client.assign_group_global_role(
+        GroupGlobalRoleRequest(
             group_id=group.id,
             role=Role.KEYWORD_EDITOR,
-            object=GLOBAL_SCOPE,
         ),
         db_session,
     )
@@ -373,11 +387,10 @@ async def admin_group(rbac_client: RBACClient, db_session: Session):
         ),
         db_session,
     )
-    rbac_client.assign_group_role(
-        GroupRoleRequest(
+    rbac_client.assign_group_global_role(
+        GroupGlobalRoleRequest(
             group_id=group.id,
             role=Role.ADMIN,
-            object=GLOBAL_SCOPE,
         ),
         db_session,
     )

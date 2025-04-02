@@ -1,8 +1,9 @@
 import pytest
 from dmsapi.database.models import (  # type: ignore
-    GLOBAL_SCOPE,
     Group,
-    GroupRoleResponse,
+    GroupCollectionRoleResponse,
+    GroupGlobalRoleResponse,
+    Permission,
     Role,
     User,
     UserUpdate,
@@ -147,13 +148,13 @@ async def test_assign_group_role(admin_client: AsyncClient, group: Group):
     obj = "test-collection"
     role = Role.DATA_PRODUCER
     response = await admin_client.post(
-        "/group-role",
+        f"/group-role/{obj}",
         json={"object": obj, "role": role.value, "group_id": str(group.id)},
     )
     assert response.status_code == 200
-    result = GroupRoleResponse(**response.json())
+    result = GroupCollectionRoleResponse(**response.json())
     assert result.group_id == group.id
-    assert result.object_id == obj
+    assert result.object == obj
     assert result.role == role
 
 
@@ -163,71 +164,37 @@ async def test_assign_global_group_role(admin_client: AsyncClient, group: Group)
     response = await admin_client.post(
         "/group-role",
         json={
-            "object": GLOBAL_SCOPE,
             "role": Role.ADMIN.value,
             "group_id": str(group.id),
         },
     )
     assert response.status_code == 200
-    result = GroupRoleResponse(**response.json())
+    result = GroupGlobalRoleResponse(**response.json())
     assert result.group_id == group.id
-    assert result.object_id == GLOBAL_SCOPE
     assert result.role == Role.ADMIN
 
 
 # test get group roles for object
 @pytest.mark.asyncio
-async def test_get_group_roles(admin_client: AsyncClient, group: Group):
+async def test_get_group_roles(
+    admin_client: AsyncClient, authenticated_client: AsyncClient, group_with_user: Group
+):
     obj = "test-collection"
     # First assign a role
     response = await admin_client.post(
-        "/group-role",
+        f"/group-role/{obj}",
         json={
-            "object": obj,
             "role": Role.DATA_PRODUCER.value,
-            "group_id": str(group.id),
+            "group_id": str(group_with_user.id),
         },
     )
     assert response.status_code == 200
-    # Then get roles
-    response = await admin_client.get(f"/group-role/{obj}")
+    # Then get permissions
+    response = await authenticated_client.get(f"/group-role/{obj}")
     assert response.status_code == 200
-    roles = response.json()
-    assert len(roles) > 0
-    assert roles[0]["role"] == Role.DATA_PRODUCER.value
-    assert roles[0]["group_id"] == str(group.id)
-
-
-# # test check global permissions
-# @pytest.mark.asyncio
-# async def test_check_global_permissions(
-#     admin_client: AsyncClient, group: Group, user: User
-# ):
-#     # First assign global role and add user to group
-#     await admin_client.post(
-#         "/group-role",
-#         json={
-#             "object": GLOBAL_SCOPE,
-#             "role": Role.ADMIN.value,
-#             "group_id": str(group.id),
-#         },
-#     )
-#     await admin_client.post(
-#         f"/groups/{group.id}/members",
-#         json=[{"email": user.email}],
-#     )
-
-#     # Check permissions
-#     response = await admin_client.get(
-#         "/group-role/{GLOBAL_SCOPE}",
-#         params={
-#             "object_id": "any-collection",
-#             "permission": Permission.GroupDelete.value,
-#             "user_email": user.email,
-#         },
-#     )
-#     assert response.status_code == 200
-#     assert response.json()["has_permission"] is True
+    permissions = response.json()
+    assert len(permissions) > 0
+    assert Permission.ItemCreate.value in permissions
 
 
 # Authorization Tests
@@ -271,7 +238,6 @@ async def test_global_admin_access(
     response = await admin_client.post(
         "/group-role",
         json={
-            "object": GLOBAL_SCOPE,
             "role": Role.ADMIN.value,
             "group_id": str(group.id),
         },
@@ -295,10 +261,10 @@ async def test_global_admin_access(
     assert response.status_code == 200
 
     # Assign roles
+    collection_id = "test-collection"
     response = await authenticated_client.post(
-        "/group-role",
+        f"/group-role/{collection_id}",
         json={
-            "object": "test-collection",
             "role": Role.DATA_PRODUCER.value,
             "group_id": str(group.id),
         },
@@ -343,10 +309,9 @@ async def test_editor_role_permissions(
 
     # Setup: Give user editor role for specific collection
     response = await admin_client.post(
-        "/group-role",
+        f"/group-role/{collection_id}",
         json={
-            "object": collection_id,
-            "role": Role.DATA_STEWARD.value,
+            "role": Role.COLLECTION_DATA_STEWARD.value,
             "group_id": str(group.id),
         },
     )

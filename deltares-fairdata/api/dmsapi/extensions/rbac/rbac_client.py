@@ -1,26 +1,31 @@
 from typing import Annotated, List
 from uuid import UUID
 
+from dmsapi.core.dependencies import UserDep
 from dmsapi.database.db import SessionDep
 from dmsapi.database.models import (  # type: ignore
     ErrorResponse,
     Group,
+    GroupCollectionRoleResponse,
     GroupCreate,
+    GroupGlobalRoleResponse,
     GroupList,
     GroupRole,
-    GroupRoleResponse,
     GroupUserLink,
     OKResponse,
+    Permission,
     Role,
     User,
     UserCreate,
     UserList,
     UserUpdate,
+    role_permissions,
 )
-from dmsapi.schemas.requests import GroupRoleRequest
+from dmsapi.schemas.requests import GroupCollectionRoleRequest, GroupGlobalRoleRequest
 from fastapi import Path
 from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from stac_fastapi.types.errors import InvalidQueryParameter, NotFoundError
@@ -338,16 +343,16 @@ class RBACClient:
         return Role.__members__.values()
 
     @staticmethod
-    def assign_group_role(
-        request: GroupRoleRequest, session: SessionDep
-    ) -> GroupRoleResponse:
+    def assign_group_global_role(
+        request: GroupGlobalRoleRequest, session: SessionDep
+    ) -> GroupGlobalRoleResponse:
         """Assign a role to a group.
 
         Args:
-            request: GroupRoleRequest
+            request: GroupGlobalRoleRequest
 
         Returns:
-            GroupRoleResponse"""
+            GroupGlobalRoleResponse"""
         group = session.exec(select(Group).where(Group.id == request.group_id)).first()
         if group is None:
             raise NotFoundError(f"Group with ID {request.group_id} not found")
@@ -355,28 +360,107 @@ class RBACClient:
         group_role = GroupRole(
             group_id=request.group_id,
             role=request.role,
-            object_id=request.object,
+            object=None,
         )
         session.add(group_role)
         session.commit()
         session.refresh(group_role)
-        return GroupRoleResponse(
+        return GroupGlobalRoleResponse(
             id=group_role.id,
             group_id=group_role.group_id,
             group_name=group.name,
-            object_id=group_role.object_id,
             role=group_role.role,
         )
 
-    def get_group_roles(self, object_id: str, session: SessionDep) -> List[GroupRole]:
-        """Get all roles for a given object.
+    def get_my_global_permissions(
+        self, user: UserDep, session: SessionDep
+    ) -> List[Permission]:
+        """Get all global permissions for a given user.
 
         Args:
-            object_id: ID of the object to get roles for
+            user: UserDep
 
         Returns:
             List of GroupRole objects
         """
-        return session.exec(
-            select(GroupRole).where(GroupRole.object_id == object_id)
+
+        global_roles: list[GroupRole] = session.exec(
+            select(GroupRole)
+            .join(Group, Group.id == GroupRole.group_id)
+            .join(GroupUserLink, GroupUserLink.group_id == Group.id)
+            .where(
+                GroupRole.object.is_(None),
+                GroupUserLink.user_email == user.email,
+            )
         ).all()
+
+        # Create a flat list of distinct permissions from all roles
+        permissions = set()
+        for role in global_roles:
+            # Add all permissions from this role to our set
+            permissions.update(role_permissions[role.role])
+        return list(permissions)
+
+    def assign_collection_group_role(
+        self,
+        collection_id: str,
+        request: GroupCollectionRoleRequest,
+        session: SessionDep,
+    ) -> GroupCollectionRoleResponse:
+        """Assign a role to a group on a collection.
+
+        Args:
+            object_id: ID of the object to assign the role to
+            request: GroupCollectionRoleRequest
+
+        Returns:
+            GroupCollectionRoleResponse
+        """
+        group = session.exec(select(Group).where(Group.id == request.group_id)).first()
+        if group is None:
+            raise NotFoundError(f"Group with ID {request.group_id} not found")
+        # TODO: check if collection exists
+        group_role = GroupRole(
+            group_id=request.group_id,
+            role=request.role,
+            object=collection_id,
+        )
+        session.add(group_role)
+        session.commit()
+        session.refresh(group_role)
+        return GroupCollectionRoleResponse(
+            id=group_role.id,
+            group_id=group_role.group_id,
+            group_name=group.name,
+            role=group_role.role,
+            object=collection_id,
+        )
+
+    def get_permissions_on_collection(
+        self, collection_id: str, user: UserDep, session: SessionDep
+    ) -> List[Permission]:
+        """Get all permissions for the current user on a given collection.
+
+        Args:
+            collection_id: ID of the collection to get permissions for
+            user: Current authenticated user
+            session: Database session
+
+        Returns:
+            List of Permission objects that the current user has on the collection
+        """
+        collection_roles: list[GroupRole] = session.exec(
+            select(GroupRole)
+            .join(GroupUserLink, GroupRole.group_id == GroupUserLink.group_id)
+            .where(
+                GroupRole.object == collection_id,
+                func.lower(GroupUserLink.user_email) == func.lower(user.email),
+            )
+        ).all()
+
+        # Create a flat list of distinct permissions from all roles
+        permissions = set()
+        for role in collection_roles:
+            # Add all permissions from this role to our set
+            permissions.update(role_permissions[role.role])
+        return list(permissions)
