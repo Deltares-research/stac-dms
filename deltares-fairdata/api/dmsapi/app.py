@@ -20,7 +20,7 @@ from stac_fastapi.extensions.core import (
     FilterExtension,
     SortExtension,
     TokenPaginationExtension,
-    TransactionExtension,
+    TransactionExtension, 
 )
 from stac_fastapi.extensions.third_party import BulkTransactionExtension
 from stac_fastapi.opensearch.database_logic import (

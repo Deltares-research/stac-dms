@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T extends { id: string }">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import { ref } from "vue"
 import { Check, ChevronsUpDown, X } from "lucide-vue-next"
 
@@ -21,6 +21,7 @@ import { cn } from "~/lib/utils"
 let props = defineProps<{
   name: string
   items: T[]
+  valueProperty: keyof T & (string | number)
   titleProperty: keyof T
   subtitleProperty?: keyof T
   placeholder: string
@@ -51,7 +52,8 @@ function toggleItem(itemId: string) {
 let itemsById = computed(() =>
   props.items.reduce(
     (acc, item) => {
-      acc[item.id] = item
+      const itemValue = String(item[props.valueProperty])
+      acc[itemValue] = item
 
       return acc
     },
@@ -106,8 +108,8 @@ let itemsById = computed(() =>
             <CommandGroup>
               <CommandItem
                 v-for="item in items"
-                :key="item.id"
-                :value="item.id"
+                :key="String(item[valueProperty])"
+                :value="String(item[valueProperty])"
                 @select="
                   (ev) => {
                     if (typeof ev.detail.value === 'string') {
@@ -130,7 +132,9 @@ let itemsById = computed(() =>
                   :class="
                     cn(
                       'ml-auto h-4 w-4',
-                      value.includes(item.id) ? 'opacity-100' : 'opacity-0',
+                      value.includes(String(item[valueProperty]))
+                        ? 'opacity-100'
+                        : 'opacity-0',
                     )
                   "
                 />

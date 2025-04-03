@@ -1,217 +1,264 @@
 <template>
-  <div class="grid grid-cols-2 gap-12">
-    <CollectionCardForm
-      card-title="Edit collection"
-      button-title="update"
-      :errors="errors"
-      @update="updateCollection"
-      :title="title"
-      :description="description"
-      :collectionType="selectedCollectionType"
-      :keywordFacility="selectedKeywordsFacility"
-    />
+  <Container>
+    <h3 class="mt-8 scroll-m-20 text-2xl font-semibold tracking-tight">
+      {{ collection?.title }}
+    </h3>
 
-    <div class="mt-12 flex flex-col space-y-1.5">
-      <h2 class="text-lg font-semibold">Permissions</h2>
+    <Tabs defaultValue="form" class="mt-8">
+      <TabsList>
+        <TabsTrigger value="form">Collection</TabsTrigger>
+        <TabsTrigger value="roles">Permissions</TabsTrigger>
+      </TabsList>
 
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableHead>Group</TableHead>
-            <TableHead>Role</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          <TableRow v-for="permission in permissions" :key="permission.id">
-            <!-- TODO: Replace with group name -->
-            <TableCell>{{ permission.group_name }}</TableCell>
-            <TableCell>{{ permission.role_name }}</TableCell>
-            <TableCell>
-              <DeletePermission
-                @deleted="refreshPermissions"
-                :group_id="permission.group_id"
-                :object="permission.object"
-                :role_name="permission.role_name"
-              />
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <TabsContent value="form" forceMount>
+        <div class="mt-8 relative">
+          <div
+            v-if="!hasPermission('collection:update')"
+            class="absolute inset-0 bg-white/70 flex items-center justify-center text-center text-sm text-muted-foreground"
+          >
+            <Lock class="size-4 mr-2" />
+            You have no permission to update this collection
+          </div>
+          <form @submit="onSubmitUpdateCollectionForm">
+            <CollectionCardForm />
+            <Button type="submit" class="mt-5 min-w-[120px]">Update</Button>
+          </form>
+        </div>
+      </TabsContent>
 
-      <form
-        @submit="onSubmitAddPermissionForm"
-        class="mt-12 flex items-end gap-1.5 w-full"
-      >
-        <FormField v-slot="{ componentField }" name="group_ids">
-          <FormItem class="w-full">
-            <FormLabel>Group</FormLabel>
-            <FormControl>
-              <GroupCombobox v-bind="componentField" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ componentField }" name="role_name">
-          <FormItem class="w-full">
-            <FormLabel>Role</FormLabel>
-            <Select v-bind="componentField">
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem
-                    v-for="role in roles"
-                    :key="role.id"
-                    :value="role.name"
-                  >
-                    {{ role.name }}
-                  </SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <Button type="submit" class="mt-3">Add</Button>
-      </form>
-    </div>
-  </div>
+      <TabsContent value="roles" forceMount>
+        <div class="mt-8 w-full">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead class="w-full">Group</TableHead>
+                <TableHead class="whitespace-nowrap">Data Producer</TableHead>
+                <TableHead class="whitespace-nowrap">
+                  Collection Data Steward
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="group in groups" :key="group.id">
+                <!-- TODO: Replace with group name -->
+                <TableCell>{{ group.name }}</TableCell>
+                <TableCell class="text-center">
+                  <div class="relative flex items-center justify-center">
+                    <Loader2
+                      v-if="
+                        pendingRoleChanges.includes(`${group.id}-data_producer`)
+                      "
+                      class="size-3 animate-spin absolute"
+                    />
+                    <Checkbox
+                      :disabled="
+                        pendingRoleChanges.includes(`${group.id}-data_producer`)
+                      "
+                      @update:checked="
+                        (v) => toggleRole(group.id, 'data_producer', v)
+                      "
+                      :checked="hasRole(group.id, 'data_producer')"
+                    />
+                  </div>
+                </TableCell>
+                <TableCell class="text-center">
+                  <div class="relative flex items-center justify-center">
+                    <Loader2
+                      v-if="
+                        pendingRoleChanges.includes(
+                          `${group.id}-collection_data_steward`,
+                        )
+                      "
+                      class="size-3 animate-spin absolute"
+                    />
+                    <Checkbox
+                      class="disabled:opacity-50"
+                      :disabled="
+                        pendingRoleChanges.includes(
+                          `${group.id}-collection_data_steward`,
+                        )
+                      "
+                      @update:checked="
+                        (v) =>
+                          toggleRole(group.id, 'collection_data_steward', v)
+                      "
+                      :checked="hasRole(group.id, 'collection_data_steward')"
+                    />
+                  </div>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </TabsContent>
+    </Tabs>
+  </Container>
 </template>
 
 <script setup lang="ts">
-import type { Collection } from "@/lib/collection"
 import CollectionCardForm from "@/components/collections/CollectionCardForm.vue"
-import { useNuxtApp, useRoute, useRouter } from "nuxt/app"
+import { useNuxtApp, useRoute } from "nuxt/app"
 import { ref } from "vue"
-import GroupCombobox from "~/components/rbac/GroupCombobox.vue"
 import { toast } from "@/components/ui/toast"
 import { toTypedSchema } from "@vee-validate/zod"
-import { z } from "zod"
 import { useForm } from "vee-validate"
-import DeletePermission from "~/components/rbac/DeletePermission.vue"
+import { collectionFormSchema } from "~/schemas/collection"
+import type { components } from "#open-fetch-schemas/api"
+import Container from "~/components/deltares/Container.vue"
+import TableHeader from "~/components/ui/table/TableHeader.vue"
+import { Loader2, Lock } from "lucide-vue-next"
+import { useCollectionPermissions } from "@/composables/permissions"
+
+const roles = [
+  "collection_data_steward",
+  "data_producer",
+] as const satisfies components["schemas"]["Role"][]
 
 const { $api } = useNuxtApp()
 
 const errors = ref("")
-const title = ref("")
-const description = ref("")
-const selectedCollectionType = ref("")
-const selectedKeywordsFacility = ref("")
-const selectedGroups = ref([])
 
 const route = useRoute()
+const collectionId = String(route.params.id)
 
-const collectionId = route.params.id as string
+const { hasPermission, refresh: refreshCollectionPermissions } =
+  await useCollectionPermissions(collectionId)
 
-const { data: roles } = await useApi("/roles", {
-  method: "get",
-})
+let { data: groups } = await useApi("/groups")
 
-let addPermissionSchema = toTypedSchema(
-  z.object({
-    group_ids: z.array(z.string()),
-    role_name: z.string(),
-  }),
-)
+function hasRole(group_id: string | undefined, role: (typeof roles)[number]) {
+  if (!group_id) return false
 
-let addPermissionForm = useForm({
-  validationSchema: addPermissionSchema,
-})
+  return (
+    permissions.value?.some(
+      (p) => p.group_id === group_id && p.role === role,
+    ) ?? false
+  )
+}
 
-let onSubmitAddPermissionForm = addPermissionForm.handleSubmit(
-  async (values) => {
-    let response = await $api("/permissions", {
-      method: "post",
-      body: {
-        role_name: values.role_name,
-        group_id: values.group_ids[0],
-        object: collectionId,
-      },
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
+let pendingRoleChanges = ref<`${string}-${(typeof roles)[number]}`[]>([])
 
-    toast({
-      title: response.message,
-    })
+async function toggleRole(
+  group_id: string | undefined,
+  role: (typeof roles)[number],
+  checked: boolean,
+) {
+  pendingRoleChanges.value.push(`${group_id}-${role}`)
 
-    addPermissionForm.resetForm()
-    refreshPermissions()
-  },
-)
-
-const { data: permissions, refresh: refreshPermissions } = await useApi(
-  "/permissions/{obj}",
-  {
-    method: "post",
-    path: { obj: collectionId },
-  },
-)
-
-const data = await $api("/collections/{collection_id}", {
-  path: {
-    collection_id: route.params.id,
-  },
-})
-
-title.value = data.title
-description.value = data.description
-selectedCollectionType.value = data.keywords[0]
-const keywordsLink = data.links.find((item) => item.rel == "keywords")
-selectedKeywordsFacility.value =
-  keywordsLink !== undefined ? keywordsLink.id : "No keywords"
-
-async function updateCollection(emitedCollection: Collection) {
-  const updatedCollection = {
-    type: "Collection",
-    stac_version: "1.0.0",
-    id: data.id,
-    title: emitedCollection.title,
-    description: emitedCollection.description,
-    keywords: [emitedCollection.collectionType],
-    license: "proprietary",
-    extent: {
-      spatial: {
-        bbox: [[-180, -56, 180, 83]],
-      },
-      temporal: {
-        interval: [[]],
-      },
-    },
-    links: [],
-  }
-  if (emitedCollection.keywordsFacility !== "No keywords") {
-    updatedCollection.links.push({
-      rel: "keywords",
-      href: "/facilities/" + emitedCollection.keywordsFacility,
-      type: "application/json",
-      id: emitedCollection.keywordsFacility,
-    })
-  }
-  try {
-    errors.value = ""
-    const data = await $api("/collections/{id}", {
-      method: "PUT",
-      path: {
-        id: route.params.id,
-      },
-      body: updatedCollection,
-    })
-  } catch (e) {
-    errors.value = "It was not possible to update the collection"
+  if (!group_id) {
     return
   }
 
-  const router = useRouter()
-  router.push("/collections")
-}
-</script>
+  if (checked) {
+    await $api("/group-role/{collection_id}", {
+      method: "post",
+      path: { collection_id: collectionId },
+      body: { group_id, role },
+    })
+  } else {
+    await $api("/group-role/{collection_id}", {
+      method: "delete",
+      path: { collection_id: collectionId },
+      query: { group_id, role },
+    })
+  }
 
-<style scoped></style>
+  await refreshPermissions()
+  await refreshCollectionPermissions()
+
+  toast({
+    title: "Permissions updated",
+  })
+
+  pendingRoleChanges.value = pendingRoleChanges.value.filter(
+    (p) => p !== `${group_id}-${role}`,
+  )
+}
+
+const { data: permissions, refresh: refreshPermissions } = await useApi(
+  "/group-role/{collection_id}",
+  {
+    method: "get",
+    path: { collection_id: collectionId },
+  },
+)
+
+const { data, refresh } = await useApi("/collections/{collection_id}", {
+  path: {
+    collection_id: collectionId,
+  },
+})
+
+if (!data.value) {
+  throw navigateTo("/collections")
+}
+
+let collection = computed(() => data.value)
+
+let updateCollectionFormSchema = toTypedSchema(collectionFormSchema)
+
+const updateCollectionForm = useForm({
+  validationSchema: updateCollectionFormSchema,
+  initialValues: {
+    title: data.value.title ?? "",
+    description: data.value.description ?? "",
+    collectionType: data.value.keywords?.[0] ?? "",
+    keywordsFacility:
+      data.value.links?.find((item) => item.rel == "keywords")?.id ??
+      "No keywords",
+  },
+})
+
+let onSubmitUpdateCollectionForm = updateCollectionForm.handleSubmit(
+  async (values) => {
+    const { error } = await useApi("/collections/{collection_id}", {
+      method: "PUT",
+      path: {
+        collection_id: collectionId,
+      },
+      body: {
+        type: "Collection",
+        stac_version: "1.0.0",
+        stac_extensions: [],
+        id: collectionId,
+        title: values.title,
+        description: values.description,
+        keywords: [values.collectionType],
+        license: "proprietary",
+        extent: {
+          spatial: {
+            bbox: [[-180, -56, 180, 83]],
+          },
+          temporal: {
+            interval: [[]],
+          },
+        },
+        links:
+          values.keywordsFacility !== "No keywords"
+            ? [
+                {
+                  rel: "keywords",
+                  href: "/facilities/" + values.keywordsFacility,
+                  type: "application/json",
+                  id: values.keywordsFacility,
+                },
+              ]
+            : [],
+      },
+    })
+
+    if (error.value) {
+      errors.value =
+        (error.value?.data?.detail as unknown as string) ??
+        "Something went wrong"
+      return
+    }
+
+    toast({
+      title: "Collection updated",
+    })
+
+    await refresh()
+  },
+)
+</script>

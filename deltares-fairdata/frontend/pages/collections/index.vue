@@ -7,8 +7,8 @@
       </CardDescription>
     </CardHeader>
     <CardContent>
-      <div class="flex justify-end">
-        <Button>
+      <div class="flex justify-end mb-3">
+        <Button v-if="hasPermission('group:create')">
           <NuxtLink to="/collections/create">Add collection</NuxtLink>
         </Button>
       </div>
@@ -23,46 +23,18 @@ import { ArrowUpDown, Pencil, Trash2 } from "lucide-vue-next"
 import { Button } from "@/components/ui/button"
 import type { ColumnDef } from "@tanstack/vue-table"
 import type { components } from "#open-fetch-schemas/api"
-import { h, onMounted, ref } from "vue"
-import { useNuxtApp, useRouter } from "nuxt/app"
+import { h } from "vue"
 import { collectionTypes } from "@/lib/collectionTypes"
+import { NuxtLink } from "#components"
+import { usePermissions } from "@/composables/permissions"
 
-const router = useRouter()
-const { $api } = useNuxtApp()
-const collections = ref([])
+const { hasPermission } = await usePermissions()
+
 let { data: keywords } = await useApi("/facilities")
-onMounted(async () => {
-  await new Promise((r) => setTimeout(r, 1000))
-  let retrievedCollections = []
-  let url = "/collections"
-  while (url) {
-    let pos = url.search("/api") //should be fixed in the backend!
-    url = pos != -1 ? url.substring(pos) : url
-    url = await retrieveCollection(url, retrievedCollections)
-  }
-  collections.value = retrievedCollections
-})
 
-async function retrieveCollection(
-  url: string,
-  collections: [],
-): Promise<string> {
-  try {
-    const collectionsData = await $api(url)
-    collectionsData.collections.forEach((item) => collections.push(item))
-    return collectionsData.links[3].href
-  } catch (e) {
-    return ""
-  }
-}
+const { data } = await useApi("/collections")
 
-async function updateCollection(id: string) {
-  router.push("/collections/update/" + id)
-}
-
-async function deleteCollection(id: string) {
-  router.push("/collections/delete/" + id)
-}
+const collections = data.value?.collections
 
 const collectionColumns: ColumnDef<
   components["schemas"]["stac_pydantic__api__collection__Collection"]
@@ -138,36 +110,44 @@ const collectionColumns: ColumnDef<
     },
   },
   {
-    id: "edit",
+    id: "actions",
+    header: "Actions",
     cell: ({ row }) => {
-      return h(
-        Button,
-        {
-          variant: "ghost",
-          onClick: () => {
-            updateCollection(row.original.id)
+      return h("div", { class: "flex gap-2" }, [
+        h(
+          Button,
+          {
+            variant: "outline",
+            asChild: true,
+            size: "icon",
           },
-        },
-        () => ["Edit", h(Pencil, { class: "ml-2 h-4 w-4" })],
-      )
-    },
-  },
-  {
-    id: "delete",
-    cell: ({ row }) => {
-      return h(
-        Button,
-        {
-          variant: "ghost",
-          onClick: () => {
-            deleteCollection(row.original.id)
+          () =>
+            h(
+              NuxtLink,
+              {
+                to: `/collections/update/${row.original.id}`,
+              },
+              () => [h(Pencil, { class: "h-4 w-4" })],
+            ),
+        ),
+        h(
+          Button,
+          {
+            variant: "outline",
+            asChild: true,
+            size: "icon",
           },
-        },
-        () => ["Delete", h(Trash2, { class: "ml-2 h-4 w-4" })],
-      )
+          () =>
+            h(
+              NuxtLink,
+              {
+                to: `/collections/delete/${row.original.id}`,
+              },
+              () => [h(Trash2, { class: "h-4 w-4" })],
+            ),
+        ),
+      ])
     },
   },
 ]
 </script>
-
-<style scoped></style>

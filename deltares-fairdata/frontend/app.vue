@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { User } from "lucide-vue-next"
 import { Button } from "@/components/ui/button"
+import { usePermissions } from "@/composables/permissions"
+
+const { hasPermission } = await usePermissions()
 
 const {
   data,
@@ -23,13 +26,13 @@ async function logout() {
       <Button as-child v-if="!notAuthenticated" variant="link">
         <NuxtLink to="/items">Register</NuxtLink>
       </Button>
-      <Button as-child v-if="!notAuthenticated" variant="link">
-        <NuxtLink to="/admin">Admin</NuxtLink>
+      <Button as-child v-if="hasPermission('collection:create')" variant="link">
+        <NuxtLink to="/collections">Collections</NuxtLink>
       </Button>
-      <Button as-child v-if="!notAuthenticated" variant="link">
+      <Button as-child v-if="hasPermission('keyword:all')" variant="link">
         <NuxtLink to="/keywords">Keywords</NuxtLink>
       </Button>
-      <Button as-child variant="link">
+      <Button as-child v-if="hasPermission('group:read')" variant="link">
         <NuxtLink to="/groups">Groups</NuxtLink>
       </Button>
     </nav>
