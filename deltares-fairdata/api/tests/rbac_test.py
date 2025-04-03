@@ -142,6 +142,64 @@ async def test_remove_members_from_group(
     assert len(members) == 0
 
 
+# test remove collection group role
+@pytest.mark.asyncio
+async def test_remove_collection_group_role(
+    admin_client: AsyncClient, group_with_user: Group, authenticated_client: AsyncClient
+):
+    collection_id = "test-collection"
+    role = Role.DATA_PRODUCER
+
+    # First assign a role
+    response = await admin_client.post(
+        f"/group-role/{collection_id}",
+        json={
+            "role": role.value,
+            "group_id": str(group_with_user.id),
+        },
+    )
+    assert response.status_code == 200
+
+    # Get collection roles and verify the role is present
+    response = await admin_client.get(
+        f"/group-role/{collection_id}",
+        params={"group_id": str(group_with_user.id)},
+    )
+    assert response.status_code == 200
+    roles = response.json()
+    assert len(roles) == 1
+    assert roles[0]["role"] == role.value
+    assert roles[0]["group_id"] == str(group_with_user.id)
+    assert roles[0]["object"] == collection_id
+
+    # Verify role was added by checking permissions
+    response = await authenticated_client.get(
+        f"/collection-permissions/{collection_id}"
+    )
+    assert response.status_code == 200
+    permissions = response.json()
+    assert Permission.ItemCreate.value in permissions
+
+    # Then remove the role
+    response = await admin_client.delete(
+        f"/group-role/{collection_id}",
+        params={
+            "group_id": str(group_with_user.id),
+            "role": role.value,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {"message": "Role removed from group"}
+
+    # Verify role was removed by checking permissions
+    response = await authenticated_client.get(
+        f"/collection-permissions/{collection_id}"
+    )
+    assert response.status_code == 200
+    permissions = response.json()
+    assert Permission.ItemCreate.value not in permissions
+
+
 # test assign group role to collection
 @pytest.mark.asyncio
 async def test_assign_group_role(admin_client: AsyncClient, group: Group):
@@ -190,7 +248,7 @@ async def test_get_group_roles(
     )
     assert response.status_code == 200
     # Then get permissions
-    response = await authenticated_client.get(f"/group-role/{obj}")
+    response = await authenticated_client.get(f"/collection-permissions/{obj}")
     assert response.status_code == 200
     permissions = response.json()
     assert len(permissions) > 0
@@ -358,7 +416,7 @@ async def test_get_global_permissions(
     admin_client: AsyncClient,
 ):
     # Get global permissions
-    response = await admin_client.get("/global-role")
+    response = await admin_client.get("/permissions")
     assert response.status_code == 200
     permissions = response.json()
 
@@ -367,3 +425,82 @@ async def test_get_global_permissions(
     assert len(permissions) == len(expected_permissions)
     for permission in expected_permissions:
         assert permission in permissions
+
+
+# test remove global group role
+@pytest.mark.asyncio
+async def test_remove_global_group_role(
+    admin_client: AsyncClient,
+    authenticated_client: AsyncClient,
+    group: Group,
+    user: User,
+):
+    # First add user to group
+    response = await admin_client.post(
+        f"/groups/{group.id}/members",
+        json=[user.email],
+    )
+    assert response.status_code == 200
+
+    # Assign a global role
+    response = await admin_client.post(
+        "/group-role",
+        json={
+            "role": Role.KEYWORD_EDITOR.value,
+            "group_id": str(group.id),
+        },
+    )
+    assert response.status_code == 200
+    result = GroupGlobalRoleResponse(**response.json())
+    assert result.group_id == group.id
+    assert result.role == Role.KEYWORD_EDITOR
+
+    # Get global roles and verify the role is present
+    response = await admin_client.get(
+        "/group-role",
+        params={"group_id": str(group.id)},
+    )
+    assert response.status_code == 200
+    roles = response.json()
+    assert len(roles) == 1
+    assert roles[0]["role"] == Role.KEYWORD_EDITOR.value
+    assert roles[0]["group_id"] == str(group.id)
+
+    # Verify user has keyword permissions through the role
+    response = await authenticated_client.get("/permissions")
+    assert response.status_code == 200
+    permissions = response.json()
+    assert Permission.KeywordAll.value in permissions
+
+    # Remove the role
+    response = await admin_client.delete(
+        "/group-role",
+        params={"group_id": str(group.id), "role": Role.KEYWORD_EDITOR.value},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"message": "Role removed from group"}
+
+    # Verify role was removed by checking permissions
+    response = await authenticated_client.get("/permissions")
+    assert response.status_code == 200
+    permissions = response.json()
+    assert Permission.KeywordAll.value not in permissions
+
+    # Try to remove non-existent role
+    response = await admin_client.delete(
+        "/group-role",
+        params={"group_id": str(group.id), "role": Role.KEYWORD_EDITOR.value},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"message": "Role not found on group"}
+
+    # Try to remove role from non-existent group
+    response = await admin_client.delete(
+        "/group-role",
+        params={
+            "group_id": "00000000-0000-0000-0000-000000000000",
+            "role": Role.KEYWORD_EDITOR.value,
+        },
+    )
+    assert response.status_code == 404
+    assert "not found" in response.json()["description"]

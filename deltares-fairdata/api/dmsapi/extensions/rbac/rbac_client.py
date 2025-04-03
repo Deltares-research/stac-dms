@@ -22,7 +22,7 @@ from dmsapi.database.models import (  # type: ignore
     role_permissions,
 )
 from dmsapi.schemas.requests import GroupCollectionRoleRequest, GroupGlobalRoleRequest
-from fastapi import Path
+from fastapi import Path, Query
 from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
 from sqlalchemy import func
@@ -351,6 +351,83 @@ class RBACClient:
         """
         return Role.__members__.values()
 
+    def get_group_global_roles(
+        self,
+        group_id: Annotated[UUID, Query(title="The ID of the group to get roles for")],
+        session: SessionDep,
+    ) -> List[GroupGlobalRoleResponse]:
+        """Get all global roles for a group.
+
+        Args:
+            group_id: ID of the group to get roles for
+            session: Database session
+
+        Returns:
+            List of GroupGlobalRoleResponse objects
+        """
+        # Check if group exists
+        group = session.exec(select(Group).where(Group.id == group_id)).first()
+        if group is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+
+        # Get all global roles for the group
+        group_roles = session.exec(
+            select(GroupRole).where(
+                GroupRole.group_id == group_id,
+                GroupRole.object.is_(None),  # Global roles have no object
+            )
+        ).all()
+
+        # Convert to response objects
+        return [
+            GroupGlobalRoleResponse(
+                group_id=role.group_id,
+                group_name=group.name,
+                role=role.role,
+            )
+            for role in group_roles
+        ]
+
+    def get_group_collection_roles(
+        self,
+        collection_id: str,
+        group_id: Annotated[UUID, Query(title="The ID of the group to get roles for")],
+        session: SessionDep,
+    ) -> List[GroupCollectionRoleResponse]:
+        """Get all roles for a group on a collection.
+
+        Args:
+            collection_id: ID of the collection
+            group_id: ID of the group to get roles for
+            session: Database session
+
+        Returns:
+            List of GroupCollectionRoleResponse objects
+        """
+        # Check if group exists
+        group = session.exec(select(Group).where(Group.id == group_id)).first()
+        if group is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+
+        # Get all roles for the group on the collection
+        group_roles = session.exec(
+            select(GroupRole).where(
+                GroupRole.group_id == group_id,
+                GroupRole.object == collection_id,
+            )
+        ).all()
+
+        # Convert to response objects
+        return [
+            GroupCollectionRoleResponse(
+                group_id=role.group_id,
+                group_name=group.name,
+                role=role.role,
+                object=collection_id,
+            )
+            for role in group_roles
+        ]
+
     @staticmethod
     def assign_group_global_role(
         request: GroupGlobalRoleRequest, session: SessionDep
@@ -375,7 +452,6 @@ class RBACClient:
         session.commit()
         session.refresh(group_role)
         return GroupGlobalRoleResponse(
-            id=group_role.id,
             group_id=group_role.group_id,
             group_name=group.name,
             role=group_role.role,
@@ -438,7 +514,6 @@ class RBACClient:
         session.commit()
         session.refresh(group_role)
         return GroupCollectionRoleResponse(
-            id=group_role.id,
             group_id=group_role.group_id,
             group_name=group.name,
             role=group_role.role,
@@ -473,3 +548,81 @@ class RBACClient:
             # Add all permissions from this role to our set
             permissions.update(role_permissions[role.role])
         return list(permissions)
+
+    def remove_group_global_role(
+        self,
+        group_id: Annotated[
+            UUID, Query(title="The ID of the group to remove the role from")
+        ],
+        role: Annotated[Role, Query(title="The role to remove")],
+        session: SessionDep,
+    ) -> OKResponse:
+        """Remove a global role from a group.
+
+        Args:
+            group_id: ID of the group to remove the role from
+            role: Role to remove
+            session: Database session
+
+        Returns:
+            OKResponse
+        """
+        # Check if group exists
+        group = session.exec(select(Group).where(Group.id == group_id)).first()
+        if group is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+
+        # Find and delete the role
+        group_role = session.exec(
+            select(GroupRole).where(
+                GroupRole.group_id == group_id,
+                GroupRole.role == role,
+                GroupRole.object.is_(None),  # Global role has no object
+            )
+        ).first()
+
+        if group_role:
+            session.delete(group_role)
+            session.commit()
+            return OKResponse(message="Role removed from group")
+        return OKResponse(message="Role not found on group")
+
+    def remove_collection_group_role(
+        self,
+        collection_id: str,
+        group_id: Annotated[
+            UUID, Query(title="The ID of the group to remove the role from")
+        ],
+        role: Annotated[Role, Query(title="The role to remove")],
+        session: SessionDep,
+    ) -> OKResponse:
+        """Remove a collection role from a group.
+
+        Args:
+            collection_id: ID of the collection
+            group_id: ID of the group to remove the role from
+            role: Role to remove
+            session: Database session
+
+        Returns:
+            OKResponse
+        """
+        # Check if group exists
+        group = session.exec(select(Group).where(Group.id == group_id)).first()
+        if group is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+
+        # Find and delete the role
+        group_role = session.exec(
+            select(GroupRole).where(
+                GroupRole.group_id == group_id,
+                GroupRole.role == role,
+                GroupRole.object == collection_id,
+            )
+        ).first()
+
+        if group_role:
+            session.delete(group_role)
+            session.commit()
+            return OKResponse(message="Role removed from group")
+        return OKResponse(message="Role not found on group")
