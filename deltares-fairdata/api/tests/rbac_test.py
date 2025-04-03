@@ -6,7 +6,6 @@ from dmsapi.database.models import (  # type: ignore
     Permission,
     Role,
     User,
-    UserUpdate,
     role_permissions,
 )
 from dmsapi.extensions.rbac.rbac_client import RBACClient
@@ -104,7 +103,7 @@ async def test_add_members_to_group(
 ):
     response = await admin_client.post(
         f"/groups/{group.id}/members",
-        json=[UserUpdate(email=user.email).model_dump()],
+        json=[user.email],
     )
     assert response.status_code == 200
     assert response.json() == {"message": "Members added"}
@@ -125,7 +124,7 @@ async def test_remove_members_from_group(
     # First add the member
     await admin_client.post(
         f"/groups/{group.id}/members",
-        json=[UserUpdate(email=user.email).model_dump()],
+        json=[user.email],
     )
 
     # Then remove
@@ -248,7 +247,7 @@ async def test_global_admin_access(
     # Add user to group
     response = await admin_client.post(
         f"/groups/{group.id}/members",
-        json=[UserUpdate(email=user.email).model_dump()],
+        json=[user.email],
     )
     assert response.status_code == 200
 
@@ -275,7 +274,7 @@ async def test_global_admin_access(
     # Manage members
     response = await authenticated_client.post(
         f"/groups/{group.id}/members",
-        json=[UserUpdate(email=user.email).model_dump()],
+        json=[user.email],
     )
     assert response.status_code == 200
 
@@ -319,7 +318,7 @@ async def test_editor_role_permissions(
     assert response.status_code == 200
     response = await admin_client.post(
         f"/groups/{group.id}/members",
-        json=[{"email": user.email}],
+        json=[user.email],
     )
     assert response.status_code == 200
 

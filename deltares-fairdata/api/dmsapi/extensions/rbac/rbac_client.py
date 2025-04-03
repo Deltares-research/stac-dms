@@ -254,7 +254,7 @@ class RBACClient:
         return OKResponse(message="Group deleted")
 
     def add_users_to_group(
-        self, group_id: UUID, users: list[UserUpdate], session: SessionDep
+        self, group_id: UUID, user_emails: list[EmailStr], session: SessionDep
     ) -> OKResponse:
         """Add multiple users to a group.
 
@@ -271,9 +271,7 @@ class RBACClient:
             raise NotFoundError(f"Group with ID {group_id} not found")
 
         # Get users from database
-        email_list = [user.email for user in users]
-        # Get users from database
-        users = session.exec(select(User).where(User.email.in_(email_list))).all()
+        users = session.exec(select(User).where(User.email.in_(user_emails))).all()
         # Check existing links to avoid duplicates
 
         # Get existing user emails in the group
