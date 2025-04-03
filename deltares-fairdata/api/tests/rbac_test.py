@@ -565,3 +565,46 @@ async def test_get_group_only_returns_global_roles(
     assert "users" in group_data
     assert len(group_data["users"]) == 1
     assert group_data["users"][0]["email"] == user.email
+
+
+# test get group roles for object without group_id
+@pytest.mark.asyncio
+async def test_get_collection_roles_without_group_id(
+    admin_client: AsyncClient,
+    group: Group,
+    rbac_client: RBACClient,
+    db_session: Session,
+):
+    collection_id = "test-collection"
+
+    # Create a second group
+    second_group = rbac_client.create_group(
+        {"name": "second_group", "description": "Second test group"}, db_session
+    )
+
+    # Assign different roles to both groups
+    await admin_client.post(
+        f"/group-role/{collection_id}",
+        json={
+            "role": Role.DATA_PRODUCER.value,
+            "group_id": str(group.id),
+        },
+    )
+    await admin_client.post(
+        f"/group-role/{collection_id}",
+        json={
+            "role": Role.COLLECTION_DATA_STEWARD.value,
+            "group_id": str(second_group.id),
+        },
+    )
+
+    # Get roles without specifying group_id
+    response = await admin_client.get(f"/group-role/{collection_id}")
+    assert response.status_code == 200
+    roles = response.json()
+
+    # Verify all roles from both groups are returned
+    assert len(roles) == 2
+    role_data = {(role["group_id"], role["role"]) for role in roles}
+    assert (str(group.id), Role.DATA_PRODUCER.value) in role_data
+    assert (str(second_group.id), Role.COLLECTION_DATA_STEWARD.value) in role_data

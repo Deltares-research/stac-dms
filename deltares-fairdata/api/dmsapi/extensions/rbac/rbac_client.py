@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 from uuid import UUID
 
 from dmsapi.core.dependencies import UserDep
@@ -395,8 +395,10 @@ class RBACClient:
     def get_group_collection_roles(
         self,
         collection_id: str,
-        group_id: Annotated[UUID, Query(title="The ID of the group to get roles for")],
         session: SessionDep,
+        group_id: Annotated[
+            Optional[UUID], Query(title="The ID of the group to get roles for")
+        ] = None,
     ) -> List[GroupCollectionRoleResponse]:
         """Get all roles for a group on a collection.
 
@@ -408,24 +410,32 @@ class RBACClient:
         Returns:
             List of GroupCollectionRoleResponse objects
         """
-        # Check if group exists
-        group = session.exec(select(Group).where(Group.id == group_id)).first()
-        if group is None:
-            raise NotFoundError(f"Group with ID {group_id} not found")
 
-        # Get all roles for the group on the collection
-        group_roles = session.exec(
-            select(GroupRole).where(
-                GroupRole.group_id == group_id,
-                GroupRole.object == collection_id,
-            )
-        ).all()
+        # Get all roles on the collection
+        if group_id is None:
+            group_roles = session.exec(
+                select(GroupRole).where(
+                    GroupRole.object == collection_id,
+                )
+            ).all()
+        else:
+            # Check if group exists
+            group = session.exec(select(Group).where(Group.id == group_id)).first()
+            if group is None:
+                raise NotFoundError(f"Group with ID {group_id} not found")
+            # Get all roles for the group on the collection
+            group_roles = session.exec(
+                select(GroupRole).where(
+                    GroupRole.group_id == group_id,
+                    GroupRole.object == collection_id,
+                )
+            ).all()
 
         # Convert to response objects
         return [
             GroupCollectionRoleResponse(
                 group_id=role.group_id,
-                group_name=group.name,
+                group_name=role.group.name,
                 role=role.role,
                 object=collection_id,
             )
