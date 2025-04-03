@@ -36,6 +36,8 @@ let onSubmitCreateKeywordgoupForm = createKeywordgroupForm.handleSubmit(
     })
 
     refresh()
+
+    createKeywordgroupForm.resetForm()
   },
 )
 
