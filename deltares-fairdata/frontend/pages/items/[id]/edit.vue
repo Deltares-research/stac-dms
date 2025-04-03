@@ -55,6 +55,10 @@ let { data: collectionsResponse } = await useApi("/collections", {
   server: true,
 })
 
+let { data: collectionPermissions } = await useApi("/collection-permissions", {
+  server: true,
+})
+
 let searchResult = id
   ? await useApi("/search", {
       query: { ids: id },
@@ -108,7 +112,14 @@ const title = initialValues.value
   ? "Update an existing registration"
   : "Register a new item"
 
-let collections = collectionsResponse.value?.collections ?? []
+let collections =
+  collectionsResponse.value?.collections.filter((item) => {
+    return collectionPermissions.value?.some(
+      (permission) =>
+        permission.collection_id === item.id &&
+        permission.permissions.includes("item:create"),
+    )
+  }) ?? []
 
 const selectedCollection = initialValues.value
   ? collections.find((item) => item.id == initialValues.value?.collection)

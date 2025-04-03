@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import SimpleCombobox from "../SimpleCombobox.vue"
+import SimpleCombobox from "@/components/SimpleCombobox.vue"
 
 let { name, modelValue } = defineProps<{
   name: string
@@ -19,6 +19,7 @@ let { data: groups } = await useApi("/groups")
     :items="groups ?? []"
     title-property="name"
     subtitle-property="description"
+    value-property="id"
     placeholder="Search groups"
     trigger="Add group"
     command-empty="No groups found"

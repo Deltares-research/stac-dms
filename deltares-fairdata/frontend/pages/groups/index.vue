@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogTrigger,
   DialogHeader,
-  DialogDescription,
 } from "@/components/ui/dialog"
 import DataTable from "@/components/table/DataTable.vue"
 import type { components } from "#open-fetch-schemas/api"
@@ -17,10 +16,14 @@ import { z } from "zod"
 import { useForm } from "vee-validate"
 import { toast } from "~/components/ui/toast"
 import Input from "~/components/ui/input/Input.vue"
+import { usePermissions } from "@/composables/permissions"
+
+const { requirePermission, hasPermission } = await usePermissions()
+
+requirePermission("group:read")
 
 let { data: groups, refresh } = await useApi("/groups")
 
-const router = useRouter()
 const columns: ColumnDef<components["schemas"]["Group"]>[] = [
   {
     accessorKey: "name",
@@ -78,12 +81,7 @@ let createGroupForm = useForm({
   validationSchema: createGroupSchema,
 })
 
-watchEffect(() => {
-  console.log(createGroupForm.errors.value)
-})
-
 let onSubmitCreateGroupForm = createGroupForm.handleSubmit(async (values) => {
-  console.log("slert")
   let result = await $api("/groups", {
     method: "post",
     body: values,
@@ -100,13 +98,13 @@ let onSubmitCreateGroupForm = createGroupForm.handleSubmit(async (values) => {
 <template>
   <Container>
     <h3 class="mt-8 scroll-m-20 text-2xl font-semibold tracking-tight">
-      Permissions
+      Groups
     </h3>
-    <p class="text-sm text-muted-foreground">Manage groups and permissions</p>
+    <p class="text-sm text-muted-foreground">Manage groups</p>
     <div class="flex justify-end">
-      <Dialog>
+      <Dialog v-if="hasPermission('group:create')">
         <DialogTrigger as-child>
-          <Button>
+          <Button class="mb-5">
             <PlusIcon class="w-4 h-4 mr-2" />
             Add new group
           </Button>

@@ -147,22 +147,23 @@ const collectionColumns: ColumnDef<
 </script>
 
 <template>
-  <Card class="mt-5">
-    <CardHeader>
-      <CardTitle>Registered data</CardTitle>
-      <CardDescription
-        >List of data sets registrations, which you are allowed to edit
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div class="flex justify-end">
-        <Button as-child>
-          <NuxtLink to="/items/create/edit" class="flex items-center gap-1">
-            <PlusIcon class="w-4 h-4 mr-2" />
-            Register new dataset
-          </NuxtLink>
-        </Button>
+  <div class="mt-5 px-8">
+    <div class="flex justify-between items-end">
+      <div>
+        <h1 class="text-2xl font-semibold">Registered data</h1>
+        <p class="text-sm text-muted-foreground mt-1">
+          List of data sets registrations, which you are allowed to edit
+        </p>
       </div>
+      <Button as-child>
+        <NuxtLink to="/items/create/edit" class="flex items-center gap-1">
+          <PlusIcon class="w-4 h-4 mr-2" />
+          Register new dataset
+        </NuxtLink>
+      </Button>
+    </div>
+    <div class="mt-5">
+      <div class="flex justify-end"></div>
       <div class="flex justify-end"></div>
       <DataTable
         v-if="items?.features"
@@ -170,6 +171,6 @@ const collectionColumns: ColumnDef<
         :data="items.features"
         filterId="properties.title"
       />
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 </template>
