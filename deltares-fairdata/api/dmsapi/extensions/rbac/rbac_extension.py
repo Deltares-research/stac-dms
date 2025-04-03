@@ -1,5 +1,6 @@
+import copy
 from dataclasses import dataclass
-from typing import Dict
+from typing import Any, Dict, List
 
 from dmsapi.core.dependencies import (
     user_has_collection_permission,
@@ -21,6 +22,7 @@ from fastapi.routing import APIRoute
 from stac_fastapi.api.routes import Scope, add_route_dependencies
 from stac_fastapi.types.extension import ApiExtension
 from stac_pydantic.shared import MimeTypes
+from starlette.routing import BaseRoute, Match
 
 
 @dataclass(frozen=True)
@@ -178,6 +180,17 @@ class RBACExtension(ApiExtension):
             ): Permission.CollectionCreate,
         }
 
+        forbidden_response = {
+            403: {
+                "content": {
+                    MimeTypes.json.value: {
+                        "schema": ErrorResponse.model_json_schema(),
+                    },
+                },
+                "model": ErrorResponse,
+            }
+        }
+
         for route in app.routes:
             if isinstance(route, APIRoute):
                 for method in route.methods:
@@ -198,6 +211,11 @@ class RBACExtension(ApiExtension):
                                 )
                             ],
                         )
+                        add_route_responses(
+                            app.router.routes,
+                            [endpoint.to_scope()],
+                            forbidden_response,
+                        )
 
                     # Add dependencies for global routes
                     if endpoint in global_route_dependencies:
@@ -211,6 +229,12 @@ class RBACExtension(ApiExtension):
                                     )
                                 )
                             ],
+                        )
+
+                        add_route_responses(
+                            app.router.routes,
+                            [endpoint.to_scope()],
+                            forbidden_response,
                         )
 
     def add_get_users(self):
@@ -545,3 +569,37 @@ class RBACExtension(ApiExtension):
             response_model=list[Permission],
             methods=["GET"],
         )
+
+
+def add_route_responses(
+    routes: List[BaseRoute], scopes: List[Scope], responses=dict[int, Any]
+) -> None:
+    """Add dependencies to routes.
+
+    Allows a developer to add dependencies to a route after the route has been
+    defined.
+
+    "*" can be used for path or method to match all allowed routes.
+
+    Returns:
+        None
+    """
+    for scope in scopes:
+        _scope = copy.deepcopy(scope)
+        for route in routes:
+            if scope["path"] == "*":
+                _scope["path"] = route.path
+
+            if scope["method"] == "*":
+                _scope["method"] = list(route.methods)[0]
+
+            match, _ = route.matches({"type": "http", **_scope})
+            if match != Match.FULL:
+                continue
+
+            # Ignore paths without dependants, e.g. /api, /api.html, /docs/oauth2-redirect
+            if not hasattr(route, "dependant"):
+                continue
+
+            # Register responses directly on route so that they aren't ignored if
+            route.responses.update(responses)
