@@ -55,11 +55,26 @@ async def test_update_group(admin_client: AsyncClient, group: Group):
 # test get group
 @pytest.mark.asyncio
 async def test_get_group(admin_client: AsyncClient, group: Group):
+    # First assign a global role
+    response = await admin_client.post(
+        "/group-role",
+        json={
+            "role": Role.KEYWORD_EDITOR.value,
+            "group_id": str(group.id),
+        },
+    )
+    assert response.status_code == 200
+
+    # Get the group and verify roles are included
     response = await admin_client.get(f"/groups/{group.id}")
     assert response.status_code == 200
-    group_obj = Group(**response.json())
-    assert group_obj.name == "test_group"
-    assert group_obj.description == "test_description"
+    group_data = response.json()
+    assert group_data["name"] == "test_group"
+    assert group_data["description"] == "test_description"
+    assert "roles" in group_data
+    assert len(group_data["roles"]) == 1
+    assert group_data["roles"][0]["role"] == Role.KEYWORD_EDITOR.value
+    assert group_data["roles"][0]["group_id"] == str(group.id)
 
 
 # test get all groups
@@ -457,14 +472,13 @@ async def test_remove_global_group_role(
 
     # Get global roles and verify the role is present
     response = await admin_client.get(
-        "/group-role",
-        params={"group_id": str(group.id)},
+        f"/groups/{group.id}",
     )
     assert response.status_code == 200
-    roles = response.json()
-    assert len(roles) == 1
-    assert roles[0]["role"] == Role.KEYWORD_EDITOR.value
-    assert roles[0]["group_id"] == str(group.id)
+    group_data = response.json()
+    assert len(group_data["roles"]) == 1
+    assert group_data["roles"][0]["role"] == Role.KEYWORD_EDITOR.value
+    assert group_data["roles"][0]["group_id"] == str(group.id)
 
     # Verify user has keyword permissions through the role
     response = await authenticated_client.get("/permissions")
@@ -504,3 +518,50 @@ async def test_remove_global_group_role(
     )
     assert response.status_code == 404
     assert "not found" in response.json()["description"]
+
+
+# test get group only returns global roles
+@pytest.mark.asyncio
+async def test_get_group_only_returns_global_roles(
+    admin_client: AsyncClient, group_with_user: Group, user: User
+):
+    # First assign a global role
+    response = await admin_client.post(
+        "/group-role",
+        json={
+            "role": Role.KEYWORD_EDITOR.value,
+            "group_id": str(group_with_user.id),
+        },
+    )
+    assert response.status_code == 200
+
+    # Then assign a collection-specific role
+    collection_id = "test-collection"
+    response = await admin_client.post(
+        f"/group-role/{collection_id}",
+        json={
+            "role": Role.DATA_PRODUCER.value,
+            "group_id": str(group_with_user.id),
+        },
+    )
+    assert response.status_code == 200
+
+    # Get the group and verify only global roles are included
+    response = await admin_client.get(f"/groups/{group_with_user.id}")
+    assert response.status_code == 200
+    group_data = response.json()
+
+    # Verify roles are present
+    assert "roles" in group_data
+    assert len(group_data["roles"]) == 1  # Should only have the global role
+
+    # Verify it's the global role
+    role = group_data["roles"][0]
+    assert role["role"] == Role.KEYWORD_EDITOR.value
+    assert role["group_id"] == str(group_with_user.id)
+    assert role["object"] is None
+
+    # verify users are present
+    assert "users" in group_data
+    assert len(group_data["users"]) == 1
+    assert group_data["users"][0]["email"] == user.email

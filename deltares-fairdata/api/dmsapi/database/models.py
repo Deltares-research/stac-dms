@@ -230,7 +230,7 @@ class Group(GroupBase, table=True):
     users: List["User"] = Relationship(
         back_populates="groups", link_model=GroupUserLink
     )
-    group_roles: List["GroupRole"] = Relationship(back_populates="group")
+    roles: List["GroupRole"] = Relationship(back_populates="group")
 
 
 class GroupCreate(GroupBase):
@@ -239,6 +239,11 @@ class GroupCreate(GroupBase):
 
 class GroupList(GroupBase):
     id: uuid.UUID
+
+
+class GroupPublic(GroupBase):
+    users: List["User"]
+    roles: List["GroupRole"]
 
 
 class GroupRole(SQLModel, table=True):
@@ -251,7 +256,7 @@ class GroupRole(SQLModel, table=True):
         )
     )
     group_id: uuid.UUID = Field(foreign_key="group.id")
-    group: Group = Relationship(back_populates="group_roles")
+    group: Group = Relationship(back_populates="roles")
 
 
 class GroupGlobalRoleResponse(SQLModel):

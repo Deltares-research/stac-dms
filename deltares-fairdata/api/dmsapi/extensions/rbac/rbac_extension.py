@@ -11,6 +11,7 @@ from dmsapi.database.models import (  # type: ignore
     Group,
     GroupCollectionRoleResponse,
     GroupGlobalRoleResponse,
+    GroupPublic,
     OKResponse,
     Permission,
     Role,
@@ -101,7 +102,6 @@ class RBACExtension(ApiExtension):
         self.add_get_permissions_on_collection()
         self.add_remove_group_global_role()
         self.add_remove_collection_group_role()
-        self.add_get_group_global_roles()
         self.add_get_group_collection_roles()
         app.include_router(self.router, tags=["RBAC Extension"])
 
@@ -314,13 +314,13 @@ class RBACExtension(ApiExtension):
                     )
                 )
             ],
-            response_model=Group,
+            response_model=GroupPublic,
             responses={
                 200: {
                     "content": {
                         MimeTypes.json.value: {},
                     },
-                    "model": Group,
+                    "model": GroupPublic,
                 },
                 400: {
                     "content": {
@@ -538,43 +538,6 @@ class RBACExtension(ApiExtension):
                 },
             },
             methods=["POST"],
-        )
-
-    def add_get_group_global_roles(self):
-        """Add endpoint to get all global roles of a group."""
-        self.router.add_api_route(
-            name="Get group global roles",
-            path="/group-role",
-            endpoint=self.client.get_group_global_roles,
-            dependencies=[
-                Depends(
-                    user_has_global_permission(
-                        permission=Permission.GroupRead,
-                    )
-                )
-            ],
-            response_model=list[GroupGlobalRoleResponse],
-            responses={
-                200: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": list[GroupGlobalRoleResponse],
-                },
-                400: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-                404: {
-                    "content": {
-                        MimeTypes.json.value: {},
-                    },
-                    "model": ErrorResponse,
-                },
-            },
-            methods=["GET"],
         )
 
     def add_remove_group_global_role(self):
