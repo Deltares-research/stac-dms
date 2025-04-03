@@ -265,6 +265,11 @@ class GroupGlobalRoleResponse(SQLModel):
     group_name: str
 
 
+class CollectionPermission(SQLModel):
+    collection_id: str
+    permissions: List[Permission]
+
+
 class GroupCollectionRoleResponse(GroupGlobalRoleResponse):
     object: str
 

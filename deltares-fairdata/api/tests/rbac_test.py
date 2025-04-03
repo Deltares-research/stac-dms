@@ -608,3 +608,60 @@ async def test_get_collection_roles_without_group_id(
     role_data = {(role["group_id"], role["role"]) for role in roles}
     assert (str(group.id), Role.DATA_PRODUCER.value) in role_data
     assert (str(second_group.id), Role.COLLECTION_DATA_STEWARD.value) in role_data
+
+
+# test get collection permissions
+@pytest.mark.asyncio
+async def test_get_collection_permissions(
+    authenticated_client: AsyncClient,
+    admin_client: AsyncClient,
+    group_with_user: Group,
+):
+    # Create test data - assign roles to the group on different collections
+    collection1_id = "test-collection-1"
+    collection2_id = "test-collection-2"
+
+    # Assign DATA_PRODUCER role on collection1
+    await admin_client.post(
+        f"/group-role/{collection1_id}",
+        json={
+            "role": Role.DATA_PRODUCER.value,
+            "group_id": str(group_with_user.id),
+        },
+    )
+
+    # Assign COLLECTION_DATA_STEWARD role on collection2
+    await admin_client.post(
+        f"/group-role/{collection2_id}",
+        json={
+            "role": Role.COLLECTION_DATA_STEWARD.value,
+            "group_id": str(group_with_user.id),
+        },
+    )
+
+    # Get all collection permissions for the authenticated user
+    response = await authenticated_client.get("/collection-permissions")
+    assert response.status_code == 200
+    permissions = response.json()
+
+    # Verify we got permissions for both collections
+    assert len(permissions) == 2
+
+    # Convert response to a dict for easier testing
+    permissions_by_collection = {
+        perm["collection_id"]: set(perm["permissions"]) for perm in permissions
+    }
+
+    # Verify permissions for collection1
+    assert collection1_id in permissions_by_collection
+    assert (
+        set(role_permissions[Role.DATA_PRODUCER])
+        == permissions_by_collection[collection1_id]
+    )
+
+    # Verify permissions for collection2
+    assert collection2_id in permissions_by_collection
+    assert (
+        set(role_permissions[Role.COLLECTION_DATA_STEWARD])
+        == permissions_by_collection[collection2_id]
+    )

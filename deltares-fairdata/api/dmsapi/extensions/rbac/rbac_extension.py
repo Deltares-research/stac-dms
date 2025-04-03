@@ -7,6 +7,7 @@ from dmsapi.core.dependencies import (
     user_has_global_permission,
 )
 from dmsapi.database.models import (  # type: ignore
+    CollectionPermission,
     ErrorResponse,
     Group,
     GroupCollectionRoleResponse,
@@ -103,6 +104,7 @@ class RBACExtension(ApiExtension):
         self.add_remove_group_global_role()
         self.add_remove_collection_group_role()
         self.add_get_group_collection_roles()
+        self.add_get_collection_permissions()
         app.include_router(self.router, tags=["RBAC Extension"])
 
         # A list of the collection endpoints and the permissions required to access them
@@ -694,6 +696,15 @@ class RBACExtension(ApiExtension):
             path="/collection-permissions/{collection_id}",
             endpoint=self.client.get_permissions_on_collection,
             response_model=list[Permission],
+            methods=["GET"],
+        )
+
+    def add_get_collection_permissions(self):
+        self.router.add_api_route(
+            name="Get permissions on collection",
+            path="/collection-permissions",
+            endpoint=self.client.get_collection_permissions,
+            response_model=list[CollectionPermission],
             methods=["GET"],
         )
 
