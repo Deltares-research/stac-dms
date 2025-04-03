@@ -265,26 +265,29 @@ class RBACClient:
         Returns:
             OKResponse
         """
+        # Get the group
+        group = session.get(Group, group_id)
+        if group is None:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+
+        # Get users from database
         email_list = [user.email for user in users]
+        # Get users from database
+        users = session.exec(select(User).where(User.email.in_(email_list))).all()
         # Check existing links to avoid duplicates
-        existing_links = session.exec(
-            select(GroupUserLink).where(
-                GroupUserLink.group_id == group_id,
-                GroupUserLink.user_email.in_(email_list),
-            )
-        ).all()
-        existing_user_emails = {link.user_email for link in existing_links}
+
+        # Get existing user emails in the group
+        existing_user_emails = {user.email for user in group.users}
 
         try:
             # Add users that are not already in the group
-            new_links = [
-                GroupUserLink(user_email=user.email, group_id=group_id)
-                for user in users
-                if user.email not in existing_user_emails
+            users_to_add = [
+                user for user in users if user.email not in existing_user_emails
             ]
 
-            if len(new_links) != 0:
-                session.add_all(new_links)
+            if users_to_add:
+                for user in users_to_add:
+                    group.users.append(user)
                 session.commit()
                 return OKResponse(message="Members added")
             return OKResponse(message="Members not added")
@@ -294,7 +297,7 @@ class RBACClient:
 
     def remove_user_from_group(
         self, group_id: UUID, user_email: EmailStr, session: SessionDep
-    ) -> bool:
+    ) -> OKResponse:
         """Remove multiple users from a group.
 
         Args:
@@ -304,15 +307,23 @@ class RBACClient:
         Returns:
             OKResponse
         """
-        links_to_remove = session.exec(
-            select(GroupUserLink).where(
-                GroupUserLink.group_id == group_id,
-                GroupUserLink.user_email == user_email,
-            )
+        # Get the group with users loaded
+        group: Group | None = session.exec(
+            select(Group).where(Group.id == group_id).options(selectinload(Group.users))
         ).first()
 
-        if links_to_remove:
-            session.delete(links_to_remove)
+        if not group:
+            raise NotFoundError(f"Group with ID {group_id} not found")
+
+        # Find the user to remove
+        user_to_remove = None
+        for user in group.users:
+            if user.email == user_email:
+                user_to_remove = user
+                break
+
+        if user_to_remove:
+            group.users.remove(user_to_remove)
             session.commit()
             return OKResponse(message="User removed from group")
         return OKResponse(message="User not removed from group")
