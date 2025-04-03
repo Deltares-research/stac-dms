@@ -3,7 +3,6 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi_sso.sso.microsoft import MicrosoftSSO
@@ -33,6 +32,7 @@ from stac_fastapi.types.config import Settings
 
 from dmsapi.config import DMSAPISettings
 from dmsapi.core.stacdms import StacDmsApi
+from dmsapi.core.startup import create_admin_users, run_migrations
 from dmsapi.database.db import create_db_engine
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
@@ -94,6 +94,7 @@ post_request_model = create_post_request_model(extensions)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
+    create_admin_users()
     _LOGGER.info("Creating collection index")
     await create_index_templates()
     await create_collection_index()
@@ -123,22 +124,6 @@ api = StacDmsApi(
     search_get_request_model=create_get_request_model(extensions),
     search_post_request_model=post_request_model,
 )
-
-
-def run_migrations():
-    from alembic import command
-    from alembic.config import Config
-
-    config_path = Path(__file__).parent.parent / "alembic.ini"
-    alembic_cfg = Config(config_path)
-    if settings.environment == "local":
-        _LOGGER.info(
-            f"Checking for unapplied DB migrations. Not running them. using config at {config_path}"
-        )
-        # command.check(alembic_cfg)
-    else:
-        _LOGGER.info("Running DB migrations")
-        command.upgrade(alembic_cfg, "head")
 
 
 # def create_handler(app):

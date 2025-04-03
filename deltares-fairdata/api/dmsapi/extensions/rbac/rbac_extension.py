@@ -92,7 +92,7 @@ class RBACExtension(ApiExtension):
         self.add_get_roles()
         self.add_add_users_to_group()
         self.add_get_users_from_group()
-        self.add_delete_users_from_group()
+        self.add_delete_user_from_group()
         self.add_assign_group_role()
         self.add_get_my_global_permissions()
         self.add_get_my_collection_permissions()
@@ -383,11 +383,30 @@ class RBACExtension(ApiExtension):
                     )
                 )
             ],
-            response_model=OKResponse,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": OKResponse,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
             methods=["POST"],
         )
 
-    def add_delete_users_from_group(self):
+    def add_delete_user_from_group(self):
         self.router.add_api_route(
             name="Delete users from group",
             path="/groups/{group_id}/members",
@@ -399,7 +418,32 @@ class RBACExtension(ApiExtension):
                     )
                 )
             ],
-            response_model=OKResponse,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": OKResponse,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                403: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
             methods=["DELETE"],
         )
 
@@ -409,6 +453,26 @@ class RBACExtension(ApiExtension):
             path="/groups/{group_id}/members",
             endpoint=self.client.get_users_from_group,
             response_model=list[User],
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": list[User],
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
             methods=["GET"],
         )
 
@@ -425,6 +489,26 @@ class RBACExtension(ApiExtension):
                 )
             ],
             response_model=GroupGlobalRoleResponse,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": GroupGlobalRoleResponse,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                403: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
             methods=["POST"],
         )
 

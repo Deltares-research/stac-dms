@@ -182,6 +182,15 @@ class Facility(FacilityBase, table=True):
     )
 
 
+class GroupUserLink(SQLModel, table=True):
+    group_id: uuid.UUID | None = Field(
+        default=None, foreign_key="group.id", primary_key=True
+    )
+    user_email: EmailStr | None = Field(
+        default=None, foreign_key="user.email", primary_key=True
+    )
+
+
 class UserBase(SQLModel):
     username: str = Field(min_length=1, max_length=100)
     email: EmailStr = Field(min_length=1, max_length=100)
@@ -189,7 +198,9 @@ class UserBase(SQLModel):
 
 class User(UserBase, table=True):
     email: EmailStr = Field(primary_key=True)
-    groups: List["GroupUserLink"] = Relationship(back_populates="user")
+    groups: List["Group"] = Relationship(
+        back_populates="users", link_model=GroupUserLink
+    )
 
 
 class UserCreate(UserBase):
@@ -216,7 +227,9 @@ class GroupBase(SQLModel):
 
 class Group(GroupBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    users: List["GroupUserLink"] = Relationship(back_populates="group")
+    users: List["User"] = Relationship(
+        back_populates="groups", link_model=GroupUserLink
+    )
     group_roles: List["GroupRole"] = Relationship(back_populates="group")
 
 
@@ -226,15 +239,6 @@ class GroupCreate(GroupBase):
 
 class GroupList(GroupBase):
     id: uuid.UUID
-
-
-class GroupUserLink(SQLModel, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    group_id: uuid.UUID = Field(foreign_key="group.id")
-    user_email: EmailStr = Field(foreign_key="user.email")
-
-    group: Optional[Group] = Relationship(back_populates="users")
-    user: Optional[User] = Relationship(back_populates="groups")
 
 
 class GroupRole(SQLModel, table=True):
