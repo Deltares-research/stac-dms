@@ -97,8 +97,12 @@ class RBACExtension(ApiExtension):
         self.add_delete_user_from_group()
         self.add_assign_group_role()
         self.add_get_my_global_permissions()
-        self.add_get_my_collection_permissions()
+        self.add_assign_collection_group_role()
         self.add_get_permissions_on_collection()
+        self.add_remove_group_global_role()
+        self.add_remove_collection_group_role()
+        self.add_get_group_global_roles()
+        self.add_get_group_collection_roles()
         app.include_router(self.router, tags=["RBAC Extension"])
 
         # A list of the collection endpoints and the permissions required to access them
@@ -536,16 +540,96 @@ class RBACExtension(ApiExtension):
             methods=["POST"],
         )
 
+    def add_get_group_global_roles(self):
+        """Add endpoint to get all global roles of a group."""
+        self.router.add_api_route(
+            name="Get group global roles",
+            path="/group-role",
+            endpoint=self.client.get_group_global_roles,
+            dependencies=[
+                Depends(
+                    user_has_global_permission(
+                        permission=Permission.GroupRead,
+                    )
+                )
+            ],
+            response_model=list[GroupGlobalRoleResponse],
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": list[GroupGlobalRoleResponse],
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            methods=["GET"],
+        )
+
+    def add_remove_group_global_role(self):
+        """Add endpoint to remove a global role from a group."""
+        self.router.add_api_route(
+            name="Remove global group role",
+            path="/group-role",
+            endpoint=self.client.remove_group_global_role,
+            dependencies=[
+                Depends(
+                    user_has_global_permission(
+                        permission=Permission.GlobalGroupRoleAssign,
+                    )
+                )
+            ],
+            response_model=OKResponse,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": OKResponse,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                403: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            methods=["DELETE"],
+        )
+
     def add_get_my_global_permissions(self):
         self.router.add_api_route(
             name="Get my global permissions",
-            path="/global-role",
+            path="/permissions",
             endpoint=self.client.get_my_global_permissions,
             response_model=list[Permission],
             methods=["GET"],
         )
 
-    def add_get_my_collection_permissions(self):
+    def add_assign_collection_group_role(self):
         self.router.add_api_route(
             name="Assign collection group role",
             path="/group-role/{collection_id}",
@@ -561,10 +645,90 @@ class RBACExtension(ApiExtension):
             methods=["POST"],
         )
 
+    def add_get_group_collection_roles(self):
+        """Add endpoint to get all roles of a group on a collection."""
+        self.router.add_api_route(
+            name="Get group collection roles",
+            path="/group-role/{collection_id}",
+            endpoint=self.client.get_group_collection_roles,
+            dependencies=[
+                Depends(
+                    user_has_global_permission(
+                        permission=Permission.GroupRead,
+                    )
+                )
+            ],
+            response_model=list[GroupCollectionRoleResponse],
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": list[GroupCollectionRoleResponse],
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            methods=["GET"],
+        )
+
+    def add_remove_collection_group_role(self):
+        """Add endpoint to remove a collection role from a group."""
+        self.router.add_api_route(
+            name="Remove collection group role",
+            path="/group-role/{collection_id}",
+            endpoint=self.client.remove_collection_group_role,
+            dependencies=[
+                Depends(
+                    user_has_global_permission(
+                        permission=Permission.CollectionGroupRoleAssign,
+                    )
+                )
+            ],
+            response_model=OKResponse,
+            responses={
+                200: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": OKResponse,
+                },
+                400: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                403: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+                404: {
+                    "content": {
+                        MimeTypes.json.value: {},
+                    },
+                    "model": ErrorResponse,
+                },
+            },
+            methods=["DELETE"],
+        )
+
     def add_get_permissions_on_collection(self):
         self.router.add_api_route(
             name="Get permissions on collection",
-            path="/group-role/{collection_id}",
+            path="/collection-permissions/{collection_id}",
             endpoint=self.client.get_permissions_on_collection,
             response_model=list[Permission],
             methods=["GET"],

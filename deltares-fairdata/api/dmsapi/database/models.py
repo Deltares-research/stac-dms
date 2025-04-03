@@ -255,7 +255,6 @@ class GroupRole(SQLModel, table=True):
 
 
 class GroupGlobalRoleResponse(SQLModel):
-    id: uuid.UUID
     role: "Role"
     group_id: uuid.UUID
     group_name: str
