@@ -324,7 +324,7 @@ async def group_with_user(rbac_client: RBACClient, db_session: Session, user: Us
         },
         db_session,
     )
-    rbac_client.add_users_to_group(group.id, [user], db_session)
+    rbac_client.add_users_to_group(group.id, [user.email], db_session)
     yield group
     try:
         rbac_client.delete_group(str(group.id))
@@ -412,7 +412,7 @@ async def data_producer_user(
         },
         db_session,
     )
-    rbac_client.add_users_to_group(data_producer_group.id, [user], db_session)
+    rbac_client.add_users_to_group(data_producer_group.id, [user.email], db_session)
     yield user
     try:
         rbac_client.delete_user(str(user.id))
@@ -431,7 +431,7 @@ async def keyword_editor_user(
         },
         db_session,
     )
-    rbac_client.add_users_to_group(keyword_editor_group.id, [user], db_session)
+    rbac_client.add_users_to_group(keyword_editor_group.id, [user.email], db_session)
     yield user
     try:
         rbac_client.delete_user(str(user.id))
@@ -448,7 +448,7 @@ async def admin_user(rbac_client: RBACClient, admin_group: Group, db_session: Se
         },
         db_session,
     )
-    rbac_client.add_users_to_group(admin_group.id, [user], db_session)
+    rbac_client.add_users_to_group(admin_group.id, [user.email], db_session)
     yield user
     try:
         rbac_client.delete_user(str(user.id))
