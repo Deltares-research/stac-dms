@@ -10,6 +10,7 @@ from dmsapi.database.models import (  # type: ignore
     GroupCreate,
     GroupGlobalRoleResponse,
     GroupList,
+    GroupPublic,
     GroupRole,
     GroupUserLink,
     OKResponse,
@@ -23,10 +24,9 @@ from dmsapi.database.models import (  # type: ignore
 )
 from dmsapi.schemas.requests import GroupCollectionRoleRequest, GroupGlobalRoleRequest
 from fastapi import Path, Query
-from fastapi.encoders import jsonable_encoder
 from pydantic import EmailStr
 from sqlalchemy import func
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import contains_eager, selectinload
 from sqlmodel import select
 from stac_fastapi.types.errors import InvalidQueryParameter, NotFoundError
 
@@ -198,14 +198,14 @@ class RBACClient:
         self,
         group_id: Annotated[str, Path(title="The ID of the group to get")],
         session: SessionDep,
-    ) -> Group:
-        """Retrieve a group by ID, including users and permissions.
+    ) -> GroupPublic:
+        """Retrieve a group by ID, including users and global roles.
 
         Args:
             group_id: ID of the group to retrieve.
 
         Returns:
-            retrieved group with users and permissions.
+            retrieved group with users and global roles.
         """
         try:
             uuid = UUID(group_id)
@@ -213,12 +213,16 @@ class RBACClient:
             raise InvalidQueryParameter(f"Group ID {group_id} invalid UUID")
 
         statement = (
-            select(Group).where(Group.id == uuid).options(selectinload(Group.users))
+            select(Group)
+            .where(Group.id == uuid)
+            .outerjoin(Group.roles.and_(GroupRole.object.is_(None)))
+            .outerjoin(Group.users)
+            .options(contains_eager(Group.roles))
+            .options(contains_eager(Group.users))
         )
 
         result = session.exec(statement).first()
 
-        print(jsonable_encoder(result))
         if result is None:
             raise NotFoundError(f"Group with ID {group_id} not found")
 
