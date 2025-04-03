@@ -7,6 +7,7 @@ from dmsapi.database.models import (  # type: ignore
     Role,
     User,
     UserUpdate,
+    role_permissions,
 )
 from dmsapi.extensions.rbac.rbac_client import RBACClient
 from httpx import AsyncClient
@@ -350,3 +351,20 @@ async def test_editor_role_permissions(
         response.json()["detail"]
         == f"User {user.email} does not have permission 'group:create'"
     )
+
+
+# test global admin permissions endpoint
+@pytest.mark.asyncio
+async def test_get_global_permissions(
+    admin_client: AsyncClient,
+):
+    # Get global permissions
+    response = await admin_client.get("/global-role")
+    assert response.status_code == 200
+    permissions = response.json()
+
+    # Verify all admin permissions are present
+    expected_permissions = role_permissions[Role.ADMIN]
+    assert len(permissions) == len(expected_permissions)
+    for permission in expected_permissions:
+        assert permission in permissions

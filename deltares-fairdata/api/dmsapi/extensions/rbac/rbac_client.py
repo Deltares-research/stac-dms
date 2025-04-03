@@ -401,7 +401,7 @@ class RBACClient:
             .join(GroupUserLink, GroupUserLink.group_id == Group.id)
             .where(
                 GroupRole.object.is_(None),
-                GroupUserLink.user_email == user.email,
+                func.lower(GroupUserLink.user_email) == func.lower(user.email),
             )
         ).all()
 
