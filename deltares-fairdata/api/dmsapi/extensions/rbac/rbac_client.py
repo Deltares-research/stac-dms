@@ -4,6 +4,7 @@ from uuid import UUID
 from dmsapi.core.dependencies import UserDep
 from dmsapi.database.db import SessionDep
 from dmsapi.database.models import (  # type: ignore
+    CollectionPermission,
     ErrorResponse,
     Group,
     GroupCollectionRoleResponse,
@@ -562,6 +563,35 @@ class RBACClient:
             # Add all permissions from this role to our set
             permissions.update(role_permissions[role.role])
         return list(permissions)
+
+    def get_collection_permissions(
+        self, user: UserDep, session: SessionDep
+    ) -> List[CollectionPermission]:
+        """Get all permissions for the current user on all collections.
+
+        Args:
+            user: Current authenticated user
+            session: Database session
+
+        Returns:
+            List of CollectionPermission objects that the current user has on all collections
+        """
+        collection_roles: list[GroupRole] = session.exec(
+            select(GroupRole)
+            .join(GroupUserLink, GroupRole.group_id == GroupUserLink.group_id)
+            .where(
+                func.lower(GroupUserLink.user_email) == func.lower(user.email),
+                GroupRole.object.is_not(None),
+            )
+        ).all()
+
+        return [
+            CollectionPermission(
+                collection_id=role.object,
+                permissions=role_permissions[role.role],
+            )
+            for role in collection_roles
+        ]
 
     def remove_group_global_role(
         self,
