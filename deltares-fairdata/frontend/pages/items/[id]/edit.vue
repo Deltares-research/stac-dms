@@ -12,7 +12,7 @@ import { PlusIcon } from "@radix-icons/vue"
 import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
-import { Calendar as CalendarIcon, XIcon } from "lucide-vue-next"
+import { CalendarIcon, XIcon, DatabaseIcon } from "lucide-vue-next"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
@@ -458,7 +458,27 @@ function getDisplayTime() {
         </FormControl>
       </FormField>
       <div class="mt-8 grid grid-flow-row gap-5">
-        <Card>
+        <!-- Empty state when no collections are available -->
+        <Card v-if="collectionOptions.length === 0">
+          <CardContent
+            class="flex flex-col items-center justify-center py-12 text-center"
+          >
+            <div class="rounded-full bg-muted p-4 mb-4">
+              <DatabaseIcon class="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h3 class="text-lg font-semibold mb-2">No collections available</h3>
+            <p class="text-muted-foreground max-w-md mb-4">
+              There are no collections you have permission to add items to.
+              Please contact your administrator to get access.
+            </p>
+
+            <Button as-child variant="outline" class="mt-6">
+              <NuxtLink to="/items">Return to items</NuxtLink>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card v-if="collectionOptions.length > 0">
           <CardHeader>
             <CardTitle class="text-lg">Data set collection</CardTitle>
           </CardHeader>
@@ -881,7 +901,7 @@ function getDisplayTime() {
           </Card>
         </div>
       </div>
-      <div class="flex justify-between px-6 pb-6 mt-4">
+      <div class="flex justify-between mt-4">
         <Button as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
