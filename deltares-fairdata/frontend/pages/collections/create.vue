@@ -74,7 +74,7 @@ let onSubmitCreateCollectionForm = createCollectionForm.handleSubmit(
 <template>
   <div class="py-8 container mx-auto">
     <div class="max-w-[700px] mx-auto">
-      <div v-if="!hasPermission('item:create')">
+      <div v-if="!hasPermission('collection:create')">
         <Alert message="You do not have permission to create collections" />
       </div>
 
