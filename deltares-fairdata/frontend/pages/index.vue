@@ -219,7 +219,6 @@ function onSubmit() {
             @update:model-value="(val: any) => Object.assign(filterState, val)"
           />
 
-          <!-- Search Input -->
           <div class="flex gap-2">
             <Input
               v-model="filterState.q"

@@ -12,7 +12,7 @@ import { PlusIcon } from "@radix-icons/vue"
 import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
-import { Calendar as CalendarIcon, XIcon } from "lucide-vue-next"
+import { CalendarIcon, XIcon, DatabaseIcon } from "lucide-vue-next"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
@@ -52,6 +52,10 @@ function isSelected(kw: Keyword) {
 }
 
 let { data: collectionsResponse } = await useApi("/collections", {
+  server: true,
+})
+
+let { data: collectionPermissions } = await useApi("/collection-permissions", {
   server: true,
 })
 
@@ -108,7 +112,14 @@ const title = initialValues.value
   ? "Update an existing registration"
   : "Register a new item"
 
-let collections = collectionsResponse.value?.collections ?? []
+let collections =
+  collectionsResponse.value?.collections.filter((item) => {
+    return collectionPermissions.value?.some(
+      (permission) =>
+        permission.collection_id === item.id &&
+        permission.permissions.includes("item:create"),
+    )
+  }) ?? []
 
 const selectedCollection = initialValues.value
   ? collections.find((item) => item.id == initialValues.value?.collection)
@@ -447,7 +458,27 @@ function getDisplayTime() {
         </FormControl>
       </FormField>
       <div class="mt-8 grid grid-flow-row gap-5">
-        <Card>
+        <!-- Empty state when no collections are available -->
+        <Card v-if="collectionOptions.length === 0">
+          <CardContent
+            class="flex flex-col items-center justify-center py-12 text-center"
+          >
+            <div class="rounded-full bg-muted p-4 mb-4">
+              <DatabaseIcon class="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h3 class="text-lg font-semibold mb-2">No collections available</h3>
+            <p class="text-muted-foreground max-w-md mb-4">
+              There are no collections you have permission to add items to.
+              Please contact your administrator to get access.
+            </p>
+
+            <Button as-child variant="outline" class="mt-6">
+              <NuxtLink to="/items">Return to items</NuxtLink>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card v-if="collectionOptions.length > 0">
           <CardHeader>
             <CardTitle class="text-lg">Data set collection</CardTitle>
           </CardHeader>
@@ -870,7 +901,7 @@ function getDisplayTime() {
           </Card>
         </div>
       </div>
-      <div class="flex justify-between px-6 pb-6 mt-4">
+      <div class="flex justify-between mt-4">
         <Button as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>

@@ -1,3 +1,11 @@
+<script setup lang="ts">
+import { usePermissions } from "~/composables/permissions"
+
+let { requirePermission } = await usePermissions()
+
+requirePermission("keyword:all")
+</script>
+
 <template>
   <div class="py-8 container mx-auto">
     <h1 class="font-semibold text-3xl border-b pb-3">Keywords management</h1>
