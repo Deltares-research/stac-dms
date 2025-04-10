@@ -8,7 +8,7 @@ from dmsapi.database.models import Group, GroupRole, Role, User
 from sqlmodel import Session, create_engine, select
 from stac_fastapi.types.config import Settings
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger("uvicorn.default")
 
 
 def run_migrations():
