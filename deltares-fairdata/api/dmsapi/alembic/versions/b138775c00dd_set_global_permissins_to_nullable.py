@@ -1,4 +1,4 @@
-"""set global permissins to nullable
+"""set global permissions to nullable
 
 Revision ID: b138775c00dd
 Revises: 48a497f220a8
