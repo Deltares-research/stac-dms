@@ -1,12 +1,11 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
+import alembic_postgresql_enum  # noqa: F401
+import dmsapi.database.models  # noqa: F401
 from alembic import context
-from sqlmodel import SQLModel
-import dmsapi.database.models
 from dmsapi.app import settings
+from sqlalchemy import engine_from_config, pool
+from sqlmodel import SQLModel
 
 url = settings.db_connection_url
 
