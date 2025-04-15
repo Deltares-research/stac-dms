@@ -37,6 +37,11 @@ let { data: keywords } = await useApi("/facilities")
 
 const { data, refresh } = await useApi("/collections")
 
+onMounted(async () => {
+  await new Promise((r) => setTimeout(r, 1000))
+  await refresh()
+})
+
 const collections = computed(() => data.value?.collections)
 
 async function deleteCollection(
