@@ -27,14 +27,44 @@ import { h } from "vue"
 import { collectionTypes } from "@/lib/collectionTypes"
 import { NuxtLink } from "#components"
 import { usePermissions } from "@/composables/permissions"
+import { toast } from "~/components/ui/toast"
 
 const { hasPermission } = await usePermissions()
 
+const { $api } = useNuxtApp()
+
 let { data: keywords } = await useApi("/facilities")
 
-const { data } = await useApi("/collections")
+const { data, refresh } = await useApi("/collections")
 
-const collections = data.value?.collections
+const collections = computed(() => data.value?.collections)
+
+async function deleteCollection(
+  collection: components["schemas"]["stac_pydantic__api__collection__Collection"],
+) {
+  if (
+    confirm(
+      `Are you sure you want to delete collection: ${collection.title || collection.id}?`,
+    )
+  ) {
+    try {
+      await $api("/collections/{collection_id}", {
+        method: "DELETE",
+        path: {
+          collection_id: collection.id,
+        },
+      })
+
+      refresh()
+    } catch (error) {
+      console.error("error", error)
+      toast({
+        variant: "destructive",
+        title: "Error deleting collection",
+      })
+    }
+  }
+}
 
 const collectionColumns: ColumnDef<
   components["schemas"]["stac_pydantic__api__collection__Collection"]
@@ -130,22 +160,18 @@ const collectionColumns: ColumnDef<
               () => [h(Pencil, { class: "h-4 w-4" })],
             ),
         ),
-        h(
-          Button,
-          {
-            variant: "outline",
-            asChild: true,
-            size: "icon",
-          },
-          () =>
-            h(
-              NuxtLink,
-              {
-                to: `/collections/delete/${row.original.id}`,
+        hasPermission("collection:delete") &&
+          h(
+            Button,
+            {
+              variant: "outline",
+              size: "icon",
+              onClick: () => {
+                deleteCollection(row.original)
               },
-              () => [h(Trash2, { class: "h-4 w-4" })],
-            ),
-        ),
+            },
+            [h(Trash2, { class: "h-4 w-4" })],
+          ),
       ])
     },
   },
