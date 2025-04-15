@@ -207,7 +207,6 @@ let schema = z.object({
         originatorMetaDataEmail: z.string(),
         originatorMetaDataRoleCode: z.string().default("originator"),
         metaDataLanguage: z.string().default("eng"),
-        metaDataDateTime: z.string(),
         created: z.string().nullable().optional(),
         updated: z.string().nullable().optional(),
         start_datetime: z.string().nullable().optional(),
@@ -486,7 +485,6 @@ function getDisplayTime() {
             <FormField v-slot="{ componentField }" name="collectionId">
               <FormItem class="flex flex-col gap-1">
                 <FormLabel>Collection</FormLabel>
-                <FormLabel>{{ selectedCollection?.description }} </FormLabel>
                 <FormControl>
                   <CustomDropDownComponent
                     :options="collectionOptions"

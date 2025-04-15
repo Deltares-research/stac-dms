@@ -53,6 +53,17 @@ let keywordsById = computed(() =>
     {} as Record<string, any>,
   ),
 )
+
+function filterFunction(vals: string[], term: string) {
+  console.log(vals, term)
+  return vals.filter((id) => {
+    const kw = keywordsById.value?.[id]
+    return (
+      kw?.en_keyword?.toLowerCase().includes(term.toLowerCase()) ||
+      kw?.nl_keyword?.toLowerCase().includes(term.toLowerCase())
+    )
+  })
+}
 </script>
 
 <style lang="css" scoped>
@@ -89,10 +100,10 @@ let keywordsById = computed(() =>
           <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent class="p-0 PopoverContent">
-        <Command>
-          <CommandInput class="h-9" placeholder="Search framework..." />
-          <CommandEmpty>No framework found.</CommandEmpty>
+      <PopoverContent class="p-0 PopoverContent" align="start">
+        <Command :filter-function="filterFunction">
+          <CommandInput class="h-9" placeholder="Search keyword..." />
+          <CommandEmpty>No keywords found.</CommandEmpty>
           <CommandList>
             <CommandGroup v-for="group in keywordGroups">
               <CommandItem
