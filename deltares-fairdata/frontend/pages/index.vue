@@ -239,7 +239,7 @@ function onSubmit() {
               <CardTitle class="text-xl">
                 {{ item.properties.title ?? item.id }}
               </CardTitle>
-              <CardDescription>{{
+              <CardDescription class="line-clamp-3 text-ellipsis">{{
                 item.properties.description
               }}</CardDescription>
             </CardHeader>
