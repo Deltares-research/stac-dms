@@ -35,7 +35,7 @@
     </FormField>
     <FormField v-slot="{ componentField }" name="keywordsFacility">
       <FormItem>
-        <FormLabel>Keywords</FormLabel>
+        <FormLabel>Keyword domains</FormLabel>
         <FormControl>
           <CustomDropDownComponent
             :options="keywordsFacilities"
