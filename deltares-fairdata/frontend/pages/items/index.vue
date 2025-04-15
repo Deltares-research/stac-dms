@@ -52,7 +52,10 @@ const collectionColumns: ColumnDef<
     cell: ({ row }) => {
       return h(
         "div",
-        { class: "lowercase" },
+        {
+          class:
+            "whitespace-nowrap max-w-[240px] overflow-hidden text-ellipsis",
+        },
         row.original.properties.description ?? "",
       )
     },
