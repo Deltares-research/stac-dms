@@ -165,18 +165,17 @@ const collectionColumns: ColumnDef<
               () => [h(Pencil, { class: "h-4 w-4" })],
             ),
         ),
-        hasPermission("collection:delete") &&
-          h(
-            Button,
-            {
-              variant: "outline",
-              size: "icon",
-              onClick: () => {
-                deleteCollection(row.original)
-              },
+        h(
+          Button,
+          {
+            variant: "outline",
+            size: "icon",
+            onClick: () => {
+              deleteCollection(row.original)
             },
-            [h(Trash2, { class: "h-4 w-4" })],
-          ),
+          },
+          [h(Trash2, { class: "h-4 w-4" })],
+        ),
       ])
     },
   },
