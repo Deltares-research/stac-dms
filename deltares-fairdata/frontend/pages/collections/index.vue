@@ -101,7 +101,14 @@ const collectionColumns: ColumnDef<
       )
     },
     cell: ({ row }) => {
-      return row.getValue("description")
+      return h(
+        "div",
+        {
+          class:
+            "whitespace-nowrap max-w-[240px] overflow-hidden text-ellipsis",
+        },
+        row.getValue("description") ?? "",
+      )
     },
   },
   {
