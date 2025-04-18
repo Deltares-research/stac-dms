@@ -20,7 +20,7 @@ let deleteFacility = deleteFacilityForm.handleSubmit(async () => {
   })
 
   toast({
-    title: "Facility deleted",
+    title: "Domain deleted",
   })
 
   await navigateTo("/keywords/facilities")

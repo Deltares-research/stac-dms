@@ -5,7 +5,7 @@
         variant="outline"
         role="combobox"
         :aria-expanded="open"
-        class="w-[200px] justify-between"
+        class="w-fit min-w-[200px] justify-between"
       >
         {{
           value

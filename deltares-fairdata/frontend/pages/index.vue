@@ -219,7 +219,6 @@ function onSubmit() {
             @update:model-value="(val: any) => Object.assign(filterState, val)"
           />
 
-          <!-- Search Input -->
           <div class="flex gap-2">
             <Input
               v-model="filterState.q"
@@ -240,7 +239,7 @@ function onSubmit() {
               <CardTitle class="text-xl">
                 {{ item.properties.title ?? item.id }}
               </CardTitle>
-              <CardDescription>{{
+              <CardDescription class="line-clamp-3 text-ellipsis">{{
                 item.properties.description
               }}</CardDescription>
             </CardHeader>
