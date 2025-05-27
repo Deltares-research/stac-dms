@@ -1,4 +1,4 @@
-name: Deltares Fairdata Backend CI
+name: Delta Enigma Backend CI
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
