@@ -5,7 +5,7 @@
         variant="outline"
         role="combobox"
         :aria-expanded="open"
-        class="w-[200px] justify-between"
+        class="w-fit min-w-[200px] justify-between"
       >
         {{
           value
@@ -54,15 +54,17 @@
 <script setup lang="ts">
 import { cn } from "@/lib/utils"
 import { Check, ChevronsUpDown } from "lucide-vue-next"
-import { ref } from "vue"
+import { ref, watch } from "vue"
 import type { DropDownOption } from "@/lib/dropDownOption"
 
 interface Props {
   options: DropDownOption[]
-  modelValue: String
+  modelValue?: string
 }
 
-const props = withDefaults(defineProps<Props>(), {})
+const props = withDefaults(defineProps<Props>(), {
+  modelValue: "",
+})
 const emit = defineEmits(["update:modelValue"])
 const open = ref(false)
 const value = ref(props.modelValue)

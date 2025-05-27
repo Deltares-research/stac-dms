@@ -37,7 +37,7 @@ let onSubmit = form.handleSubmit(async (values) => {
   })
 
   toast({
-    title: "Facility updated",
+    title: "Domain updated",
   })
 
   onUpdate?.()

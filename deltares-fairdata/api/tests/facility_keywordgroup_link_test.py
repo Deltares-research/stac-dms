@@ -1,19 +1,24 @@
 from uuid import UUID, uuid4
+
 import pytest
+from dmsapi.database.models import (  # type: ignore
+    Facility,
+    FacilityKeywordGroupLink,
+    Keyword_Group,
+)
 from dmsapi.extensions.keywords.keyword_client import KeywordClient
-from dmsapi.database.models import Facility, FacilityKeywordGroupLink, Keyword_Group  # type: ignore
 from httpx import AsyncClient
 
 
 # test create link
 @pytest.mark.asyncio
 async def test_create_link(
-    app_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_client: KeywordClient,
     facility: Facility,
     keyword_group: Keyword_Group,
 ):
-    response = await app_client.post(
+    response = await keyword_editor_client.post(
         "/facility_keywordgroup_link",
         json={
             "facility_id": str(facility.id),
@@ -29,11 +34,11 @@ async def test_create_link(
 # test create link invalid
 @pytest.mark.asyncio
 async def test_create_link_invalid_facility(
-    app_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_group: Keyword_Group,
 ):
     fake_facility_id = uuid4()
-    response = await app_client.post(
+    response = await keyword_editor_client.post(
         "/facility_keywordgroup_link",
         json={
             "facility_id": str(fake_facility_id),
@@ -46,11 +51,11 @@ async def test_create_link_invalid_facility(
 # test create link invalid
 @pytest.mark.asyncio
 async def test_create_link_invalid_keyword_group(
-    app_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     facility: Facility,
 ):
     fake_keyword_group_id = uuid4()
-    response = await app_client.post(
+    response = await keyword_editor_client.post(
         "/facility_keywordgroup_link",
         json={
             "facility_id": str(facility.id),
@@ -63,17 +68,16 @@ async def test_create_link_invalid_keyword_group(
 # test delete link
 @pytest.mark.asyncio
 async def test_delete_link(
-    app_client: AsyncClient,
+    keyword_editor_client: AsyncClient,
     keyword_client: KeywordClient,
     facility_keyword_group_link: FacilityKeywordGroupLink,
 ):
-
     facility = keyword_client.get_facility(str(facility_keyword_group_link.facility_id))
     assert facility.keyword_groups[0].id == UUID(
         facility_keyword_group_link.keyword_group_id
     )
 
-    response_delete = await app_client.request(
+    response_delete = await keyword_editor_client.request(
         method="DELETE",
         url="/facility_keywordgroup_link",
         json={

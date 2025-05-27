@@ -1,6 +1,83 @@
 import uuid
-from sqlmodel import SQLModel, Field, Relationship
+from enum import Enum
+from typing import List, Optional
+
 from fastapi import Path
+from pydantic import EmailStr
+from sqlalchemy import Enum as SQLAlchemyEnum
+from sqlmodel import Field, Relationship, SQLModel
+
+
+class Role(str, Enum):
+    # object roles
+    DATA_PRODUCER = "data_producer"
+    COLLECTION_DATA_STEWARD = "collection_data_steward"
+
+    # global roles
+    ADMIN = "admin"
+    KEYWORD_EDITOR = "keyword_editor"
+    APPLICATION_DATA_STEWARD = "application_data_steward"
+
+
+class Permission(str, Enum):
+    # collection permissions
+    ItemCreate = "item:create"
+    ItemUpdate = "item:update"
+    ItemDelete = "item:delete"
+    CollectionUpdate = "collection:update"
+    CollectionDelete = "collection:delete"
+    CollectionGroupRoleAssign = "collection:group_role:assign"
+
+    # global permissions
+    KeywordAll = "keyword:all"
+
+    CollectionCreate = "collection:create"
+    GroupCreate = "group:create"
+    GroupRead = "group:read"
+    GroupUpdate = "group:update"
+    GroupDelete = "group:delete"
+    GlobalGroupRoleAssign = "global:group_role:assign"
+
+
+role_permissions = {
+    Role.ADMIN: [
+        # Admin has all global permissions
+        Permission.KeywordAll,
+        Permission.CollectionCreate,
+        Permission.GroupCreate,
+        Permission.GroupRead,
+        Permission.GroupUpdate,
+        Permission.GroupDelete,
+        Permission.GlobalGroupRoleAssign,
+        # And permission to assign roles on collections
+        Permission.CollectionGroupRoleAssign,
+    ],
+    Role.KEYWORD_EDITOR: [
+        Permission.KeywordAll,
+    ],
+    Role.APPLICATION_DATA_STEWARD: [
+        Permission.GroupCreate,
+        Permission.GroupRead,
+        Permission.GroupUpdate,
+        Permission.GroupDelete,
+        Permission.CollectionGroupRoleAssign,
+        Permission.CollectionCreate,
+    ],
+    Role.COLLECTION_DATA_STEWARD: [
+        # Data Steward has all collection permissions
+        Permission.ItemCreate,
+        Permission.ItemUpdate,
+        Permission.ItemDelete,
+        Permission.CollectionUpdate,
+        Permission.CollectionDelete,
+        Permission.CollectionGroupRoleAssign,
+        Permission.CollectionCreate,
+    ],
+    Role.DATA_PRODUCER: [
+        Permission.ItemCreate,
+        Permission.ItemUpdate,
+    ],
+}
 
 
 class FacilityKeywordGroupLink(SQLModel, table=True):
@@ -105,9 +182,101 @@ class Facility(FacilityBase, table=True):
     )
 
 
+class GroupUserLink(SQLModel, table=True):
+    group_id: uuid.UUID | None = Field(
+        default=None, foreign_key="group.id", primary_key=True
+    )
+    user_email: EmailStr | None = Field(
+        default=None, foreign_key="user.email", primary_key=True
+    )
+
+
+class UserBase(SQLModel):
+    username: str = Field(min_length=1, max_length=100)
+    email: EmailStr = Field(min_length=1, max_length=100)
+
+
+class User(UserBase, table=True):
+    email: EmailStr = Field(primary_key=True)
+    groups: List["Group"] = Relationship(
+        back_populates="users", link_model=GroupUserLink
+    )
+
+
+class UserCreate(UserBase):
+    pass
+
+
+class UserUpdate(SQLModel):
+    username: str | None = Field(min_length=1, max_length=100, default=None)
+    email: EmailStr | None = Field(min_length=1, max_length=100, default=None)
+
+
+class UserList(UserBase):
+    pass
+
+
+class Users(SQLModel):
+    users: List[EmailStr]
+
+
+class GroupBase(SQLModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: str = Field(min_length=1, max_length=100)
+
+
+class Group(GroupBase, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    users: List["User"] = Relationship(
+        back_populates="groups", link_model=GroupUserLink
+    )
+    roles: List["GroupRole"] = Relationship(back_populates="group")
+
+
+class GroupCreate(GroupBase):
+    pass
+
+
+class GroupList(GroupBase):
+    id: uuid.UUID
+
+
+class GroupPublic(GroupBase):
+    users: List["User"]
+    roles: List["GroupRole"]
+
+
+class GroupRole(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    object: Optional[str] = Field(default=None)  # None indicates global role
+    role: "Role" = Field(
+        sa_type=SQLAlchemyEnum(
+            Role,
+            name="role_enum",
+        )
+    )
+    group_id: uuid.UUID = Field(foreign_key="group.id")
+    group: Group = Relationship(back_populates="roles")
+
+
+class GroupGlobalRoleResponse(SQLModel):
+    role: "Role"
+    group_id: uuid.UUID
+    group_name: str
+
+
+class CollectionPermission(SQLModel):
+    collection_id: str
+    permissions: List[Permission]
+
+
+class GroupCollectionRoleResponse(GroupGlobalRoleResponse):
+    object: str
+
+
 class ErrorResponse(SQLModel):
     code: str
-    description: str
+    message: str
 
 
 class OKResponse(SQLModel):
