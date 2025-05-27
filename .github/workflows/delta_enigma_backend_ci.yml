@@ -51,34 +51,22 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Install poetry
-        uses: abatilo/actions-poetry@v2
-
-      - name: Setup a local virtual environment (if no poetry.toml file)
-        run: |
-          poetry config virtualenvs.create true --local
-          poetry config virtualenvs.in-project true --local
-
-      - name: Define a cache for the virtual environment based on the dependencies lock file
-        uses: actions/cache@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          path: ./deltares-fairdata/api/.venv
-          key: venv-${{ hashFiles('poetry.lock') }}
-
-      - name: Install the project dependencies
-        working-directory: deltares-fairdata/api
-        run: poetry install --with=dev
+          version: "latest"
+          enable-cache: true
 
       - name: Run Pytest
         working-directory: deltares-fairdata/api
-        run: poetry run pytest tests/ --junit-xml=test-results.xml
+        run: uv run pytest tests/ --junit-xml=test-results.xml
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: |
-            deltares-fairdata/api/test-results.xml
+            delta-enigma/api/test-results.xml
 
   build-image:
     runs-on: ubuntu-latest

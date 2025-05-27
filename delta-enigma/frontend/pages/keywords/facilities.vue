@@ -28,10 +28,12 @@ let onSubmitCreateFacilityForm = createFacilityForm.handleSubmit(
     })
 
     toast({
-      title: "Facility created",
+      title: "Domain created",
     })
 
     refresh()
+
+    createFacilityForm.resetForm()
   },
 )
 
@@ -50,7 +52,7 @@ onBeforeRouteUpdate((guard) => {
       <div
         class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
       >
-        Facilities
+        Domains
       </div>
       <div class="mt-3">
         <Lister>
@@ -71,7 +73,7 @@ onBeforeRouteUpdate((guard) => {
         >
           <FormField v-slot="{ componentField }" name="name">
             <FormItem class="w-full">
-              <FormLabel>Add facility</FormLabel>
+              <FormLabel>Add domain</FormLabel>
               <FormControl>
                 <Input type="text" v-bind="componentField" />
               </FormControl>

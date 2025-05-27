@@ -43,7 +43,6 @@ let value = ref<FeatureCollection>({
 })
 
 function setValue(newValue: FeatureCollection) {
-  console.log(newValue)
   value.value = newValue
 }
 </script>

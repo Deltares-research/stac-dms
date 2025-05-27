@@ -276,6 +276,10 @@ resource "aws_ecs_task_definition" "backend" {
           name  = "APP_DOMAIN"
           value = "${local.domain_name}"
         },
+        {
+          name  = "ADMIN_USERS"
+          value = "Nathan.Clerkx@deltares.nl,Floris.Langeraert@deltares.nl,Robert.Broersma@deltares.nl,Jelle.vanMiltenburg@deltares.nl"
+        },
       ]
       secrets = [
         {
