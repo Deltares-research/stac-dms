@@ -1,38 +1,25 @@
 <script setup lang="ts">
-import { type Ref, ref, watch } from "vue"
+import type { DateRange } from "radix-vue"
+import { cn } from "@/lib/utils"
 
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  XIcon,
-} from "lucide-vue-next"
-import {
-  CalendarDate,
-  type DateValue,
-  isEqualMonth,
-  today,
-  getLocalTimeZone,
-} from "@internationalized/date"
-
-import { type DateRange, RangeCalendarRoot, useDateFormatter } from "radix-vue"
-import { type Grid, createMonth, toDate } from "radix-vue/date"
-import {
-  RangeCalendarCell,
-  RangeCalendarCellTrigger,
-  RangeCalendarGrid,
-  RangeCalendarGridBody,
-  RangeCalendarGridHead,
-  RangeCalendarGridRow,
-  RangeCalendarHeadCell,
-} from "@/components/ui/range-calendar"
-import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { cn } from "~/lib/utils"
+import { RangeCalendar } from "@/components/ui/range-calendar"
+import { CalendarIcon } from "lucide-vue-next"
+import { type Ref, ref, watch, computed, nextTick } from "vue"
+import {
+  DateFormatter,
+  getLocalTimeZone,
+  CalendarDate,
+  type DateValue,
+} from "@internationalized/date"
+
+const df = new DateFormatter("en-US", {
+  dateStyle: "medium",
+})
 
 const emit = defineEmits<{
   (event: "update:modelValue", payload: DateRange): void
@@ -49,252 +36,266 @@ const value = ref(
   },
 ) as Ref<DateRange>
 
-watch(value, (newValue) => {
-  emit("update:modelValue", newValue)
-})
+// For typed inputs
+const startDateInput = ref("")
+const endDateInput = ref("")
 
-const locale = ref("en-US")
-const formatter = useDateFormatter(locale.value)
+// Input element references for focus management
+const startInputRef = ref<HTMLInputElement | null>(null)
+const endInputRef = ref<HTMLInputElement | null>(null)
 
-const placeholder = ref(today(getLocalTimeZone())) as Ref<DateValue>
-const secondMonthPlaceholder = ref(
-  today(getLocalTimeZone()).add({ months: 1 }),
-) as Ref<DateValue>
+// Format in dd/mm/yyyy
+const formatDate = (date: DateValue | undefined): string => {
+  if (!date) return ""
+  const day = date.day.toString().padStart(2, "0")
+  const month = date.month.toString().padStart(2, "0")
+  const year = date.year.toString()
+  return `${day}/${month}/${year}`
+}
 
-const firstMonth = ref(
-  createMonth({
-    dateObj: placeholder.value,
-    locale: locale.value,
-    fixedWeeks: true,
-    weekStartsOn: 0,
-  }),
-) as Ref<Grid<DateValue>>
-const secondMonth = ref(
-  createMonth({
-    dateObj: secondMonthPlaceholder.value,
-    locale: locale.value,
-    fixedWeeks: true,
-    weekStartsOn: 0,
-  }),
-) as Ref<Grid<DateValue>>
+// Parse dd/mm/yyyy format
+const parseInputDate = (input: string): CalendarDate | undefined => {
+  if (!input || input.length !== 10) return undefined
 
-function updateMonth(reference: "first" | "second", months: number) {
-  if (reference === "first") {
-    placeholder.value = placeholder.value.add({ months })
-  } else {
-    secondMonthPlaceholder.value = secondMonthPlaceholder.value.add({
-      months,
-    })
+  const parts = input.split("/")
+  if (parts.length !== 3) return undefined
+
+  const day = parseInt(parts[0], 10)
+  const month = parseInt(parts[1], 10)
+  const year = parseInt(parts[2], 10)
+
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return undefined
+  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1000)
+    return undefined
+
+  try {
+    return new CalendarDate(year, month, day)
+  } catch (e) {
+    return undefined
   }
 }
 
-watch(placeholder, (_placeholder) => {
-  firstMonth.value = createMonth({
-    dateObj: _placeholder,
-    weekStartsOn: 0,
-    fixedWeeks: false,
-    locale: locale.value,
-  })
-  if (isEqualMonth(secondMonthPlaceholder.value, _placeholder)) {
-    secondMonthPlaceholder.value = secondMonthPlaceholder.value.add({
-      months: 1,
+// Initialize inputs with current value
+watch(
+  () => value.value,
+  (newValue) => {
+    if (newValue.start) {
+      startDateInput.value = formatDate(newValue.start)
+    }
+    if (newValue.end) {
+      endDateInput.value = formatDate(newValue.end)
+    }
+  },
+  { immediate: true },
+)
+
+// Update value when inputs change
+const updateFromInputs = () => {
+  const start = parseInputDate(startDateInput.value)
+  const end = parseInputDate(endDateInput.value)
+
+  // Only update if both dates are valid or both are undefined
+  if ((start && end) || (!start && !end)) {
+    value.value = { start, end }
+    if (start && end) {
+      emit("update:modelValue", { start, end })
+    }
+  }
+}
+
+watch(startDateInput, updateFromInputs)
+watch(endDateInput, updateFromInputs)
+
+// Watch for a complete start date to auto-focus end date
+watch(startDateInput, (newValue) => {
+  // Check if the start date is completely entered (10 characters for dd/mm/yyyy)
+  if (newValue.length === 10 && endInputRef.value) {
+    // Focus the end date input after the next DOM update
+    nextTick(() => {
+      endInputRef.value?.focus()
     })
   }
 })
 
-watch(secondMonthPlaceholder, (_secondMonthPlaceholder) => {
-  secondMonth.value = createMonth({
-    dateObj: _secondMonthPlaceholder,
-    weekStartsOn: 0,
-    fixedWeeks: false,
-    locale: locale.value,
-  })
-  if (isEqualMonth(_secondMonthPlaceholder, placeholder.value))
-    placeholder.value = placeholder.value.subtract({ months: 1 })
+// Create visual overlays for the inputs that show placeholder characters
+const startDatePlaceholderHTML = computed(() => {
+  if (!startDateInput.value) return "DD/MM/YYYY"
+
+  const template = "DD/MM/YYYY"
+  let result = ""
+
+  for (let i = 0; i < template.length; i++) {
+    if (i < startDateInput.value.length) {
+      // Use the same character but with a class to make it transparent
+      result += `<span class="invisible">${startDateInput.value[i]}</span>`
+    } else {
+      result += template[i]
+    }
+  }
+
+  return result
+})
+
+const endDatePlaceholderHTML = computed(() => {
+  if (!endDateInput.value) return "DD/MM/YYYY"
+
+  const template = "DD/MM/YYYY"
+  let result = ""
+
+  for (let i = 0; i < template.length; i++) {
+    if (i < endDateInput.value.length) {
+      // Use the same character but with a class to make it transparent
+      result += `<span class="invisible">${endDateInput.value[i]}</span>`
+    } else {
+      result += template[i]
+    }
+  }
+
+  return result
+})
+
+// Automatically format input as user types
+const processDateInput = (event: Event, inputType: "start" | "end") => {
+  const target = event.target as HTMLInputElement
+  const value = target.value.replace(/\D/g, "") // Keep only digits
+
+  if (!value) {
+    if (inputType === "start") {
+      startDateInput.value = ""
+    } else {
+      endDateInput.value = ""
+    }
+    return
+  }
+
+  let result = ""
+
+  if (value.length <= 2) {
+    // Handle day part
+    result = value
+
+    // Auto-advance to month if day is 3-9
+    if (value.length === 1 && parseInt(value, 10) > 3) {
+      result = value.padStart(2, "0") + "/"
+    }
+  } else if (value.length <= 4) {
+    // Handle day + month
+    const day = value.substring(0, 2)
+    const month = value.substring(2)
+
+    result = day + "/" + month
+
+    // Auto-advance to year if month is > 1
+    if (month.length === 1 && parseInt(month, 10) > 1) {
+      result = day + "/" + month.padStart(2, "0") + "/"
+    }
+  } else {
+    // Handle full date
+    const day = value.substring(0, 2)
+    const month = value.substring(2, 4)
+    const year = value.substring(4, 8)
+
+    result = day + "/" + month + "/" + year
+  }
+
+  if (inputType === "start") {
+    startDateInput.value = result
+  } else {
+    endDateInput.value = result
+  }
+}
+
+// When calendar selection changes, update the input fields
+watch(value, (newValue) => {
+  if (newValue.start) {
+    startDateInput.value = formatDate(newValue.start)
+  }
+  if (newValue.end) {
+    endDateInput.value = formatDate(newValue.end)
+  }
 })
 </script>
 
 <template>
-  <Popover>
-    <PopoverTrigger>
-      <div class="relative">
-        <Button
-          size="sm"
-          variant="outline"
-          :class="
-            cn(
-              'justify-start text-left font-normal pr-8',
-              !value && 'text-muted-foreground',
-            )
-          "
-        >
-          <CalendarIcon class="mr-2 size-3.5" />
-          <template v-if="value.start">
-            <template v-if="value.end">
-              {{
-                formatter.custom(toDate(value.start), {
-                  dateStyle: "medium",
-                })
-              }}
-              -
-              {{
-                formatter.custom(toDate(value.end), {
-                  dateStyle: "medium",
-                })
-              }}
-            </template>
-
-            <template v-else>
-              {{
-                formatter.custom(toDate(value.start), {
-                  dateStyle: "medium",
-                })
-              }}
-            </template>
-          </template>
-          <template v-else> Pick a date </template>
-        </Button>
-        <button
-          @click="value = { start: undefined, end: undefined }"
-          class="absolute right-0 top-0 h-full flex items-center justify-center w-8 hover:bg-gray-100 px-1 rounded"
-        >
-          <XIcon class="size-3.5" />
-        </button>
-      </div>
-    </PopoverTrigger>
-    <PopoverContent class="w-auto p-0" align="start">
-      <RangeCalendarRoot
-        v-slot="{ weekDays }"
-        v-model="value"
-        v-model:placeholder="placeholder"
-        class="p-3"
-      >
+  <div class="date-range-picker flex items-center relative font-mono">
+    <!-- Main container with inputs -->
+    <div
+      class="relative px-3 flex-1 flex items-center border rounded overflow-hidden pr-12"
+    >
+      <!-- Start date input -->
+      <div class="relative w-24">
+        <input
+          ref="startInputRef"
+          type="text"
+          v-model="startDateInput"
+          @input="(e) => processDateInput(e, 'start')"
+          class="w-full py-2 text-sm focus:outline-none focus:ring-0 border-0 relative z-10"
+          maxlength="10"
+        />
         <div
-          class="flex flex-col gap-y-4 mt-4 sm:flex-row sm:gap-x-4 sm:gap-y-0"
-        >
-          <div class="flex flex-col gap-4">
-            <div class="flex items-center justify-between">
-              <button
-                :class="
-                  cn(
-                    buttonVariants({ variant: 'outline' }),
-                    'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
-                  )
-                "
-                @click="updateMonth('first', -1)"
-              >
-                <ChevronLeft class="h-4 w-4" />
-              </button>
-              <div :class="cn('text-sm font-medium')">
-                {{ formatter.fullMonthAndYear(toDate(firstMonth.value)) }}
-              </div>
-              <button
-                :class="
-                  cn(
-                    buttonVariants({ variant: 'outline' }),
-                    'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
-                  )
-                "
-                @click="updateMonth('first', 1)"
-              >
-                <ChevronRight class="h-4 w-4" />
-              </button>
-            </div>
-            <RangeCalendarGrid>
-              <RangeCalendarGridHead>
-                <RangeCalendarGridRow>
-                  <RangeCalendarHeadCell
-                    v-for="day in weekDays"
-                    :key="day"
-                    class="w-full"
-                  >
-                    {{ day }}
-                  </RangeCalendarHeadCell>
-                </RangeCalendarGridRow>
-              </RangeCalendarGridHead>
-              <RangeCalendarGridBody>
-                <RangeCalendarGridRow
-                  v-for="(weekDates, index) in firstMonth.rows"
-                  :key="`weekDate-${index}`"
-                  class="mt-2 w-full"
-                >
-                  <RangeCalendarCell
-                    v-for="weekDate in weekDates"
-                    :key="weekDate.toString()"
-                    :date="weekDate"
-                  >
-                    <RangeCalendarCellTrigger
-                      :day="weekDate"
-                      :month="firstMonth.value"
-                    />
-                  </RangeCalendarCell>
-                </RangeCalendarGridRow>
-              </RangeCalendarGridBody>
-            </RangeCalendarGrid>
-          </div>
-          <div class="flex flex-col gap-4">
-            <div class="flex items-center justify-between">
-              <button
-                :class="
-                  cn(
-                    buttonVariants({ variant: 'outline' }),
-                    'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
-                  )
-                "
-                @click="updateMonth('second', -1)"
-              >
-                <ChevronLeft class="h-4 w-4" />
-              </button>
-              <div :class="cn('text-sm font-medium')">
-                {{ formatter.fullMonthAndYear(toDate(secondMonth.value)) }}
-              </div>
+          class="absolute inset-0 flex items-center pointer-events-none py-2 text-sm text-gray-400"
+          v-html="startDatePlaceholderHTML"
+        ></div>
+      </div>
 
-              <button
-                :class="
-                  cn(
-                    buttonVariants({ variant: 'outline' }),
-                    'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
-                  )
-                "
-                @click="updateMonth('second', 1)"
-              >
-                <ChevronRight class="h-4 w-4" />
-              </button>
-            </div>
-            <RangeCalendarGrid>
-              <RangeCalendarGridHead>
-                <RangeCalendarGridRow>
-                  <RangeCalendarHeadCell
-                    v-for="day in weekDays"
-                    :key="day"
-                    class="w-full"
-                  >
-                    {{ day }}
-                  </RangeCalendarHeadCell>
-                </RangeCalendarGridRow>
-              </RangeCalendarGridHead>
-              <RangeCalendarGridBody>
-                <RangeCalendarGridRow
-                  v-for="(weekDates, index) in secondMonth.rows"
-                  :key="`weekDate-${index}`"
-                  class="mt-2 w-full"
-                >
-                  <RangeCalendarCell
-                    v-for="weekDate in weekDates"
-                    :key="weekDate.toString()"
-                    :date="weekDate"
-                  >
-                    <RangeCalendarCellTrigger
-                      :day="weekDate"
-                      :month="secondMonth.value"
-                    />
-                  </RangeCalendarCell>
-                </RangeCalendarGridRow>
-              </RangeCalendarGridBody>
-            </RangeCalendarGrid>
-          </div>
-        </div>
-      </RangeCalendarRoot>
-    </PopoverContent>
-  </Popover>
+      <!-- Separator -->
+      <div class="flex items-center pl-1 pr-4 text-gray-500">
+        <span>-</span>
+      </div>
+
+      <!-- End date input -->
+      <div class="relative w-24">
+        <input
+          ref="endInputRef"
+          type="text"
+          v-model="endDateInput"
+          @input="(e) => processDateInput(e, 'end')"
+          class="w-full py-2 text-sm focus:outline-none focus:ring-0 border-0 relative z-10"
+          maxlength="10"
+        />
+        <div
+          class="absolute inset-0 flex items-center pointer-events-none py-2 text-sm text-gray-400"
+          v-html="endDatePlaceholderHTML"
+        ></div>
+      </div>
+
+      <!-- Calendar picker as add-on -->
+      <Popover>
+        <PopoverTrigger as-child>
+          <button class="h-full py-2 px-3 bg-gray-50 absolute right-0">
+            <CalendarIcon class="size-4 text-gray-500" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent class="w-auto p-0">
+          <RangeCalendar v-model="value" initial-focus :number-of-months="2" />
+        </PopoverContent>
+      </Popover>
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.date-range-picker {
+  height: 36px; /* Consistent height across the component */
+}
+
+.date-range-picker:focus-within .flex-1 {
+  border-color: hsl(var(--primary));
+  outline: 2px solid hsla(var(--primary), 0.2);
+  outline-offset: 0;
+}
+
+input {
+  background: transparent;
+  color: inherit;
+}
+
+.invisible {
+  color: transparent;
+}
+
+.absolute {
+  text-wrap: none;
+  white-space: pre;
+}
+</style>

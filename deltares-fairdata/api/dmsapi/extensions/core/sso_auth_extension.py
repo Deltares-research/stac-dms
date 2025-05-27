@@ -1,22 +1,25 @@
-import logging
 import datetime
+import logging
 from typing import (
+    Annotated,
     List,
     Optional,
 )  # to calculate expiration of the JWT
+
+from authlib.jose import Key, OctKey, jwt
 from dmsapi.config import DMSAPISettings
-from fastapi import FastAPI, Depends, HTTPException, Security, Request
+from dmsapi.database.db import get_session
+from dmsapi.database.models import User
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, Security
 from fastapi.responses import RedirectResponse
 from fastapi.routing import APIRoute
 from fastapi.security import (
     APIKeyCookie,
 )  # this is the part that puts the lock icon to the docs
-from fastapi_sso import SSOBase, OpenID
-
-from stac_fastapi.api.routes import add_route_dependencies, Scope
+from fastapi_sso import OpenID, SSOBase
+from sqlmodel import Session
+from stac_fastapi.api.routes import Scope, add_route_dependencies
 from stac_fastapi.types.extension import ApiExtension
-
-from authlib.jose import jwt, Key, OctKey
 
 _LOGGER = logging.getLogger("uvicorn.default")
 
@@ -135,13 +138,31 @@ class SSOAuthExtension(ApiExtension):
         response.delete_cookie(key=COOKIE_NAME)
         return response
 
-    async def login_callback(self, request: Request):
+    async def login_callback(self, request: Request, background_tasks: BackgroundTasks):
         """Process login and redirect the user to the protected endpoint."""
         with self.sso_client:
             openid = await self.sso_client.verify_and_process(request)
             if not openid:
                 raise HTTPException(status_code=401, detail="Authentication failed")
-        # Create a JWT with the user's OpenID
+        response = RedirectResponse(url="/")
+        expiration, token = self.create_token(openid, APP_SECRET_KEY)
+        response.set_cookie(
+            key=COOKIE_NAME, value=token, expires=expiration
+        )  # This cookie will make sure /protected knows the user
+        background_tasks.add_task(add_user, openid)
+        return response
+
+    @staticmethod
+    def create_token(openid: OpenID, key: Key) -> tuple[datetime.datetime, str]:
+        """Create a JWT token for the given OpenID.
+
+        Args:
+            openid: The OpenID to create a token for
+            algorithm: The algorithm to use for signing
+
+        Returns:
+            Tuple of expiration datetime and encoded token string
+        """
         expiration = datetime.datetime.now(
             tz=datetime.timezone.utc
         ) + datetime.timedelta(days=1)
@@ -151,11 +172,26 @@ class SSOAuthExtension(ApiExtension):
                 "exp": int(expiration.strftime("%s")),
                 "sub": openid.id,
             },
-            header={"alg": self.algorithm},
-            key=APP_SECRET_KEY,
+            header={"alg": SSOAuthExtension.algorithm},
+            key=key,
         ).decode("utf-8")
-        response = RedirectResponse(url="/")
-        response.set_cookie(
-            key=COOKIE_NAME, value=token, expires=expiration
-        )  # This cookie will make sure /protected knows the user
-        return response
+        return expiration, token
+
+
+def add_user(
+    user: OpenID,
+):
+    """Add user to database."""
+    _LOGGER.info(f"Adding user {user.email} to database")
+    session: Session = next(get_session())
+    db_user = session.get(entity=User, ident=user.email)
+    if not db_user:
+        db_user = User(email=user.email, username=user.display_name)
+        session.add(db_user)
+        session.commit()
+        session.refresh(db_user)
+    else:
+        _LOGGER.debug(f"User {user.email} already exists in database")
+
+
+UserDep = Annotated[User, Depends(SSOAuthExtension.get_logged_user)]

@@ -1,22 +1,20 @@
-from pydantic import TypeAdapter
-from pydantic_core import from_json
 import pytest
-from dmsapi.extensions.keywords.keyword_client import KeywordClient
-from dmsapi.database.models import Keyword, Keyword_Group, Keyword_GroupPublicWithKeywords  # type: ignore
+from dmsapi.database.models import Keyword_GroupPublicWithKeywords  # type: ignore
 from httpx import AsyncClient
+from pydantic import TypeAdapter
 
 
 # test get keywords by facility
 @pytest.mark.asyncio
 async def test_get_keywords_by_facility(
-    app_client: AsyncClient,
+    authenticated_client: AsyncClient,
     filled_db,
 ):
     facilities, keywordgroups = filled_db
     facility1, facility2 = facilities
     keywordgroup1, keywordgroup2 = keywordgroups
 
-    response = await app_client.get(f"/keywords?facility_id={facility1.id}")
+    response = await authenticated_client.get(f"/keywords?facility_id={facility1.id}")
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data) == 2
@@ -28,13 +26,15 @@ async def test_get_keywords_by_facility(
 # test get keywords by keyword group
 @pytest.mark.asyncio
 async def test_get_keywords_by_keywordgroup(
-    app_client: AsyncClient,
+    authenticated_client: AsyncClient,
     filled_db,
 ):
     facilities, keywordgroups = filled_db
     keywordgroup1, keywordgroup2 = keywordgroups
 
-    response = await app_client.get(f"/keywords?keyword_group_id={keywordgroup1.id}")
+    response = await authenticated_client.get(
+        f"/keywords?keyword_group_id={keywordgroup1.id}"
+    )
     assert response.status_code == 200
     response_data = response.json()
     assert len(response_data) == 1
@@ -44,13 +44,13 @@ async def test_get_keywords_by_keywordgroup(
 # test get keywords by facility and keyword group invalid
 @pytest.mark.asyncio
 async def test_get_keywords_by_facility_and_keywordgroup_invalid(
-    app_client: AsyncClient,
+    authenticated_client: AsyncClient,
     filled_db,
 ):
     facilities, keywordgroups = filled_db
     facility1, facility2 = facilities
     keywordgroup1, keywordgroup2 = keywordgroups
-    response = await app_client.get(
+    response = await authenticated_client.get(
         f"/keywords?facility_id={facility1.id}&keyword_group_id={keywordgroup2.id}"
     )
     assert response.status_code == 400
@@ -65,14 +65,14 @@ async def test_get_keywords_by_facility_and_keywordgroup_invalid(
 # test get keywords without filters
 @pytest.mark.asyncio
 async def test_get_keywords_unfiltered(
-    app_client: AsyncClient,
+    authenticated_client: AsyncClient,
     filled_db,
 ):
     facilities, keywordgroups = filled_db
     keywordgroup1, keywordgroup2 = keywordgroups
     KeywordGroupList = TypeAdapter(list[Keyword_GroupPublicWithKeywords])
 
-    response = await app_client.get(f"/keywords")
+    response = await authenticated_client.get("/keywords")
     assert response.status_code == 200
 
     result = KeywordGroupList.validate_json(response.content)

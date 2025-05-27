@@ -33,6 +33,8 @@ let createKeywordForm = useForm({
   validationSchema: createKeywordFormSchema,
 })
 
+let nlInputRef = ref()
+
 let onSubmitCreateKeywordgoupForm = createKeywordForm.handleSubmit(
   async (values) => {
     await $api("/keyword", {
@@ -47,7 +49,13 @@ let onSubmitCreateKeywordgoupForm = createKeywordForm.handleSubmit(
       title: "Keyword created",
     })
 
-    await refresh()
+    refresh()
+
+    createKeywordForm.resetForm()
+
+    await nextTick()
+
+    nlInputRef?.value?.domRef?.focus()
   },
 )
 </script>
@@ -82,7 +90,7 @@ let onSubmitCreateKeywordgoupForm = createKeywordForm.handleSubmit(
         <FormItem>
           <FormLabel>Keyword NL</FormLabel>
           <FormControl>
-            <Input type="text" v-bind="componentField" />
+            <Input ref="nlInputRef" type="text" v-bind="componentField" />
           </FormControl>
           <FormMessage />
         </FormItem>

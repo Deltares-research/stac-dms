@@ -219,7 +219,6 @@ function onSubmit() {
             @update:model-value="(val: any) => Object.assign(filterState, val)"
           />
 
-          <!-- Search Input -->
           <div class="flex gap-2">
             <Input
               v-model="filterState.q"
@@ -240,12 +239,12 @@ function onSubmit() {
               <CardTitle class="text-xl">
                 {{ item.properties.title ?? item.id }}
               </CardTitle>
-              <CardDescription>{{
+              <CardDescription class="line-clamp-3 text-ellipsis">{{
                 item.properties.description
               }}</CardDescription>
             </CardHeader>
             <CardContent v-if="item.properties.datetime">
-              <NuxtLink :to="'/items/' + item.id + '?readonly=true'"
+              <NuxtLink :to="'/items/' + item.id + '/view'"
                 >View details</NuxtLink
               >
               <div class="text-xs text-muted-foreground">
