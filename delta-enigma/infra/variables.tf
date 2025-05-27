@@ -9,7 +9,7 @@ variable "harbor_url" {
 }
 
 variable "harbor_project" {
-  default = "fair-data"
+  default = "delta-enigma"
   type    = string
 }
 
