@@ -6,8 +6,8 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "stac-dms-terraform-state"
-    key    = "stac-dms.tfstate"
+    bucket = "delta-enigma-terraform-state"
+    key    = "delta-enigma-.tfstate"
     region = "eu-west-1"
   }
 }
