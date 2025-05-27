@@ -1,19 +1,19 @@
 data "aws_route53_zone" "opensearch" {
-  name = "deltares-fairdata.com"
+  name = "dataportal-delta-enigma.nl"
 }
 
 data "aws_acm_certificate" "opensearch" {
-  domain = "deltares-fairdata.com"
+  domain = "dataportal-delta-enigma.nl"
 }
 
 data "aws_acm_certificate" "non_prod_domain" {
-  domain = "*.deltares-fairdata.com"
+  domain = "*.dataportal-delta-enigma.nl"
 }
 
 locals {
   # For prod workspace, use the top-level domain
   # For other workspaces, use a subdomain based on the workspace name
-  domain_name = terraform.workspace == "prod" ? "deltares-fairdata.com" : "${terraform.workspace}.deltares-fairdata.com"
+  domain_name = terraform.workspace == "prod" ? "dataportal-delta-enigma.nl" : "${terraform.workspace}.dataportal-delta-enigma.nl"
 }
 
 # Create DNS records for the frontend application
