@@ -26,7 +26,7 @@ let { data: keywordgroups, refresh } = await useApi("/keywords", {
     <div
       class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
     >
-      Facility
+      Domain
     </div>
     <div class="mt-3 flex items-center justify-between gap-1.5">
       <UpdateFacility :facility="facility" />

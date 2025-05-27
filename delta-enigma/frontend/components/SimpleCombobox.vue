@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends Record<string, any>">
 import { ref } from "vue"
 import { Check, ChevronsUpDown, X } from "lucide-vue-next"
 
@@ -18,52 +18,48 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "~/lib/utils"
 
-let { name } = defineProps<{
+let props = defineProps<{
   name: string
+  items: T[]
+  valueProperty: keyof T & (string | number)
+  titleProperty: keyof T
+  subtitleProperty?: keyof T
+  placeholder: string
+  trigger: string
+  commandEmpty: string
+  modelValue?: string[]
 }>()
 
-let value = defineModel<string[]>({
-  default: [],
-})
-
-defineEmits<{
+let emit = defineEmits<{
   (event: "update:modelValue", payload: string[]): void
 }>()
 
+let value = computed({
+  get: () => props.modelValue ?? [],
+  set: (newValue) => emit("update:modelValue", newValue),
+})
+
 let open = ref(false)
 
-function toggleKeyword(keyword: string) {
-  if (value.value.includes(keyword)) {
-    value.value = value.value.filter((k) => k !== keyword)
+function toggleItem(itemId: string) {
+  if (value.value.includes(itemId)) {
+    value.value = value.value.filter((id) => id !== itemId)
   } else {
-    value.value = [...value.value, keyword]
+    value.value = [...value.value, itemId]
   }
 }
 
-let { data: keywordGroups } = await useApi("/keywords")
+let itemsById = computed(() =>
+  props.items.reduce(
+    (acc, item) => {
+      const itemValue = String(item[props.valueProperty])
+      acc[itemValue] = item
 
-let keywordsById = computed(() =>
-  keywordGroups.value?.reduce(
-    (acc, group) => {
-      group.keywords.forEach((keyword) => {
-        acc[keyword.id] = keyword
-      })
       return acc
     },
-    {} as Record<string, any>,
+    {} as Record<string, T>,
   ),
 )
-
-function filterFunction(vals: string[], term: string) {
-  console.log(vals, term)
-  return vals.filter((id) => {
-    const kw = keywordsById.value?.[id]
-    return (
-      kw?.en_keyword?.toLowerCase().includes(term.toLowerCase()) ||
-      kw?.nl_keyword?.toLowerCase().includes(term.toLowerCase())
-    )
-  })
-}
 </script>
 
 <style lang="css" scoped>
@@ -74,16 +70,21 @@ function filterFunction(vals: string[], term: string) {
 </style>
 
 <template>
-  <input v-for="val in value" type="hidden" :name="name" :value="val" />
-  <div class="relative w-fit flex flex-col gap-1.5">
+  <input
+    v-for="val in modelValue"
+    type="hidden"
+    :name="name"
+    :modelValue="val"
+  />
+  <div class="relative w-full flex flex-col gap-1.5">
     <div class="flex gap-1.5" v-if="value.length">
       <button
-        v-for="keyword in value"
-        @click="toggleKeyword(keyword)"
-        :key="keyword"
+        v-for="itemId in value"
+        @click="toggleItem(itemId)"
+        :key="itemId"
         class="inline-flex items-center bg-gray-200 rounded text-primary-background px-2 py-1 text-xs"
       >
-        {{ keywordsById?.[keyword]?.nl_keyword }}
+        {{ itemsById?.[itemId]?.[titleProperty] }}
         <X class="size-4 ml-1" />
       </button>
     </div>
@@ -91,45 +92,49 @@ function filterFunction(vals: string[], term: string) {
       <PopoverTrigger as-child>
         <Button
           variant="outline"
-          size="sm"
           role="combobox"
           :aria-expanded="open"
           class="justify-between w-full"
         >
-          Add keyword
+          {{ trigger }}
           <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent class="p-0 PopoverContent" align="start">
-        <Command :filter-function="filterFunction">
-          <CommandInput class="h-9" placeholder="Search keyword..." />
-          <CommandEmpty>No keywords found.</CommandEmpty>
+      <PopoverContent class="p-0 PopoverContent">
+        <Command>
+          <CommandInput class="h-9" :placeholder="placeholder" />
+          <CommandEmpty>{{ commandEmpty }}</CommandEmpty>
           <CommandList>
-            <CommandGroup v-for="group in keywordGroups">
+            <CommandGroup>
               <CommandItem
-                v-for="keyword in group.keywords"
-                :key="keyword.id"
-                :value="keyword.id"
+                v-for="item in items"
+                :key="String(item[valueProperty])"
+                :value="String(item[valueProperty])"
                 @select="
                   (ev) => {
                     if (typeof ev.detail.value === 'string') {
-                      toggleKeyword(ev.detail.value)
+                      toggleItem(ev.detail.value)
                     }
                     open = false
                   }
                 "
               >
                 <div class="">
-                  <div class="text-[10px] text-muted-foreground">
-                    {{ group.group_name_nl }}
+                  <div
+                    class="text-[10px] text-muted-foreground"
+                    v-if="subtitleProperty"
+                  >
+                    {{ (item as T)[subtitleProperty] }}
                   </div>
-                  {{ keyword.nl_keyword }}
+                  {{ (item as T)[titleProperty] }}
                 </div>
                 <Check
                   :class="
                     cn(
                       'ml-auto h-4 w-4',
-                      value.includes(keyword.id) ? 'opacity-100' : 'opacity-0',
+                      value.includes(String(item[valueProperty]))
+                        ? 'opacity-100'
+                        : 'opacity-0',
                     )
                   "
                 />
