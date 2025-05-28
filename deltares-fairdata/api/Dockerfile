@@ -35,7 +35,6 @@ FROM builder-base AS development
 # Uses `fastapi dev` to enable hot-reloading when the `watch` sync occurs
 # Uses `--host 0.0.0.0` to allow access from outside the container
 
-
 CMD ["fastapi", "dev", "dmsapi/app.py", "--proxy-headers", "--host", "0.0.0.0", "--port", "8000" ]
 
 ################################
