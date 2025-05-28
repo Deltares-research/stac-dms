@@ -31,7 +31,7 @@ permissions:
 
 env:
   REGISTRY_ADDRESS: containers.deltares.nl
-  HARBOR_PROJECT: delta-engima
+  HARBOR_PROJECT: delta-enigma
   TAG: ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
   TARGET: ${{ github.ref == 'refs/heads/prod' && 'run-prod' || 'run-dev' }}
   AWS_REGION: eu-west-1
