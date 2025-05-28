@@ -20,7 +20,6 @@ on:
       - "deltares-fairdata/api/**"
       - ".github/workflows/delta_engima_backend_ci.yml"
 
-  # Allow manual trigger
   workflow_dispatch:
 
 permissions:
