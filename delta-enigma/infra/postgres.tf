@@ -4,7 +4,7 @@ resource "aws_db_instance" "dms" {
   max_allocated_storage  = 100
   db_name                = "postgres_dms_${terraform.workspace}"
   engine                 = "postgres"
-  engine_version         = "16.4"
+  engine_version         = "16.8"
   instance_class         = "db.t3.micro"
   username               = "dms"
   password               = random_password.db_password.result
