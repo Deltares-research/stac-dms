@@ -280,6 +280,10 @@ resource "aws_ecs_task_definition" "backend" {
           name  = "ADMIN_USERS"
           value = "Nathan.Clerkx@deltares.nl,Floris.Langeraert@deltares.nl,Robert.Broersma@deltares.nl,Jelle.vanMiltenburg@deltares.nl"
         },
+        {
+          name = "AUTH_ENABLED"
+          value = "false"
+        },
       ]
       secrets = [
         {
