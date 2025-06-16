@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, watchEffect } from "vue"
 import { cn } from "@/lib/utils"
 import { nanoid } from "nanoid"
 import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
@@ -13,15 +13,17 @@ import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
 import { CalendarIcon, XIcon, DatabaseIcon } from "lucide-vue-next"
+import DateRangePicker from "@/components/DateRangePicker.vue"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
 import { zu } from "@infra-blocks/zod-utils"
-import { FormField, FormItem } from "~/components/ui/form"
+import { FormField, FormItem, FormDescription } from "~/components/ui/form"
 import { useForm } from "vee-validate"
 import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
 import type { FeatureCollection, Geometry } from "geojson"
+import type { DateRange } from "radix-vue"
 import { bbox } from "@turf/turf"
 import spatialReferenceSystemRaw from "../../lib/spatialReferenceSystem.txt?raw"
 import { nullToUndefined } from "~/lib/null-to-undefined"
@@ -74,6 +76,8 @@ let initialValues = computed(() => {
 
   return feature
 })
+
+console.log(initialValues.value)
 
 let keywords = ref<Keyword[]>(
   (initialValues.value?.properties?.keywords as Keyword[]) ?? [],
@@ -188,7 +192,7 @@ let schema = z.object({
         title: z.string(),
         projectNumber: z.string(),
         description: z.string(),
-        datetime: z.string(),
+        publication_datetime: z.string(),
         spatialReferenceSystem: z.string(),
         dataQualityInfoStatement: z.string(),
         dataQualityInfoScore: z.string().default("dataSet"),
@@ -209,6 +213,7 @@ let schema = z.object({
         metaDataLanguage: z.string().default("eng"),
         created: z.string().nullable().optional(),
         updated: z.string().nullable().optional(),
+        datetime: z.string().nullable().optional(),
         start_datetime: z.string().nullable().optional(),
         end_datetime: z.string().nullable().optional(),
         license: z.string().nullable().optional(),
@@ -292,8 +297,11 @@ let form = useForm({
     requestBody: {
       properties: {
         ...nullToUndefined(toRaw(initialValues.value?.properties)),
-        datetime: initialValues.value?.properties.datetime
-          ? dateFormat(initialValues.value?.properties.datetime, "yyyy-mm-dd")
+        datetime: initialValues.value?.properties.publication_datetime
+          ? dateFormat(
+              initialValues.value?.properties.publication_datetime as string,
+              "yyyy-mm-dd",
+            )
           : undefined,
         legalRestrictions:
           (initialValues.value?.properties.legalRestrictions as string) ??
@@ -342,9 +350,30 @@ let onSubmit = form.handleSubmit(async (values) => {
         links: [],
       }
 
-      newItem.properties.datetime = new Date(
-        newItem.properties.datetime,
-      ).toISOString()
+      // Handle datetime fields from DateRangePicker
+      if (dateRangeValue.value.start && dateRangeValue.value.end) {
+        // Both dates selected - save as start_datetime and end_datetime
+        newItem.properties.datetime = null
+        newItem.properties.start_datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+        newItem.properties.end_datetime = new Date(
+          dateRangeValue.value.end.toString(),
+        ).toISOString()
+        // Don't set datetime when using date range
+      } else if (dateRangeValue.value.start && !dateRangeValue.value.end) {
+        // Only start date - save as datetime
+        newItem.properties.datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+        newItem.properties.start_datetime = undefined
+        newItem.properties.end_datetime = undefined
+      } else {
+        return toast({
+          title: "Please select a date or date range.",
+          variant: "destructive",
+        })
+      }
 
       newItem.properties.keywords = keywords.value
 
@@ -354,6 +383,8 @@ let onSubmit = form.handleSubmit(async (values) => {
           newGeometry.geometry as unknown as Schema["requestBody"]["geometry"]
         newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
       }
+
+      console.log("newItem", newItem)
 
       let result = await useApi(
         "/collections/{collection_id}/items/{item_id}",
@@ -388,9 +419,21 @@ let onSubmit = form.handleSubmit(async (values) => {
         links: [],
       }
 
-      newItem.properties.datetime = new Date(
-        newItem.properties.datetime,
-      ).toISOString()
+      // Handle datetime fields from DateRangePicker
+      if (dateRangeValue.value.start && dateRangeValue.value.end) {
+        // Both dates selected - save as start_datetime and end_datetime
+        newItem.properties.start_datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+        newItem.properties.end_datetime = new Date(
+          dateRangeValue.value.end.toString(),
+        ).toISOString()
+      } else if (dateRangeValue.value.start && !dateRangeValue.value.end) {
+        // Only start date - save as datetime
+        newItem.properties.datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+      }
 
       newItem.properties.keywords = keywords.value
 
@@ -431,19 +474,37 @@ let onSubmit = form.handleSubmit(async (values) => {
   }
 })
 
-let datetimeValue = computed({
+let publicationDatetimeValue = computed({
   get: () => {
-    return form.values.requestBody?.properties?.datetime
-      ? parseDate(form.values.requestBody?.properties?.datetime)
+    return form.values.requestBody?.properties?.publication_datetime
+      ? parseDate(form.values.requestBody?.properties?.publication_datetime)
       : undefined
   },
   set: (val) => val,
 })
 
 function getDisplayTime() {
-  let value = form.values.requestBody?.properties?.datetime
+  let value = form.values.requestBody?.properties?.publication_datetime
 
   return value ?? "Pick a date"
+}
+
+const initProps = initialValues.value?.properties
+
+// Date range picker logic - parse existing datetime fields on load
+const dateRangeValue = ref<DateRange>({
+  start: initProps?.start_datetime
+    ? parseDate(initProps.start_datetime.split("T")[0])
+    : initProps?.datetime
+      ? parseDate(initProps.datetime.split("T")[0])
+      : undefined,
+  end: initProps?.end_datetime
+    ? parseDate(initProps.end_datetime.split("T")[0])
+    : undefined,
+})
+
+function handleDateRangeChange(dateRange: DateRange) {
+  dateRangeValue.value = dateRange
 }
 </script>
 
@@ -529,7 +590,7 @@ function getDisplayTime() {
                 </FormItem>
               </FormField>
 
-              <FormField name="requestBody.properties.datetime">
+              <FormField name="requestBody.properties.publication_datetime">
                 <FormItem class="flex flex-col">
                   <FormLabel>
                     <NuxtLink
@@ -547,7 +608,8 @@ function getDisplayTime() {
                           :class="
                             cn(
                               'w-[240px] ps-3 text-start font-normal',
-                              !datetimeValue && 'text-muted-foreground',
+                              !publicationDatetimeValue &&
+                                'text-muted-foreground',
                             )
                           "
                         >
@@ -559,19 +621,19 @@ function getDisplayTime() {
                     </PopoverTrigger>
                     <PopoverContent class="w-auto p-0">
                       <Calendar
-                        v-model="datetimeValue"
+                        v-model="publicationDatetimeValue"
                         calendar-label="Date"
                         initial-focus
                         @update:model-value="
                           (v) => {
                             if (v) {
                               form.setFieldValue(
-                                'requestBody.properties.datetime',
+                                'requestBody.properties.publication_datetime',
                                 v.toString(),
                               )
                             } else {
                               form.setFieldValue(
-                                'requestBody.properties.datetime',
+                                'requestBody.properties.publication_datetime',
                                 undefined,
                               )
                             }
@@ -779,6 +841,37 @@ function getDisplayTime() {
             </div>
           </CardContent>
         </Card>
+
+        <Card v-if="form.values.collectionId">
+          <CardHeader>
+            <CardTitle class="text-lg">Date Range</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              v-slot="{ componentField }"
+              name="requestBody.properties.datetime"
+            >
+              <div class="max-w-96 flex flex-col gap-5">
+                <div class="flex flex-col">
+                  <label
+                    class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2"
+                  >
+                    Select date or date range
+                  </label>
+                  <DateRangePicker
+                    :modelValue="dateRangeValue"
+                    @update:modelValue="handleDateRangeChange"
+                  />
+                  <p class="text-sm text-muted-foreground mt-2">
+                    Select a single date or a date range.
+                  </p>
+                </div>
+              </div>
+              <FormMessage />
+            </FormField>
+          </CardContent>
+        </Card>
+
         <div class="grid grid-cols-3 gap-1">
           <Card v-for="group in keywordsGroups">
             <CardHeader>
