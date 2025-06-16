@@ -121,10 +121,12 @@ function removeFilter(filterId: FilterId) {
 }
 
 function updateDateRange(range: DateRange) {
-  emit("update:modelValue", {
-    ...props.modelValue,
-    date: range,
-  })
+  if (range.start || range.end) {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      date: range,
+    })
+  }
 }
 
 function updateKeywords(keywords: string[]) {

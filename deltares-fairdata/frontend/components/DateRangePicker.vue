@@ -94,13 +94,8 @@ const updateFromInputs = () => {
   const start = parseInputDate(startDateInput.value)
   const end = parseInputDate(endDateInput.value)
 
-  // Only update if both dates are valid or both are undefined
-  if ((start && end) || (!start && !end)) {
-    value.value = { start, end }
-    if (start && end) {
-      emit("update:modelValue", { start, end })
-    }
-  }
+  value.value = { start, end }
+  emit("update:modelValue", { start, end })
 }
 
 watch(startDateInput, updateFromInputs)
