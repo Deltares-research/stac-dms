@@ -16,6 +16,7 @@ import { bboxPolygon } from "@turf/turf"
 import type { LocationQueryRaw } from "vue-router"
 import FilterSystem from "~/components/FilterSystem.vue"
 import { parseDate } from "@internationalized/date"
+import { LinkIcon } from "lucide-vue-next"
 
 const route = useRoute()
 const router = useRouter()
@@ -244,6 +245,14 @@ function onSubmit() {
               }}</CardDescription>
             </CardHeader>
             <CardContent v-if="item.properties.datetime">
+              <div
+                class="text-xs text-muted-foreground flex items-center gap-1 mb-3"
+                v-if="Object.values(item.assets)[0]?.href"
+              >
+                <LinkIcon class="size-3" />
+                {{ Object.values(item.assets)[0]?.href }}
+              </div>
+
               <NuxtLink :to="'/items/' + item.id + '/view'"
                 >View details</NuxtLink
               >
