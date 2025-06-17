@@ -18,6 +18,7 @@ async function logout() {
 </script>
 
 <template>
+  <NuxtLoadingIndicator class="fixed top-0 left-0" />
   <div class="grid grid-cols-2 py-2 px-4 border-b border-border">
     <nav class="flex">
       <Button as-child variant="link">
