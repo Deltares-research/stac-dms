@@ -8,6 +8,7 @@ import { toast } from "~/components/ui/toast"
 import { usePermissions } from "@/composables/permissions"
 import Alert from "~/components/Alert.vue"
 import { collectionFormSchema } from "~/schemas/collection"
+import { Loader2Icon } from "lucide-vue-next"
 
 const { hasPermission } = await usePermissions()
 
@@ -69,6 +70,8 @@ let onSubmitCreateCollectionForm = createCollectionForm.handleSubmit(
     router.push("/collections")
   },
 )
+
+const isSubmitting = computed(() => createCollectionForm.isSubmitting.value)
 </script>
 
 <template>
@@ -84,7 +87,14 @@ let onSubmitCreateCollectionForm = createCollectionForm.handleSubmit(
 
         <CollectionCardForm />
 
-        <Button type="submit" class="mt-5 min-w-[120px]">Create</Button>
+        <Button
+          type="submit"
+          class="mt-5 min-w-[120px]"
+          :disabled="isSubmitting"
+        >
+          <Loader2Icon v-if="isSubmitting" class="animate-spin size-4 mr-1.5" />
+          Create
+        </Button>
       </form>
     </div>
   </div>
