@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/popover"
 import { cn } from "~/lib/utils"
 
-let { name } = defineProps<{
+let { name, closeOnSelect = true } = defineProps<{
   name: string
+  closeOnSelect?: boolean
 }>()
 
 let value = defineModel<string[]>({
@@ -115,7 +116,9 @@ function filterFunction(vals: string[], term: string) {
                     if (typeof ev.detail.value === 'string') {
                       toggleKeyword(ev.detail.value)
                     }
-                    open = false
+                    if (closeOnSelect) {
+                      open = false
+                    }
                   }
                 "
               >

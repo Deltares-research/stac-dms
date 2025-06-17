@@ -159,6 +159,7 @@ function toggleEmptyGeometry(checked: boolean) {
         placeholder="Keywords"
         :model-value="props.modelValue.keywords"
         @update:model-value="updateKeywords"
+        :close-on-select="false"
       />
 
       <CollectionCombobox
