@@ -15,7 +15,7 @@ import type { Extent } from "ol/extent"
 import { bboxPolygon } from "@turf/turf"
 import type { LocationQueryRaw } from "vue-router"
 import FilterSystem from "~/components/FilterSystem.vue"
-import { parseDate } from "@internationalized/date"
+import { CalendarDate, parseDate } from "@internationalized/date"
 import { LinkIcon } from "lucide-vue-next"
 
 const route = useRoute()
@@ -36,11 +36,11 @@ const filterState = reactive({
 })
 
 // Initialize filter state from route query
-if (route.query?.start && route.query?.end) {
-  filterState.date = {
-    start: parseDate(route.query.start as string),
-    end: parseDate(route.query.end as string),
-  }
+filterState.date = {
+  start: route.query?.start
+    ? parseDate(route.query.start as string)
+    : undefined,
+  end: route.query?.end ? parseDate(route.query.end as string) : undefined,
 }
 
 if (route.query?.keywords) {
@@ -60,9 +60,7 @@ if (route.query?.collections) {
 }
 
 let datetime = computed(() => {
-  if (!filterState.date?.start || !filterState.date?.end) return undefined
-
-  return `${dateFormat(new Date(filterState.date.start as unknown as string), "isoUtcDateTime")}/${dateFormat(new Date(filterState.date.end as unknown as string), "isoUtcDateTime")}`
+  return `${dateFormat(new Date((filterState.date?.start ? filterState.date.start : new CalendarDate(1900, 1, 1)) as unknown as string), "isoUtcDateTime")}/${dateFormat(new Date((filterState.date?.end ? filterState.date.end : new CalendarDate(9999, 12, 31)) as unknown as string), "isoUtcDateTime")}`
 })
 
 function onChangeBbox(newBox: Extent) {
@@ -79,6 +77,64 @@ let filter = computed(() => {
   let geometry = bboxFilter.value
     ? bboxPolygon(bboxFilter.value as [number, number, number, number]).geometry
     : undefined
+
+  // Create datetime filter conditions
+  let datetimeFilter = undefined
+  if (filterState.date?.start || filterState.date?.end) {
+    const startDate = filterState.date?.start
+      ? dateFormat(
+          new Date(filterState.date.start as unknown as string),
+          "isoUtcDateTime",
+        )
+      : dateFormat(
+          new Date(new CalendarDate(1900, 1, 1) as unknown as string),
+          "isoUtcDateTime",
+        )
+
+    const endDate = filterState.date?.end
+      ? dateFormat(
+          new Date(filterState.date.end as unknown as string),
+          "isoUtcDateTime",
+        )
+      : dateFormat(
+          new Date(new CalendarDate(9999, 12, 31) as unknown as string),
+          "isoUtcDateTime",
+        )
+
+    datetimeFilter = {
+      op: "or",
+      args: [
+        // datetime should be within the dateRange selected
+        {
+          op: "and",
+          args: [
+            {
+              op: ">=",
+              args: [{ property: "properties.datetime" }, startDate],
+            },
+            {
+              op: "<=",
+              args: [{ property: "properties.datetime" }, endDate],
+            },
+          ],
+        },
+        // OR (start_datetime should be gte to daterange start AND end_datetime should be lte to daterange end)
+        {
+          op: "and",
+          args: [
+            {
+              op: ">=",
+              args: [{ property: "properties.start_datetime" }, startDate],
+            },
+            {
+              op: "<=",
+              args: [{ property: "properties.end_datetime" }, endDate],
+            },
+          ],
+        },
+      ],
+    }
+  }
 
   return {
     op: "and",
@@ -161,6 +217,7 @@ let filter = computed(() => {
             ],
           }
         : undefined,
+      datetimeFilter,
     ].filter(Boolean),
   }
 })
@@ -170,7 +227,7 @@ let { data: searchResults, status } = await useApi("/search", {
   body: {
     collections:
       filterState.collections.length > 0 ? filterState.collections : undefined,
-    datetime,
+    // datetime,
     filter,
     "filter-lang": "cql2-json",
   } as any,
@@ -244,7 +301,7 @@ function onSubmit() {
                 item.properties.description
               }}</CardDescription>
             </CardHeader>
-            <CardContent v-if="item.properties.datetime">
+            <CardContent>
               <div
                 class="text-xs text-muted-foreground flex items-center gap-1 mb-3"
                 v-if="Object.values(item.assets)[0]?.href"
@@ -258,10 +315,18 @@ function onSubmit() {
               >
               <div class="text-xs text-muted-foreground">
                 {{
-                  dateFormat(
-                    new Date(item.properties.datetime),
-                    "mmmm dS, yyyy",
-                  )
+                  item.properties.datetime
+                    ? dateFormat(
+                        new Date(item.properties.datetime),
+                        "mmmm dS, yyyy",
+                      )
+                    : `${dateFormat(
+                        new Date(item.properties?.start_datetime ?? ""),
+                        "mmmm dS, yyyy",
+                      )} - ${dateFormat(
+                        new Date(item.properties?.end_datetime ?? ""),
+                        "mmmm dS, yyyy",
+                      )}`
                 }}
               </div>
             </CardContent>
