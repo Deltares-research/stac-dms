@@ -12,7 +12,7 @@ import { PlusIcon } from "@radix-icons/vue"
 import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
-import { CalendarIcon, XIcon, DatabaseIcon } from "lucide-vue-next"
+import { CalendarIcon, XIcon, DatabaseIcon, Loader2Icon } from "lucide-vue-next"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
@@ -445,6 +445,8 @@ function getDisplayTime() {
 
   return value ?? "Pick a date"
 }
+
+const isSubmitting = computed(() => form.isSubmitting.value)
 </script>
 
 <template>
@@ -903,7 +905,10 @@ function getDisplayTime() {
         <Button as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
-        <Button type="submit">Publish project data </Button>
+        <Button type="submit" :disabled="isSubmitting">
+          <Loader2Icon v-if="isSubmitting" class="animate-spin size-4 mr-1.5" />
+          Publish project data
+        </Button>
       </div>
     </form>
   </Container>
