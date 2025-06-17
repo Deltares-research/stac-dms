@@ -12,8 +12,8 @@ import { PlusIcon } from "@radix-icons/vue"
 import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
-import { CalendarIcon, XIcon, DatabaseIcon } from "lucide-vue-next"
 import DateRangePicker from "@/components/DateRangePicker.vue"
+import { CalendarIcon, XIcon, DatabaseIcon, Loader2Icon } from "lucide-vue-next"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
@@ -25,17 +25,17 @@ import { computedAsync } from "@vueuse/core"
 import type { FeatureCollection, Geometry } from "geojson"
 import type { DateRange } from "radix-vue"
 import { bbox } from "@turf/turf"
-import spatialReferenceSystemRaw from "../../lib/spatialReferenceSystem.txt?raw"
 import { nullToUndefined } from "~/lib/null-to-undefined"
 import type { Keyword } from "~/lib/types"
+import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
 
-let crsArray = spatialReferenceSystemRaw.split("\n")
-let spatialReferenceSystem = crsArray.sort().map((item) => {
+let spatialReferenceSystemOptions = spatialReferenceSystem.map((item) => {
   return { label: item, value: item }
 })
-spatialReferenceSystem.unshift({
+
+spatialReferenceSystemOptions.unshift({
   label: "not applicable",
   value: "not applicable",
 })
@@ -384,8 +384,6 @@ let onSubmit = form.handleSubmit(async (values) => {
         newItem.bbox = newItem.geometry ? bbox(newItem.geometry) : undefined
       }
 
-      console.log("newItem", newItem)
-
       let result = await useApi(
         "/collections/{collection_id}/items/{item_id}",
         {
@@ -506,6 +504,8 @@ const dateRangeValue = ref<DateRange>({
 function handleDateRangeChange(dateRange: DateRange) {
   dateRangeValue.value = dateRange
 }
+
+const isSubmitting = computed(() => form.isSubmitting.value)
 </script>
 
 <template>
@@ -727,7 +727,7 @@ function handleDateRangeChange(dateRange: DateRange) {
                   >
                   <div class="flex flex-row space-x-4">
                     <CustomDropDownComponent
-                      :options="spatialReferenceSystem"
+                      :options="spatialReferenceSystemOptions"
                       v-bind="componentField"
                     />
                     <Input type="text" v-bind="componentField" />
@@ -996,7 +996,10 @@ function handleDateRangeChange(dateRange: DateRange) {
         <Button as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
-        <Button type="submit">Publish project data </Button>
+        <Button type="submit" :disabled="isSubmitting">
+          <Loader2Icon v-if="isSubmitting" class="animate-spin size-4 mr-1.5" />
+          Publish project data
+        </Button>
       </div>
     </form>
   </Container>
