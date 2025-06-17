@@ -23,17 +23,17 @@ import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
 import type { FeatureCollection, Geometry } from "geojson"
 import { bbox } from "@turf/turf"
-import spatialReferenceSystemRaw from "../../lib/spatialReferenceSystem.txt?raw"
 import { nullToUndefined } from "~/lib/null-to-undefined"
 import type { Keyword } from "~/lib/types"
+import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
 
-let crsArray = spatialReferenceSystemRaw.split("\n")
-let spatialReferenceSystem = crsArray.sort().map((item) => {
+let spatialReferenceSystemOptions = spatialReferenceSystem.map((item) => {
   return { label: item, value: item }
 })
-spatialReferenceSystem.unshift({
+
+spatialReferenceSystemOptions.unshift({
   label: "not applicable",
   value: "not applicable",
 })
@@ -665,7 +665,7 @@ function getDisplayTime() {
                   >
                   <div class="flex flex-row space-x-4">
                     <CustomDropDownComponent
-                      :options="spatialReferenceSystem"
+                      :options="spatialReferenceSystemOptions"
                       v-bind="componentField"
                     />
                     <Input type="text" v-bind="componentField" />
