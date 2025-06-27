@@ -26,7 +26,7 @@ type FilterId = "date" | "keywords" | "collections" | "includeEmptyGeometry"
 const availableFilters = [
   { id: "date" as FilterId, label: "Date Range" },
   { id: "keywords" as FilterId, label: "Keywords" },
-  { id: "collections" as FilterId, label: "Collections" },
+  { id: "collections" as FilterId, label: "Domains" },
   { id: "includeEmptyGeometry" as FilterId, label: "Include Empty Geometries" },
 ]
 
@@ -167,7 +167,7 @@ function toggleEmptyGeometry(checked: boolean) {
       <CollectionCombobox
         v-if="filterId === 'collections'"
         name="collections"
-        placeholder="Collections"
+        placeholder="Domains"
         :model-value="props.modelValue.collections"
         @update:model-value="updateCollections"
       />
