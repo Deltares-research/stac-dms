@@ -540,12 +540,12 @@ const isSubmitting = computed(() => form.isSubmitting.value)
 
         <Card v-if="collectionOptions.length > 0">
           <CardHeader>
-            <CardTitle class="text-lg">Data set collection</CardTitle>
+            <CardTitle class="text-lg">Data set domain</CardTitle>
           </CardHeader>
           <CardContent>
             <FormField v-slot="{ componentField }" name="collectionId">
               <FormItem class="flex flex-col gap-1">
-                <FormLabel>Collection</FormLabel>
+                <FormLabel>Domain</FormLabel>
                 <FormControl>
                   <CustomDropDownComponent
                     :options="collectionOptions"

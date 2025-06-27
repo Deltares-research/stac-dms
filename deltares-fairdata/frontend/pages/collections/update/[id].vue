@@ -34,7 +34,7 @@
                 <TableHead class="w-full">Group</TableHead>
                 <TableHead class="whitespace-nowrap">Data Producer</TableHead>
                 <TableHead class="whitespace-nowrap">
-                  Collection Data Steward
+                  Domain Data Steward
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -255,7 +255,7 @@ let onSubmitUpdateCollectionForm = updateCollectionForm.handleSubmit(
     }
 
     toast({
-      title: "Collection updated",
+      title: "Domain updated",
     })
 
     await refresh()

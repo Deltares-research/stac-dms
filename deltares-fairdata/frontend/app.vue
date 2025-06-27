@@ -28,7 +28,7 @@ async function logout() {
         <NuxtLink to="/items">Register</NuxtLink>
       </Button>
       <Button as-child v-if="hasPermission('collection:create')" variant="link">
-        <NuxtLink to="/collections">Collections</NuxtLink>
+        <NuxtLink to="/collections">Domains</NuxtLink>
       </Button>
       <Button as-child v-if="hasPermission('keyword:all')" variant="link">
         <NuxtLink to="/keywords">Keywords</NuxtLink>
