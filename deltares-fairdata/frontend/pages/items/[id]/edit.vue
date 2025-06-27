@@ -923,7 +923,7 @@ const isSubmitting = computed(() => form.isSubmitting.value)
                     :name="`requestBody.assets.${id}.title`"
                   >
                     <FormItem>
-                      <FormLabel>Title</FormLabel>
+                      <FormLabel>Title of the dataset</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
@@ -935,7 +935,7 @@ const isSubmitting = computed(() => form.isSubmitting.value)
                     :name="`requestBody.assets.${id}.description`"
                   >
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Description of the dataset</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
@@ -947,7 +947,7 @@ const isSubmitting = computed(() => form.isSubmitting.value)
                     :name="`requestBody.assets.${id}.href`"
                   >
                     <FormItem>
-                      <FormLabel>Link</FormLabel>
+                      <FormLabel>Link to the dataset</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
@@ -959,7 +959,7 @@ const isSubmitting = computed(() => form.isSubmitting.value)
                     :name="`requestBody.assets.${id}.type`"
                   >
                     <FormItem>
-                      <FormLabel>Type</FormLabel>
+                      <FormLabel>Type of dataset (e.g. file type)</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
