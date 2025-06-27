@@ -73,6 +73,23 @@ function searchBboxArea() {
 
 watch(filterState, onSubmit)
 
+const searchTermProperties = [
+  "properties.title",
+  "properties.description",
+  "properties.projectNumber",
+  "properties.spatialReferenceSystem",
+  "properties.dataQualityInfoStatement",
+  "properties.legalRestrictions",
+  "properties.metadataStandardName",
+  "properties.progressCode",
+  "properties.language",
+  "properties.originatorDataEmail",
+  "properties.originatorDataOrganisation",
+  "properties.originatorMetaDataOrganisation",
+  "properties.originatorMetaDataEmail",
+  "properties.license",
+]
+
 let filter = computed(() => {
   let geometry = bboxFilter.value
     ? bboxPolygon(bboxFilter.value as [number, number, number, number]).geometry
@@ -185,26 +202,15 @@ let filter = computed(() => {
       },
       {
         op: "or",
-        args: [
-          {
-            op: "like",
-            args: [
-              {
-                property: "properties.title",
-              },
-              `%${filterState.q}%`,
-            ],
-          },
-          {
-            op: "like",
-            args: [
-              {
-                property: "properties.description",
-              },
-              `%${filterState.q}%`,
-            ],
-          },
-        ],
+        args: searchTermProperties.map((property) => ({
+          op: "like",
+          args: [
+            {
+              property,
+            },
+            `%${filterState.q}%`,
+          ],
+        })),
       },
       filterState.keywords.length > 0
         ? {
