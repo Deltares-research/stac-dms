@@ -31,9 +31,7 @@ import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
 
-let spatialReferenceSystemOptions = spatialReferenceSystem.map((item) => {
-  return { label: item, value: item }
-})
+let spatialReferenceSystemOptions = spatialReferenceSystem
 
 spatialReferenceSystemOptions.unshift({
   label: "not applicable",
