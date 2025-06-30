@@ -28,6 +28,7 @@ import { bbox } from "@turf/turf"
 import { nullToUndefined } from "~/lib/null-to-undefined"
 import type { Keyword } from "~/lib/types"
 import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
+
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
 
@@ -74,8 +75,6 @@ let initialValues = computed(() => {
 
   return feature
 })
-
-console.log(initialValues.value)
 
 let keywords = ref<Keyword[]>(
   (initialValues.value?.properties?.keywords as Keyword[]) ?? [],
