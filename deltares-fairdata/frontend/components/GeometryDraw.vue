@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue"
+import { ref, watch, onMounted, onUnmounted, onUpdated, watchEffect } from "vue"
 import { Map, Layers, Sources, Interactions, Styles } from "vue3-openlayers"
 import { GeoJSON } from "ol/format"
 import type {
@@ -66,6 +66,7 @@ let latLongOrder = ref(true) // true for lat/lng, false for lng/lat
 let inputValid = ref(false)
 let validationMessage = ref("")
 let parsedCoordinates = ref<number[][]>([])
+let isInitializing = ref(false) // Flag to prevent reactive loops
 
 let drawend = (event: any) => {
   let map = vectorRef.value.source
@@ -89,11 +90,26 @@ function onChange(event: any) {
   onValueChange?.(featureCollection)
 }
 
-document.addEventListener("keydown", (event) => {
+// Global event listener for delete key
+function handleKeyDown(event: KeyboardEvent) {
   if (event.key === "Delete" || event.key === "Backspace") {
     removeSelectedFeature()
   }
+}
+
+onMounted(() => {
+  document.addEventListener("keydown", handleKeyDown)
 })
+
+onUnmounted(() => {
+  document.removeEventListener("keydown", handleKeyDown)
+})
+
+// Debug re-render tracking
+let renderCount = 0
+let lastRenderTime = Date.now()
+let componentDisabled = ref(false)
+const MAX_RENDERS = 1000
 
 function removeSelectedFeature() {
   let map = vectorRef.value.source
@@ -281,16 +297,21 @@ function initializeCoordinateInput() {
     const coordinateText =
       convertFeatureCollectionToCoordinateText(initialValue)
     if (coordinateText) {
+      isInitializing.value = true
       coordinateInput.value = coordinateText
       // Trigger validation to set the detected geometry type
       parseAndValidateCoordinates(coordinateText)
+      isInitializing.value = false
     }
   }
 }
 
 // Watch coordinate input for live validation
 watch(coordinateInput, (newValue) => {
-  parseAndValidateCoordinates(newValue)
+  // Skip parsing if we're in the middle of initializing to prevent reactive loops
+  if (!isInitializing.value) {
+    parseAndValidateCoordinates(newValue)
+  }
 })
 
 watch(latLongOrder, () => {
@@ -362,9 +383,6 @@ function createGeometryFromCoordinates() {
   // Add new feature
   map.addFeature(feature)
 
-  // Clear input
-  coordinateInput.value = ""
-
   // Fit map to new feature
   setTimeout(() => {
     try {
@@ -390,10 +408,18 @@ function clearCoordinateInput() {
   parsedCoordinates.value = []
 }
 
+const initialized = ref(false)
+
 // Watch for changes to fit map to features and update coordinate input
 watch(
   () => initialValue,
   (newValue) => {
+    if (initialized.value) {
+      return
+    }
+
+    initialized.value = true
+
     if (newValue && vectorRef.value?.source) {
       // Clear existing features
       vectorRef.value.source.clear()
