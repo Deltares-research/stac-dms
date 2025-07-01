@@ -286,7 +286,7 @@ function onSubmit() {
           <div class="flex gap-2">
             <Input
               v-model="filterState.q"
-              placeholder="Search title or description..."
+              placeholder="Search on project number, title, description and more"
               class="flex-1"
             />
             <Button @click="onSubmit">Search</Button>
