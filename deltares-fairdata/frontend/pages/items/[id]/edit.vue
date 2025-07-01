@@ -417,17 +417,26 @@ let onSubmit = form.handleSubmit(async (values) => {
       // Handle datetime fields from DateRangePicker
       if (dateRangeValue.value.start && dateRangeValue.value.end) {
         // Both dates selected - save as start_datetime and end_datetime
+        newItem.properties.datetime = null
         newItem.properties.start_datetime = new Date(
           dateRangeValue.value.start.toString(),
         ).toISOString()
         newItem.properties.end_datetime = new Date(
           dateRangeValue.value.end.toString(),
         ).toISOString()
+        // Don't set datetime when using date range
       } else if (dateRangeValue.value.start && !dateRangeValue.value.end) {
         // Only start date - save as datetime
         newItem.properties.datetime = new Date(
           dateRangeValue.value.start.toString(),
         ).toISOString()
+        newItem.properties.start_datetime = undefined
+        newItem.properties.end_datetime = undefined
+      } else {
+        return toast({
+          title: "Please select a date or date range.",
+          variant: "destructive",
+        })
       }
 
       newItem.properties.keywords = keywords.value
