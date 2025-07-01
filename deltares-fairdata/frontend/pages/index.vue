@@ -13,7 +13,7 @@ import Input from "~/components/ui/input/Input.vue"
 import MapBrowser from "~/components/MapBrowser.vue"
 import type { Extent } from "ol/extent"
 import { bboxPolygon } from "@turf/turf"
-import type { LocationQueryRaw } from "vue-router"
+import type { LocationQueryRaw, LocationQueryValue } from "vue-router"
 import FilterSystem from "~/components/FilterSystem.vue"
 import { CalendarDate, parseDate } from "@internationalized/date"
 import { LinkIcon } from "lucide-vue-next"
@@ -31,7 +31,7 @@ const filterState = reactive({
   q: (route.query?.q as string) || "",
   date: undefined as DateRange | undefined,
   keywords: [] as string[],
-  collections: [] as string[],
+  collections: getCollectionIdsFromQuery(route.query?.collections),
   includeEmptyGeometry: route.query?.includeEmptyGeometry === "on",
 })
 
@@ -50,18 +50,15 @@ if (route.query?.keywords) {
     .filter(Boolean) as string[]
 }
 
-if (route.query?.collections) {
-  const collections = route.query.collections
-  filterState.collections = (
-    Array.isArray(collections) ? collections : [collections]
-  )
+function getCollectionIdsFromQuery(
+  query: LocationQueryValue | LocationQueryValue[],
+) {
+  if (!query) return []
+
+  return (Array.isArray(query) ? query : [query])
     .map((id) => id?.toString())
     .filter(Boolean) as string[]
 }
-
-let datetime = computed(() => {
-  return `${dateFormat(new Date((filterState.date?.start ? filterState.date.start : new CalendarDate(1900, 1, 1)) as unknown as string), "isoUtcDateTime")}/${dateFormat(new Date((filterState.date?.end ? filterState.date.end : new CalendarDate(9999, 12, 31)) as unknown as string), "isoUtcDateTime")}`
-})
 
 function onChangeBbox(newBox: Extent) {
   bbox.value = newBox
@@ -228,15 +225,20 @@ let filter = computed(() => {
   }
 })
 
+let collections = computed(() =>
+  filterState.collections.length > 0 ? filterState.collections : undefined,
+)
+
+let apiBody = computed(() => ({
+  collections,
+  // datetime,
+  filter,
+  "filter-lang": "cql2-json",
+}))
+
 let { data: searchResults, status } = await useApi("/search", {
   method: "post",
-  body: {
-    collections:
-      filterState.collections.length > 0 ? filterState.collections : undefined,
-    // datetime,
-    filter,
-    "filter-lang": "cql2-json",
-  } as any,
+  body: apiBody.value as any,
 })
 
 function onSubmit() {
