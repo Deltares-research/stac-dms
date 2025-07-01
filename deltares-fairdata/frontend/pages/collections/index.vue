@@ -1,15 +1,15 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Collections</CardTitle>
+      <CardTitle>Domains</CardTitle>
       <CardDescription
-        >List of data sets collections, which you are allowed to edit
+        >List of data sets domains, which you are allowed to edit
       </CardDescription>
     </CardHeader>
     <CardContent>
       <div class="flex justify-end mb-3">
         <Button v-if="hasPermission('group:create')">
-          <NuxtLink to="/collections/create">Add collection</NuxtLink>
+          <NuxtLink to="/collections/create">Add domain</NuxtLink>
         </Button>
       </div>
       <DataTable :columns="collectionColumns" :data="collections" />

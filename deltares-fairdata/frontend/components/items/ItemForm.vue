@@ -9,7 +9,7 @@
                                 v-if="!readonly"
                                 id="name"
                                 v-model="name"
-                                placeholder="Name of your collection"
+                                placeholder="Name of your domain"
                         />
                     </div>
                     <div class="flex flex-col space-y-1.5">
@@ -22,7 +22,7 @@
                         />
                         <Textarea v-if="!readonly" id="description" v-model="description" />
                         <div class="flex flex-col space-y-1.5">
-                            <Label for="description">Collection type</Label>
+                            <Label for="description">Domain type</Label>
                             <CustomDropDownComponent
                                     id="collectionType"
                                     :options="collectionType"

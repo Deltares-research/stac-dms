@@ -78,11 +78,11 @@ const isSubmitting = computed(() => createCollectionForm.isSubmitting.value)
   <div class="py-8 container mx-auto">
     <div class="max-w-[700px] mx-auto">
       <div v-if="!hasPermission('collection:create')">
-        <Alert message="You do not have permission to create collections" />
+        <Alert message="You do not have permission to create domains" />
       </div>
 
       <form v-else @submit="onSubmitCreateCollectionForm">
-        <h1 class="text-2xl font-semibold mb-4">Create a new collection</h1>
+        <h1 class="text-2xl font-semibold mb-4">Create a new domain</h1>
         <Alert :message="errors" />
 
         <CollectionCardForm />
