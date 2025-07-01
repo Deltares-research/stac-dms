@@ -32,12 +32,13 @@ import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
 
-let spatialReferenceSystemOptions = spatialReferenceSystem
-
-spatialReferenceSystemOptions.unshift({
-  label: "not applicable",
-  value: "not applicable",
-})
+let spatialReferenceSystemOptions = [
+  {
+    label: "not applicable",
+    value: "not applicable",
+  },
+  ...spatialReferenceSystem,
+]
 
 function handleChange(kw: Keyword) {
   const index = keywords.value.findIndex((item) => item.id == kw.id)
