@@ -84,14 +84,14 @@ let collectionsById = computed(() =>
           :aria-expanded="open"
           class="justify-between w-full"
         >
-          Add collection
+          Add domain
           <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent class="p-0 PopoverContent">
         <Command>
-          <CommandInput class="h-9" placeholder="Search collection..." />
-          <CommandEmpty>No collections found.</CommandEmpty>
+          <CommandInput class="h-9" placeholder="Search domain..." />
+          <CommandEmpty>No domains found.</CommandEmpty>
           <CommandList>
             <CommandGroup>
               <CommandItem

@@ -4,10 +4,7 @@
       <FormItem>
         <FormLabel>Name</FormLabel>
         <FormControl>
-          <Input
-            placeholder="Name of your collection"
-            v-bind="componentField"
-          />
+          <Input placeholder="Name of your domain" v-bind="componentField" />
         </FormControl>
         <FormMessage />
       </FormItem>
@@ -23,7 +20,7 @@
     </FormField>
     <FormField v-slot="{ componentField }" name="collectionType">
       <FormItem>
-        <FormLabel>Collection type</FormLabel>
+        <FormLabel>Domain type</FormLabel>
         <FormControl>
           <CustomDropDownComponent
             :options="collectionTypes"

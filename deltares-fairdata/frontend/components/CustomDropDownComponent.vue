@@ -5,13 +5,15 @@
         variant="outline"
         role="combobox"
         :aria-expanded="open"
-        class="w-fit min-w-[200px] justify-between"
+        class="w-fit min-w-[200px] justify-betwee"
       >
-        {{
-          value
-            ? options.find((option) => option.value === value)?.label
-            : "Select ..."
-        }}
+        <div class="overflow-ellipsis overflow-hidden w-full text-start">
+          {{
+            value
+              ? options.find((option) => option.value === value)?.label
+              : "Select ..."
+          }}
+        </div>
         <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
     </PopoverTrigger>
