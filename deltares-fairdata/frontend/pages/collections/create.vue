@@ -31,7 +31,7 @@ let onSubmitCreateCollectionForm = createCollectionForm.handleSubmit(
         id: values.title,
         title: values.title,
         description: values.description,
-        keywords: [values.collectionType],
+        keywords: [],
         license: "proprietary",
         extent: {
           spatial: {

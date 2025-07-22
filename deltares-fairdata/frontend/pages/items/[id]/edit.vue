@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watchEffect } from "vue"
+import { ref, watchEffect, computed } from "vue"
 import { cn } from "@/lib/utils"
 import { nanoid } from "nanoid"
 import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
@@ -31,6 +31,9 @@ import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
 
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
+
+// Add facility filter state
+const selectedFacilityType = ref('')
 
 let spatialReferenceSystemOptions = [
   {
@@ -336,6 +339,23 @@ const keywordsGroups = computedAsync(async () => {
     },
   })
 }, [])
+
+// Add computed property for filtered keywords groups
+const filteredKeywordsGroups = computed(() => {
+  if (!keywordsGroups.value) return []
+  
+  if (!selectedFacilityType.value) {
+    return keywordsGroups.value // Return all groups if no filter selected
+  }
+  
+  return keywordsGroups.value.filter(group => {
+    // Filter groups that have at least one keyword item with matching facility_type
+    return group.keywords.some(item => item.facility_type === selectedFacilityType.value)
+  }).map(group => ({
+    ...group,
+    keywords: group.keywords.filter(item => item.facility_type === selectedFacilityType.value)
+  }))
+})
 
 let onSubmit = form.handleSubmit(async (values) => {
   try {
@@ -879,7 +899,60 @@ const isSubmitting = computed(() => form.isSubmitting.value)
           </CardContent>
         </Card>
 
-        <div class="grid grid-cols-3 gap-1">
+        <div>
+          <!-- Dropdown Filter -->
+          <div class="mb-4">
+            <label for="facility-filter" class="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Type of Origin:
+            </label>
+            <select
+              id="facility-filter"
+              v-model="selectedFacilityType"
+              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Type of Origin</option>
+              <option value="experimentalFacilities">Experimental Facilities</option>
+              <option value="numericalModels">Numerical Models</option>
+              <option value="Field">Field</option>
+            </select>
+          </div>
+
+          <!-- Filtered Grid -->
+          <div class="grid grid-cols-3 gap-1">
+            <Card v-for="group in filteredKeywordsGroups" :key="group.id">
+              <CardHeader>
+                <CardTitle class="text-lg">{{ group.group_name_en }}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  v-for="item in group.keywords"
+                  v-slot="{ value }"
+                  :key="item.id"
+                  type="checkbox"
+                  :value="item.nl_keyword"
+                  :checked="isSelected(item)"
+                  :unchecked-value="false"
+                  name="items"
+                >
+                  <FormItem class="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        @update:checked="handleChange(item)"
+                        :checked="isSelected(item)"
+                      />
+                    </FormControl>
+                    <FormLabel class="font-normal">
+                      {{ item.nl_keyword }}
+                    </FormLabel>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <!-- <div class="grid grid-cols-3 gap-1">
           <Card v-for="group in keywordsGroups">
             <CardHeader>
               <CardTitle class="text-lg">{{ group.group_name_en }}</CardTitle>
@@ -910,7 +983,7 @@ const isSubmitting = computed(() => form.isSubmitting.value)
               </FormField>
             </CardContent>
           </Card>
-        </div>
+        </div> -->
         <div>
           <Card v-if="form.values.collectionId">
             <CardHeader>
