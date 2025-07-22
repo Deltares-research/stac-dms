@@ -81,12 +81,6 @@ watch(() => props.modelValue, initActiveFilters, {
   deep: true,
 })
 
-const keywordsCount = computed(() => props.modelValue.keywords?.length || 0)
-
-const collectionsCount = computed(
-  () => props.modelValue.collections?.length || 0,
-)
-
 // Methods
 function addFilter(filterId: FilterId) {
   activeFilters.value.add(filterId)
@@ -101,25 +95,6 @@ function addFilter(filterId: FilterId) {
   }
 }
 
-function removeFilter(filterId: FilterId) {
-  activeFilters.value.delete(filterId)
-
-  // Clear the filter value
-  const newValue = { ...props.modelValue }
-
-  if (filterId === "date") {
-    newValue.date = undefined
-  } else if (filterId === "keywords") {
-    newValue.keywords = []
-  } else if (filterId === "collections") {
-    newValue.collections = []
-  } else if (filterId === "includeEmptyGeometry") {
-    newValue.includeEmptyGeometry = false
-  }
-
-  emit("update:modelValue", newValue)
-}
-
 function updateDateRange(range: DateRange) {
   if (range.start || range.end) {
     emit("update:modelValue", {
@@ -127,6 +102,13 @@ function updateDateRange(range: DateRange) {
       date: range,
     })
   }
+}
+
+function clearDateRange() {
+  emit("update:modelValue", {
+    ...props.modelValue,
+    date: undefined,
+  })
 }
 
 function updateKeywords(keywords: string[]) {
@@ -176,6 +158,7 @@ function toggleEmptyGeometry(checked: boolean) {
         v-if="filterId === 'date'"
         :model-value="props.modelValue.date"
         @update:model-value="updateDateRange"
+        @clear="clearDateRange"
       />
 
       <!-- Include Empty Geometries Filter -->
