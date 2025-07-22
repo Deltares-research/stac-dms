@@ -18,18 +18,6 @@
         <FormMessage />
       </FormItem>
     </FormField>
-    <FormField v-slot="{ componentField }" name="collectionType">
-      <FormItem>
-        <FormLabel>Domain type</FormLabel>
-        <FormControl>
-          <CustomDropDownComponent
-            :options="collectionTypes"
-            v-bind="componentField"
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
     <FormField v-slot="{ componentField }" name="keywordsFacility">
       <FormItem>
         <FormLabel>Keyword domains</FormLabel>
