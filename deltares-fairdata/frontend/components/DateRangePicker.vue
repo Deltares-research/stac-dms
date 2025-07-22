@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { DateRange } from "radix-vue"
-import { cn } from "@/lib/utils"
 
 import {
   Popover,
@@ -8,18 +7,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { RangeCalendar } from "@/components/ui/range-calendar"
-import { CalendarIcon } from "lucide-vue-next"
+import { CalendarIcon, XIcon } from "lucide-vue-next"
 import { type Ref, ref, watch, computed, nextTick } from "vue"
-import {
-  DateFormatter,
-  getLocalTimeZone,
-  CalendarDate,
-  type DateValue,
-} from "@internationalized/date"
-
-const df = new DateFormatter("en-US", {
-  dateStyle: "medium",
-})
+import { CalendarDate, type DateValue } from "@internationalized/date"
 
 const emit = defineEmits<{
   (event: "update:modelValue", payload: DateRange): void
@@ -27,6 +17,7 @@ const emit = defineEmits<{
 
 const props = defineProps<{
   modelValue?: DateRange
+  onClear?: () => void
 }>()
 
 const value = ref(
@@ -95,6 +86,8 @@ const updateFromInputs = () => {
   const end = parseInputDate(endDateInput.value)
 
   value.value = { start, end }
+
+  console.log("updateFromInputs", { start, end })
   emit("update:modelValue", { start, end })
 }
 
@@ -265,6 +258,16 @@ watch(value, (newValue) => {
           <RangeCalendar v-model="value" initial-focus :number-of-months="2" />
         </PopoverContent>
       </Popover>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        @click="onClear"
+        v-if="onClear"
+        class="-mr-4"
+      >
+        <XIcon class="size-4" />
+      </Button>
     </div>
   </div>
 </template>
