@@ -32,9 +32,6 @@ import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
 
-// Add facility filter state
-const selectedFacilityType = ref('')
-
 let spatialReferenceSystemOptions = [
   {
     label: "not applicable",
@@ -56,7 +53,7 @@ function isSelected(kw: Keyword) {
   return keywords.value.find((item) => item.id == kw.id) !== undefined
 }
 
-let { data: collectionsResponse } = await useApi("/collections", {
+let { data: collectionsResponse } = await useApi("/collections?limit=1000", {
   server: true,
 })
 
@@ -79,6 +76,11 @@ let initialValues = computed(() => {
 
   return feature
 })
+
+// Add facility filter state
+const selectedFacilityType = ref(
+  (initialValues.value?.properties?.facility_type as string) ?? ''
+)
 
 let keywords = ref<Keyword[]>(
   (initialValues.value?.properties?.keywords as Keyword[]) ?? [],
@@ -218,6 +220,7 @@ let schema = z.object({
         start_datetime: z.string().nullable().optional(),
         end_datetime: z.string().nullable().optional(),
         license: z.string().nullable().optional(),
+        facility_type: z.string(),
         providers: z
           .array(
             z.object({
@@ -315,46 +318,57 @@ let form = useForm({
 })
 
 const keywordsGroups = computedAsync(async () => {
-  const collectionId = initialValues.value?.collection
+  // Get collection ID from either existing item or form selection
+  const collectionId = initialValues.value?.collection || form.values.collectionId
+  
+  if (!collectionId) {
+    return []
+  }
 
-  if (!collectionId) return []
+  try {
+    const collection = await $api("/collections/{collection_id}", {
+      path: {
+        collection_id: collectionId,
+      },
+    })
+    
+    const keywordsLink = collection.links.find(
+      (item) => item.rel === "keywords" && item.id,
+    )
 
-  const collection = await $api("/collections/{collection_id}", {
-    path: {
-      collection_id: collectionId,
-    },
-  })
-  const keywordsLink = collection.links.find(
-    (item) => item.rel === "keywords" && item.id,
-  )
+    // TODO: Fix type assertion
+    const facilityId = keywordsLink?.id as string
 
-  // TODO: Fix type assertion
-  const facilityId = keywordsLink?.id as string
+    if (!facilityId) {
+      return []
+    }
 
-  if (!facilityId) return []
-
-  return await $api("/keywords", {
-    query: {
-      facility_id: facilityId,
-    },
-  })
+    const keywordsResult = await $api("/keywords", {
+      query: {
+        facility_id: facilityId,
+      },
+    })
+    
+    return keywordsResult
+  } catch (error) {
+    console.error('Error loading keywords:', error)
+    return []
+  }
 }, [])
 
 // Add computed property for filtered keywords groups
 const filteredKeywordsGroups = computed(() => {
   if (!keywordsGroups.value) return []
-  
+ 
   if (!selectedFacilityType.value) {
-    return keywordsGroups.value // Return all groups if no filter selected
+    return [] // Return all groups if no filter selected
   }
-  
+ 
+  // Filter groups based on the group's facility_type, not the keywords' facility_type
   return keywordsGroups.value.filter(group => {
-    // Filter groups that have at least one keyword item with matching facility_type
-    return group.keywords.some(item => item.facility_type === selectedFacilityType.value)
-  }).map(group => ({
-    ...group,
-    keywords: group.keywords.filter(item => item.facility_type === selectedFacilityType.value)
-  }))
+    return group.facility_type === selectedFacilityType.value || 
+           group.facility_type === "general"
+  })
 })
 
 let onSubmit = form.handleSubmit(async (values) => {
@@ -393,6 +407,7 @@ let onSubmit = form.handleSubmit(async (values) => {
         })
       }
 
+      newItem.properties.facility_type = selectedFacilityType.value
       newItem.properties.keywords = keywords.value
 
       let newGeometry = geometry.value?.features[0]
@@ -459,7 +474,8 @@ let onSubmit = form.handleSubmit(async (values) => {
           variant: "destructive",
         })
       }
-
+  
+      newItem.properties.facility_type = selectedFacilityType.value
       newItem.properties.keywords = keywords.value
 
       let newGeometry = geometry.value?.features[0]
@@ -901,7 +917,7 @@ const isSubmitting = computed(() => form.isSubmitting.value)
 
         <div>
           <!-- Dropdown Filter -->
-          <div class="mb-4">
+          <!-- <div class="mb-4">
             <label for="facility-filter" class="block text-sm font-medium text-gray-700 mb-2">
               Filter by Type of Origin:
             </label>
@@ -911,11 +927,40 @@ const isSubmitting = computed(() => form.isSubmitting.value)
               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Type of Origin</option>
-              <option value="experimentalFacilities">Experimental Facilities</option>
-              <option value="numericalModels">Numerical Models</option>
+              <option value="experimentalFacility">Experimental Facilities</option>
+              <option value="numericalModel">Numerical Models</option>
               <option value="Field">Field</option>
             </select>
-          </div>
+          </div> -->
+          <Card v-if="form.values.collectionId">
+            <CardHeader>
+              <CardTitle class="text-lg">Type of Origin</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                v-slot="{ componentField }"
+                name="requestBody.properties.facility_type"
+              >
+                <FormItem>
+                  <FormLabel>Filter by Type of Origin:</FormLabel>
+                  <FormControl>
+                    <select
+                      v-bind="componentField"
+                      id="facility-filter"
+                      v-model="selectedFacilityType"
+                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Type of Origin</option>
+                      <option value="experimentalFacility">Experimental Facilities</option>
+                      <option value="numericalModel">Numerical Models</option>
+                      <option value="Field">Field</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+            </CardContent>
+          </Card>
 
           <!-- Filtered Grid -->
           <div class="grid grid-cols-3 gap-1">
@@ -952,38 +997,6 @@ const isSubmitting = computed(() => form.isSubmitting.value)
           </div>
         </div>
 
-        <!-- <div class="grid grid-cols-3 gap-1">
-          <Card v-for="group in keywordsGroups">
-            <CardHeader>
-              <CardTitle class="text-lg">{{ group.group_name_en }}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                v-for="item in group.keywords"
-                v-slot="{ value }"
-                :key="item.id"
-                type="checkbox"
-                :value="item.nl_keyword"
-                :checked="isSelected(item)"
-                :unchecked-value="false"
-                name="items"
-              >
-                <FormItem class="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      @update:checked="handleChange(item)"
-                      :checked="isSelected(item)"
-                    />
-                  </FormControl>
-                  <FormLabel class="font-normal">
-                    {{ item.nl_keyword }}
-                  </FormLabel>
-                  <FormMessage />
-                </FormItem>
-              </FormField>
-            </CardContent>
-          </Card>
-        </div> -->
         <div>
           <Card v-if="form.values.collectionId">
             <CardHeader>
