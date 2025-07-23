@@ -35,7 +35,7 @@ const { $api } = useNuxtApp()
 
 let { data: keywords } = await useApi("/facilities")
 
-const { data, refresh } = await useApi("/collections")
+const { data, refresh } = await useApi("/collections?limit=1000")
 
 onMounted(async () => {
   await new Promise((r) => setTimeout(r, 1000))
