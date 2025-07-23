@@ -175,7 +175,7 @@ def rbac_client():
 @pytest_asyncio.fixture(scope="function")
 async def keyword_group(keyword_client: KeywordClient):
     keyword_group = keyword_client.create_keywordgroup(
-        {"group_name_nl": "test", "group_name_en": "engelse_test"}
+        {"group_name_nl": "test", "group_name_en": "engelse_test", "facility_type": "facility_type"}
     )
     yield keyword_group
     try:
