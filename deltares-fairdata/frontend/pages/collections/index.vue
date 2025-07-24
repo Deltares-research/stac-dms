@@ -112,24 +112,6 @@ const collectionColumns: ColumnDef<
     },
   },
   {
-    accessorKey: "keywords",
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: "ghost",
-          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
-        },
-        () => ["Collection type", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
-      )
-    },
-    cell: ({ row }) => {
-      const key = row.getValue("keywords")[0]
-      const selectedItem = collectionTypes.find((item) => item.value == key)
-      return selectedItem.label
-    },
-  },
-  {
     accessorKey: "links",
     header: ({ column }) => {
       return h(
