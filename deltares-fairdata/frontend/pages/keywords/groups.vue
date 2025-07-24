@@ -14,6 +14,7 @@ let createKeywordgroupFormSchema = toTypedSchema(
   z.object({
     group_name_nl: z.string().min(2),
     group_name_en: z.string().min(2),
+    facility_type: z.string().min(2),
   }),
 )
 
@@ -91,6 +92,22 @@ onBeforeRouteUpdate((guard) => {
             </FormItem>
           </FormField>
 
+          <FormField v-slot="{ componentField }" name="facility_type">
+            <FormItem>
+              <FormLabel>Facility Type</FormLabel>
+              <FormControl>
+                <select v-bind="componentField" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                  <option value="">Select a facility type</option>
+                  <option value="general">General</option>
+                  <option value="experimentalFacility">Experimental Facility</option>
+                  <option value="numericalModel">Numerical Model</option>
+                  <option value="field">Field</option>
+                </select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+          
           <Button type="submit" class="mt-5">Create</Button>
         </form>
       </div>

@@ -202,7 +202,6 @@ const updateCollectionForm = useForm({
   initialValues: {
     title: data.value.title ?? "",
     description: data.value.description ?? "",
-    collectionType: data.value.keywords?.[0] ?? "",
     keywordsFacility:
       data.value.links?.find((item) => item.rel == "keywords")?.id ??
       "No keywords",
@@ -223,7 +222,7 @@ let onSubmitUpdateCollectionForm = updateCollectionForm.handleSubmit(
         id: collectionId,
         title: values.title,
         description: values.description,
-        keywords: [values.collectionType],
+        keywords: [],
         license: "proprietary",
         extent: {
           spatial: {
