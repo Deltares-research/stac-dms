@@ -1,0 +1,108 @@
+---
+title: "Fair Data Finder"
+author: "FAIR data team"
+crossref:
+  chapters: true
+---
+
+# Introduction
+
+This document describes how to use the Deltares Fair Data Finder. The Fair Data
+Finder consists of 5 screens, some of which are only limited to a specific set
+of users:
+
+1. [Search](#search) (Everyone)
+2. [Register](#register) (Deltares employees)
+3. [Domains](#domains) (Data stewards)
+4. [Keywords](#keywords) (Data stewards)
+5. [Groups](#groups) (Admins)
+
+This document will walk you through each of these screens. 
+
+# Logging in
+
+You will be able to see much more functionality when you log in. Clicking
+"Login" will forward you to the login screen. Here, you'll be able to login
+using your Deltares credentials.
+
+TIP: If you are a Deltares employee and use the Edge browser, you'll be
+  automatically logged in when clicking "Login".
+
+# Search
+
+The *Search* screen is open to everyone, including those who are not logged in.
+However, these users will not be able to see most datasets, unless a dataset is
+registered as viewable to be completely public. 
+
+## Item view
+The left-hand side contains a search bar, below which are all registered items
+(=registered datasets in a project) found in the search. The search bar is
+self-explanatory: Type in your search query and the FDF will search all project
+titles, descriptions etc. and present them under the search bar. You can further
+restrict the search by clicking the *Add Filter* button above the search bar and
+selecting a filter. Once you've found an item you like, you can click *View
+details* to view the registered item's full details (project number, full description, coordinate reference system).
+
+## Map
+The right-hand side contains a map which can be used to see all datasets in a
+certain area. Click the *Search this area* button to search all dataset in a
+certain area.
+
+# Register
+
+The register screen is only accessible to Deltares employees. The screen will
+show you a table with all registered datasets. The most important button here is
+the *Register new dataset* button, which takes you to the registration screen.
+This will first force you to select a Domain to which your dataset broadly
+belongs to (e.g. Ecology). After you have selected a Domain, the rest of the
+registration form will open. 
+
+**Full description registration here, probably better to write when this form stabilizes**
+
+# Domains
+
+This screen is only accessible to Data Stewards. Domains are the expertise
+domains to which each dataset can be assigned. This screen shows a table with
+all registered domains, and which keywords are assigned to each domain. More
+domains can be added by clicking the *Add domain* button. This will open a new
+screen to add a new domain. Here, you can fill in a description and keyword
+domain, created in [Keywords](#keywords), that belongs to the domain.
+
+::: {.callout-note} 
+Why Domains? We were looking for some topical way to categorize dataset. We
+think this works better than using management layers, as these are changed quite
+frequently. For example, in the last years a management layer has been removed
+(RIP units), departments have been renamed, and even split up and redistributed
+over other departments. This would entail frequent changes to the categories,
+which means frequent updates to existing registered items in the database. The
+topical domains have been created together with the Data Stewards, thus should
+pretty much cover the organization. We expect these topical domains to be more
+stable, although more domains can turn out to be necessary when Deltares
+broadens its scope and threads new topical territorities. Contact the Data
+Stewards if you think a new domain is necessary.
+:::
+
+# Keywords
+
+In the Keywords screen, keywords can be configured. This screen can only be
+accessed by Data Stewards. Keywords are specified in a 3-tier
+hierarchy: domains contain keyword groups. Keyword groups contain keywords.
+A keyword domain can be assigned to [a domain in the domain screen.](#domains)
+
+To add new keywords:
+
+1. In the Keyword management screen, under "Section", click *Domains*
+2. Then in the *Add domain* bar enter your domain name (e.g. "Groundwater"),
+   click *Add domain* to add it to the list
+3. Then under "Section" click on *Keyword Groups*
+4. Here, fill in a Dutch group name in Group name NL (e.g. "Grondwater
+   software"), an English name in Group name EN, and select a "facility type"
+   (e.g. Numerical modelling).
+5. Click on the keyword group you just created under "Keyword Groups"
+6. On the right-hand side, you can add individual keywords here. Make sure to
+   add an english and dutch name here.
+
+# Groups
+
+Here, user groups can be defined with their respective authorizations. This
+screen is only accessible to admins. 

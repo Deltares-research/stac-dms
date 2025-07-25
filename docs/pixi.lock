@@ -1,0 +1,117 @@
+version: 6
+environments:
+  default:
+    channels:
+    - url: https://conda.anaconda.org/conda-forge/
+    packages:
+      win-64:
+      - conda: https://conda.anaconda.org/conda-forge/win-64/dart-sass-1.59.1-h57928b3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/deno-1.46.3-h8d7d278_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/deno-dom-0.1.41-h1a6af48_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/esbuild-0.25.8-h11686cb_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/pandoc-3.6.3-h57928b3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/quarto-1.7.32-h57928b3_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/typst-0.13.0-ha073cba_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/ucrt-10.0.22621.0-h57928b3_1.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/vc-14.3-h2b53caa_30.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/vc14_runtime-14.44.35208-h818238b_30.conda
+packages:
+- conda: https://conda.anaconda.org/conda-forge/win-64/dart-sass-1.59.1-h57928b3_0.conda
+  sha256: d8599cab2a09b725bf9fb9de72513cd6253162f07679213874361db5284c4e8a
+  md5: 7b884d6ae77792e5fdb47cc5c43f0676
+  license: MIT
+  license_family: MIT
+  size: 2866045
+  timestamp: 1747420839766
+- conda: https://conda.anaconda.org/conda-forge/win-64/deno-1.46.3-h8d7d278_0.conda
+  sha256: a87dd9d3a143ca6566279643520b91f1b381369484558b575f26b3c5cdef491d
+  md5: b8a93975407a73d2735d4a715497e76a
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15
+  - vc14_runtime >=14.29.30139
+  license: MIT
+  license_family: MIT
+  size: 39736817
+  timestamp: 1726026282966
+- conda: https://conda.anaconda.org/conda-forge/win-64/deno-dom-0.1.41-h1a6af48_0.conda
+  sha256: 199ed9fea4d58cea10572cc5a7fb3ad0fbefd189cb785667639dbfc4210ed2ab
+  md5: 84bc9003c48bf69d4663b00f692404cb
+  depends:
+  - deno >=1.24.2
+  - ucrt >=10.0.20348.0
+  - vc >=14.3,<15
+  - vc14_runtime >=14.42.34433
+  license: MIT
+  license_family: MIT
+  size: 294346
+  timestamp: 1736703764252
+- conda: https://conda.anaconda.org/conda-forge/win-64/esbuild-0.25.8-h11686cb_0.conda
+  sha256: ba13b690716821c77d73a359c8856292426b88a3e2a0d8fc1a4c3fb9c8d5001d
+  md5: 57b2dceb293b8a2b9fb8e9a92d6a1f70
+  license: MIT
+  license_family: MIT
+  size: 4239973
+  timestamp: 1752965756067
+- conda: https://conda.anaconda.org/conda-forge/win-64/pandoc-3.6.3-h57928b3_0.conda
+  sha256: ffdb8fd1da7419f6625c8b2339a12f9669a705ada4177b763cc796c60763f734
+  md5: 9b999036cccf0d5a94ed3c0b0edbb905
+  license: GPL-2.0-or-later
+  license_family: GPL
+  size: 25331299
+  timestamp: 1739198094952
+- conda: https://conda.anaconda.org/conda-forge/win-64/quarto-1.7.32-h57928b3_0.conda
+  sha256: b053cba6f4e0c275951246d8629f6a319ca5f4bba78dedd06656a4bb3de42da7
+  md5: 2bd53524cdf3cc88ae93fbbd2cc0eb60
+  depends:
+  - dart-sass
+  - deno >=1.46.3,<1.46.4.0a0
+  - deno-dom >=0.1.41,<0.1.42.0a0
+  - esbuild
+  - pandoc 3.6.3
+  - typst 0.13.0
+  license: MIT
+  license_family: MIT
+  size: 16403530
+  timestamp: 1750116299399
+- conda: https://conda.anaconda.org/conda-forge/win-64/typst-0.13.0-ha073cba_0.conda
+  sha256: 25f27ecedc6704c25fd585e0c526d21ac33d0806d3493dcf669213b1e8ca1f53
+  md5: c081083e160c80c00521871c9446495e
+  depends:
+  - ucrt >=10.0.20348.0
+  - vc >=14.2,<15
+  - vc14_runtime >=14.29.30139
+  license: Apache-2.0
+  license_family: Apache
+  size: 13133057
+  timestamp: 1739977188460
+- conda: https://conda.anaconda.org/conda-forge/win-64/ucrt-10.0.22621.0-h57928b3_1.conda
+  sha256: db8dead3dd30fb1a032737554ce91e2819b43496a0db09927edf01c32b577450
+  md5: 6797b005cd0f439c4c5c9ac565783700
+  constrains:
+  - vs2015_runtime >=14.29.30037
+  license: LicenseRef-MicrosoftWindowsSDK10
+  size: 559710
+  timestamp: 1728377334097
+- conda: https://conda.anaconda.org/conda-forge/win-64/vc-14.3-h2b53caa_30.conda
+  sha256: 8e16a8c3270d88735234a8097d45efea02b49751800c83b6fd5f2167a3828f52
+  md5: 76b6febe6dea7991df4c86f826f396c5
+  depends:
+  - vc14_runtime >=14.42.34433
+  track_features:
+  - vc14
+  license: BSD-3-Clause
+  license_family: BSD
+  size: 17962
+  timestamp: 1753139853244
+- conda: https://conda.anaconda.org/conda-forge/win-64/vc14_runtime-14.44.35208-h818238b_30.conda
+  sha256: 2958ef637509d69ea496b091dc579f1bf38687575b65744e73d157cfe56c9eca
+  md5: fa6802b52e903c42f882ecd67731e10a
+  depends:
+  - ucrt >=10.0.20348.0
+  constrains:
+  - vs2015_runtime 14.44.35208.* *_30
+  license: LicenseRef-MicrosoftVisualCpp2015-2022Runtime
+  license_family: Proprietary
+  size: 754911
+  timestamp: 1753139843755
