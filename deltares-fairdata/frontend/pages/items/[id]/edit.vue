@@ -916,22 +916,6 @@ const isSubmitting = computed(() => form.isSubmitting.value)
         </Card>
 
         <div>
-          <!-- Dropdown Filter -->
-          <!-- <div class="mb-4">
-            <label for="facility-filter" class="block text-sm font-medium text-gray-700 mb-2">
-              Filter by Type of Origin:
-            </label>
-            <select
-              id="facility-filter"
-              v-model="selectedFacilityType"
-              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Type of Origin</option>
-              <option value="experimentalFacility">Experimental Facilities</option>
-              <option value="numericalModel">Numerical Models</option>
-              <option value="Field">Field</option>
-            </select>
-          </div> -->
           <Card v-if="form.values.collectionId">
             <CardHeader>
               <CardTitle class="text-lg">Type of Origin</CardTitle>
@@ -945,9 +929,9 @@ const isSubmitting = computed(() => form.isSubmitting.value)
                   <FormLabel>Filter by Type of Origin:</FormLabel>
                   <FormControl>
                     <select
-                      v-bind="componentField"
                       id="facility-filter"
                       v-model="selectedFacilityType"
+                      @change="form.setFieldValue('requestBody.properties.facility_type', selectedFacilityType)"
                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Type of Origin</option>
