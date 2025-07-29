@@ -9,7 +9,7 @@ async def test_create_keywordgroup(
     keyword_editor_client: AsyncClient, keyword_client: KeywordClient
 ):
     response = await keyword_editor_client.post(
-        "/keywordgroup", json={"group_name_nl": "test", "group_name_en": "engelse_test"}
+        "/keywordgroup", json={"group_name_nl": "test", "group_name_en": "engelse_test", "facility_type": "facility_type"}
     )
     assert response.status_code == 200
     assert response.json()["group_name_nl"] == "test"
@@ -39,14 +39,16 @@ async def test_update_keywordgroup(
     keyword_group_obj = Keyword_Group(**keyword_group_json.json())
     assert keyword_group_obj.group_name_nl == "test"
     assert keyword_group_obj.group_name_en == "engelse_test"
+    assert keyword_group_obj.facility_type == "facility_type"
 
     response = await keyword_editor_client.put(
         f"/keywordgroup/{keyword_group.id}",
-        json={"group_name_nl": "updated_test", "group_name_en": "updated_engelse_test"},
+        json={"group_name_nl": "updated_test", "group_name_en": "updated_engelse_test", "facility_type": "updated_facility_type"},
     )
     assert response.status_code == 200
     assert response.json()["group_name_nl"] == "updated_test"
     assert response.json()["group_name_en"] == "updated_engelse_test"
+    assert response.json()["facility_type"] == "updated_facility_type"
 
 
 @pytest.mark.asyncio
@@ -60,6 +62,7 @@ async def test_get_keywordgroup(
     keyword_group_obj = Keyword_Group(**keyword_group_json.json())
     assert keyword_group_obj.group_name_nl == "test"
     assert keyword_group_obj.group_name_en == "engelse_test"
+    assert keyword_group_obj.facility_type == "facility_type"
 
 
 # test get all keyword groups

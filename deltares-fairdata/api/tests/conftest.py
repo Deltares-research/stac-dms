@@ -175,7 +175,7 @@ def rbac_client():
 @pytest_asyncio.fixture(scope="function")
 async def keyword_group(keyword_client: KeywordClient):
     keyword_group = keyword_client.create_keywordgroup(
-        {"group_name_nl": "test", "group_name_en": "engelse_test"}
+        {"group_name_nl": "test", "group_name_en": "engelse_test", "facility_type": "facility_type"}
     )
     yield keyword_group
     try:
@@ -228,10 +228,10 @@ async def filled_db(keyword_client: KeywordClient):
 
     # create keyword group
     keyword_group1 = keyword_client.create_keywordgroup(
-        {"group_name_nl": "testgroup1", "group_name_en": "engelse_testgroup1"}
+        {"group_name_nl": "testgroup1", "group_name_en": "engelse_testgroup1", "facility_type": "facility_type1"}
     )
     keyword_group2 = keyword_client.create_keywordgroup(
-        {"group_name_nl": "testgroup2", "group_name_en": "engelse_testgroup2"}
+        {"group_name_nl": "testgroup2", "group_name_en": "engelse_testgroup2", "facility_type": "facility_type2"}
     )
 
     # link facility1 to both keyword groups, facility2 to the second keyword group
