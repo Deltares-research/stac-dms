@@ -22,6 +22,7 @@ const route = useRoute()
 const router = useRouter()
 
 let selectedItemId = ref<string>()
+let activeItemId = ref<string>()
 
 let bbox = ref<Extent>([180, 90, -180, -90])
 let bboxFilter = ref<Extent>([180, 90, -180, -90])
@@ -299,7 +300,13 @@ function onSubmit() {
           <Card
             v-for="item of searchResults?.features"
             :key="item.id"
-            :class="selectedItemId === item.id ? 'border-emerald-500' : ''"
+            :class="
+              selectedItemId === item.id
+                ? 'border-amber-500 bg-amber-50'
+                : activeItemId === item.id
+                  ? 'border-green-500 bg-green-50'
+                  : ''
+            "
           >
             <CardHeader>
               <CardTitle class="text-xl">
@@ -357,6 +364,7 @@ function onSubmit() {
           :feature-collection="searchResults as any"
           @change-bbox="onChangeBbox"
           @hover-item="selectedItemId = $event"
+          @active-item="activeItemId = $event"
         />
       </ClientOnly>
     </div>
