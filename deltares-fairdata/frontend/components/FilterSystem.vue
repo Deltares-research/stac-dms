@@ -26,7 +26,7 @@ type FilterId = "date" | "keywords" | "collections" | "includeEmptyGeometry"
 const availableFilters = [
   { id: "date" as FilterId, label: "Date Range" },
   { id: "keywords" as FilterId, label: "Keywords" },
-  { id: "collections" as FilterId, label: "Collections" },
+  { id: "collections" as FilterId, label: "Domains" },
   { id: "includeEmptyGeometry" as FilterId, label: "Include Empty Geometries" },
 ]
 
@@ -81,12 +81,6 @@ watch(() => props.modelValue, initActiveFilters, {
   deep: true,
 })
 
-const keywordsCount = computed(() => props.modelValue.keywords?.length || 0)
-
-const collectionsCount = computed(
-  () => props.modelValue.collections?.length || 0,
-)
-
 // Methods
 function addFilter(filterId: FilterId) {
   activeFilters.value.add(filterId)
@@ -101,29 +95,19 @@ function addFilter(filterId: FilterId) {
   }
 }
 
-function removeFilter(filterId: FilterId) {
-  activeFilters.value.delete(filterId)
-
-  // Clear the filter value
-  const newValue = { ...props.modelValue }
-
-  if (filterId === "date") {
-    newValue.date = undefined
-  } else if (filterId === "keywords") {
-    newValue.keywords = []
-  } else if (filterId === "collections") {
-    newValue.collections = []
-  } else if (filterId === "includeEmptyGeometry") {
-    newValue.includeEmptyGeometry = false
+function updateDateRange(range: DateRange) {
+  if (range.start || range.end) {
+    emit("update:modelValue", {
+      ...props.modelValue,
+      date: range,
+    })
   }
-
-  emit("update:modelValue", newValue)
 }
 
-function updateDateRange(range: DateRange) {
+function clearDateRange() {
   emit("update:modelValue", {
     ...props.modelValue,
-    date: range,
+    date: undefined,
   })
 }
 
@@ -159,12 +143,13 @@ function toggleEmptyGeometry(checked: boolean) {
         placeholder="Keywords"
         :model-value="props.modelValue.keywords"
         @update:model-value="updateKeywords"
+        :close-on-select="false"
       />
 
       <CollectionCombobox
         v-if="filterId === 'collections'"
         name="collections"
-        placeholder="Collections"
+        placeholder="Domains"
         :model-value="props.modelValue.collections"
         @update:model-value="updateCollections"
       />
@@ -173,6 +158,7 @@ function toggleEmptyGeometry(checked: boolean) {
         v-if="filterId === 'date'"
         :model-value="props.modelValue.date"
         @update:model-value="updateDateRange"
+        @clear="clearDateRange"
       />
 
       <!-- Include Empty Geometries Filter -->

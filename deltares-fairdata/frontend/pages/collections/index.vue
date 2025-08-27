@@ -1,15 +1,15 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Collections</CardTitle>
+      <CardTitle>Domains</CardTitle>
       <CardDescription
-        >List of data sets collections, which you are allowed to edit
+        >List of data sets domains, which you are allowed to edit
       </CardDescription>
     </CardHeader>
     <CardContent>
       <div class="flex justify-end mb-3">
         <Button v-if="hasPermission('group:create')">
-          <NuxtLink to="/collections/create">Add collection</NuxtLink>
+          <NuxtLink to="/collections/create">Add domain</NuxtLink>
         </Button>
       </div>
       <DataTable :columns="collectionColumns" :data="collections" />
@@ -35,7 +35,7 @@ const { $api } = useNuxtApp()
 
 let { data: keywords } = await useApi("/facilities")
 
-const { data, refresh } = await useApi("/collections")
+const { data, refresh } = await useApi("/collections?limit=1000")
 
 onMounted(async () => {
   await new Promise((r) => setTimeout(r, 1000))
@@ -109,24 +109,6 @@ const collectionColumns: ColumnDef<
         },
         row.getValue("description") ?? "",
       )
-    },
-  },
-  {
-    accessorKey: "keywords",
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: "ghost",
-          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
-        },
-        () => ["Collection type", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
-      )
-    },
-    cell: ({ row }) => {
-      const key = row.getValue("keywords")[0]
-      const selectedItem = collectionTypes.find((item) => item.value == key)
-      return selectedItem.label
     },
   },
   {

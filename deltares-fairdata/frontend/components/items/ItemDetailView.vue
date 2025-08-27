@@ -140,7 +140,9 @@ const toggleSection = (section: keyof SectionState) => {
 }
 
 // Format a value for display
-const formatValue = (value: any): string => {
+const formatValue = (key: string, value: any): string => {
+  if (key === "keywords") return value.map((k: any) => k.nl_keyword).join(", ")
+  if (key.includes("datetime")) return formatDate(value)
   if (value === null) return "None"
   if (value === undefined) return "Undefined"
   if (typeof value === "object") return JSON.stringify(value)
@@ -178,6 +180,7 @@ const copyToClipboard = async (text: string, assetKey: string) => {
 
 // Format date-like strings
 const formatDate = (value: any): string => {
+  console.log(value)
   if (!value || typeof value !== "string") return String(value)
 
   // Check for ISO date pattern
@@ -358,7 +361,7 @@ const formatDate = (value: any): string => {
                     </a>
                   </template>
                   <template v-else>
-                    {{ formatDate(prop.value) }}
+                    {{ formatValue(prop.key, prop.value) }}
                   </template>
                 </td>
               </tr>

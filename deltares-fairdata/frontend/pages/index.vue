@@ -13,9 +13,10 @@ import Input from "~/components/ui/input/Input.vue"
 import MapBrowser from "~/components/MapBrowser.vue"
 import type { Extent } from "ol/extent"
 import { bboxPolygon } from "@turf/turf"
-import type { LocationQueryRaw } from "vue-router"
+import type { LocationQueryRaw, LocationQueryValue } from "vue-router"
 import FilterSystem from "~/components/FilterSystem.vue"
-import { parseDate } from "@internationalized/date"
+import { CalendarDate, parseDate } from "@internationalized/date"
+import { LinkIcon } from "lucide-vue-next"
 
 const route = useRoute()
 const router = useRouter()
@@ -30,16 +31,16 @@ const filterState = reactive({
   q: (route.query?.q as string) || "",
   date: undefined as DateRange | undefined,
   keywords: [] as string[],
-  collections: [] as string[],
+  collections: getCollectionIdsFromQuery(route.query?.collections),
   includeEmptyGeometry: route.query?.includeEmptyGeometry === "on",
 })
 
 // Initialize filter state from route query
-if (route.query?.start && route.query?.end) {
-  filterState.date = {
-    start: parseDate(route.query.start as string),
-    end: parseDate(route.query.end as string),
-  }
+filterState.date = {
+  start: route.query?.start
+    ? parseDate(route.query.start as string)
+    : undefined,
+  end: route.query?.end ? parseDate(route.query.end as string) : undefined,
 }
 
 if (route.query?.keywords) {
@@ -49,20 +50,15 @@ if (route.query?.keywords) {
     .filter(Boolean) as string[]
 }
 
-if (route.query?.collections) {
-  const collections = route.query.collections
-  filterState.collections = (
-    Array.isArray(collections) ? collections : [collections]
-  )
+function getCollectionIdsFromQuery(
+  query: LocationQueryValue | LocationQueryValue[],
+) {
+  if (!query) return []
+
+  return (Array.isArray(query) ? query : [query])
     .map((id) => id?.toString())
     .filter(Boolean) as string[]
 }
-
-let datetime = computed(() => {
-  if (!filterState.date?.start || !filterState.date?.end) return undefined
-
-  return `${dateFormat(new Date(filterState.date.start as unknown as string), "isoUtcDateTime")}/${dateFormat(new Date(filterState.date.end as unknown as string), "isoUtcDateTime")}`
-})
 
 function onChangeBbox(newBox: Extent) {
   bbox.value = newBox
@@ -74,10 +70,85 @@ function searchBboxArea() {
 
 watch(filterState, onSubmit)
 
+const searchTermProperties = [
+  "properties.title",
+  "properties.description",
+  "properties.projectNumber",
+  "properties.spatialReferenceSystem",
+  "properties.dataQualityInfoStatement",
+  "properties.legalRestrictions",
+  "properties.metadataStandardName",
+  "properties.progressCode",
+  "properties.language",
+  "properties.originatorDataEmail",
+  "properties.originatorDataOrganisation",
+  "properties.originatorMetaDataOrganisation",
+  "properties.originatorMetaDataEmail",
+  "properties.license",
+]
+
 let filter = computed(() => {
   let geometry = bboxFilter.value
     ? bboxPolygon(bboxFilter.value as [number, number, number, number]).geometry
     : undefined
+
+  // Create datetime filter conditions
+  let datetimeFilter = undefined
+  if (filterState.date?.start || filterState.date?.end) {
+    const startDate = filterState.date?.start
+      ? dateFormat(
+          new Date(filterState.date.start as unknown as string),
+          "isoUtcDateTime",
+        )
+      : dateFormat(
+          new Date(new CalendarDate(1900, 1, 1) as unknown as string),
+          "isoUtcDateTime",
+        )
+
+    const endDate = filterState.date?.end
+      ? dateFormat(
+          new Date(filterState.date.end as unknown as string),
+          "isoUtcDateTime",
+        )
+      : dateFormat(
+          new Date(new CalendarDate(9999, 12, 31) as unknown as string),
+          "isoUtcDateTime",
+        )
+
+    datetimeFilter = {
+      op: "or",
+      args: [
+        // datetime should be within the dateRange selected
+        {
+          op: "and",
+          args: [
+            {
+              op: ">=",
+              args: [{ property: "properties.datetime" }, startDate],
+            },
+            {
+              op: "<=",
+              args: [{ property: "properties.datetime" }, endDate],
+            },
+          ],
+        },
+        // OR (start_datetime should be gte to daterange start AND end_datetime should be lte to daterange end)
+        {
+          op: "and",
+          args: [
+            {
+              op: ">=",
+              args: [{ property: "properties.start_datetime" }, startDate],
+            },
+            {
+              op: "<=",
+              args: [{ property: "properties.end_datetime" }, endDate],
+            },
+          ],
+        },
+      ],
+    }
+  }
 
   return {
     op: "and",
@@ -128,26 +199,15 @@ let filter = computed(() => {
       },
       {
         op: "or",
-        args: [
-          {
-            op: "like",
-            args: [
-              {
-                property: "properties.title",
-              },
-              `%${filterState.q}%`,
-            ],
-          },
-          {
-            op: "like",
-            args: [
-              {
-                property: "properties.description",
-              },
-              `%${filterState.q}%`,
-            ],
-          },
-        ],
+        args: searchTermProperties.map((property) => ({
+          op: "like",
+          args: [
+            {
+              property,
+            },
+            `%${filterState.q}%`,
+          ],
+        })),
       },
       filterState.keywords.length > 0
         ? {
@@ -160,19 +220,25 @@ let filter = computed(() => {
             ],
           }
         : undefined,
+      datetimeFilter,
     ].filter(Boolean),
   }
 })
 
+let collections = computed(() =>
+  filterState.collections.length > 0 ? filterState.collections : undefined,
+)
+
+let apiBody = computed(() => ({
+  collections,
+  // datetime,
+  filter,
+  "filter-lang": "cql2-json",
+}))
+
 let { data: searchResults, status } = await useApi("/search", {
   method: "post",
-  body: {
-    collections:
-      filterState.collections.length > 0 ? filterState.collections : undefined,
-    datetime,
-    filter,
-    "filter-lang": "cql2-json",
-  } as any,
+  body: apiBody.value as any,
 })
 
 function onSubmit() {
@@ -222,7 +288,7 @@ function onSubmit() {
           <div class="flex gap-2">
             <Input
               v-model="filterState.q"
-              placeholder="Search title or description..."
+              placeholder="Search on project number, title, description and more"
               class="flex-1"
             />
             <Button @click="onSubmit">Search</Button>
@@ -243,16 +309,32 @@ function onSubmit() {
                 item.properties.description
               }}</CardDescription>
             </CardHeader>
-            <CardContent v-if="item.properties.datetime">
+            <CardContent>
+              <div
+                class="text-xs text-muted-foreground flex items-center gap-1 mb-3"
+                v-if="Object.values(item.assets)[0]?.href"
+              >
+                <LinkIcon class="size-3" />
+                {{ Object.values(item.assets)[0]?.href }}
+              </div>
+
               <NuxtLink :to="'/items/' + item.id + '/view'"
                 >View details</NuxtLink
               >
               <div class="text-xs text-muted-foreground">
                 {{
-                  dateFormat(
-                    new Date(item.properties.datetime),
-                    "mmmm dS, yyyy",
-                  )
+                  item.properties.datetime
+                    ? dateFormat(
+                        new Date(item.properties.datetime),
+                        "mmmm dS, yyyy",
+                      )
+                    : `${dateFormat(
+                        new Date(item.properties?.start_datetime ?? ""),
+                        "mmmm dS, yyyy",
+                      )} - ${dateFormat(
+                        new Date(item.properties?.end_datetime ?? ""),
+                        "mmmm dS, yyyy",
+                      )}`
                 }}
               </div>
             </CardContent>

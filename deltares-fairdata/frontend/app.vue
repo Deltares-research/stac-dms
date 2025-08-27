@@ -18,6 +18,7 @@ async function logout() {
 </script>
 
 <template>
+  <NuxtLoadingIndicator class="fixed top-0 left-0" />
   <div class="grid grid-cols-2 py-2 px-4 border-b border-border">
     <nav class="flex">
       <Button as-child variant="link">
@@ -27,7 +28,7 @@ async function logout() {
         <NuxtLink to="/items">Register</NuxtLink>
       </Button>
       <Button as-child v-if="hasPermission('collection:create')" variant="link">
-        <NuxtLink to="/collections">Collections</NuxtLink>
+        <NuxtLink to="/collections">Domains</NuxtLink>
       </Button>
       <Button as-child v-if="hasPermission('keyword:all')" variant="link">
         <NuxtLink to="/keywords">Keywords</NuxtLink>
