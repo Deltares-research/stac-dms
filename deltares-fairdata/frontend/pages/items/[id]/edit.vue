@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, watchEffect, computed } from "vue"
 import { cn } from "@/lib/utils"
 import { nanoid } from "nanoid"
 import "../node_modules/mapbox-gl/dist/mapbox-gl.css"
@@ -12,31 +12,33 @@ import { PlusIcon } from "@radix-icons/vue"
 import CustomDropDownComponent from "@/components/CustomDropDownComponent.vue"
 import Container from "~/components/deltares/Container.vue"
 import Textarea from "~/components/ui/textarea/Textarea.vue"
-import { CalendarIcon, XIcon, DatabaseIcon } from "lucide-vue-next"
+import DateRangePicker from "@/components/DateRangePicker.vue"
+import { CalendarIcon, XIcon, DatabaseIcon, Loader2Icon } from "lucide-vue-next"
 
 import { toTypedSchema } from "@vee-validate/zod"
 import { z } from "zod"
 import { zu } from "@infra-blocks/zod-utils"
-import { FormField, FormItem } from "~/components/ui/form"
+import { FormField, FormItem, FormDescription } from "~/components/ui/form"
 import { useForm } from "vee-validate"
 import { useToast } from "~/components/ui/toast"
 import { computedAsync } from "@vueuse/core"
 import type { FeatureCollection, Geometry } from "geojson"
+import type { DateRange } from "radix-vue"
 import { bbox } from "@turf/turf"
-import spatialReferenceSystemRaw from "../../lib/spatialReferenceSystem.txt?raw"
 import { nullToUndefined } from "~/lib/null-to-undefined"
 import type { Keyword } from "~/lib/types"
+import { spatialReferenceSystem } from "~/lib/spatialReferenceSystem"
+
 const route = useRoute()
 const id = route.params.id === "create" ? undefined : String(route.params.id)
 
-let crsArray = spatialReferenceSystemRaw.split("\n")
-let spatialReferenceSystem = crsArray.sort().map((item) => {
-  return { label: item, value: item }
-})
-spatialReferenceSystem.unshift({
-  label: "not applicable",
-  value: "not applicable",
-})
+let spatialReferenceSystemOptions = [
+  {
+    label: "not applicable",
+    value: "not applicable",
+  },
+  ...spatialReferenceSystem,
+]
 
 function handleChange(kw: Keyword) {
   const index = keywords.value.findIndex((item) => item.id == kw.id)
@@ -51,7 +53,7 @@ function isSelected(kw: Keyword) {
   return keywords.value.find((item) => item.id == kw.id) !== undefined
 }
 
-let { data: collectionsResponse } = await useApi("/collections", {
+let { data: collectionsResponse } = await useApi("/collections?limit=1000", {
   server: true,
 })
 
@@ -74,6 +76,11 @@ let initialValues = computed(() => {
 
   return feature
 })
+
+// Add facility filter state
+const selectedFacilityType = ref(
+  (initialValues.value?.properties?.facility_type as string) ?? ''
+)
 
 let keywords = ref<Keyword[]>(
   (initialValues.value?.properties?.keywords as Keyword[]) ?? [],
@@ -188,7 +195,7 @@ let schema = z.object({
         title: z.string(),
         projectNumber: z.string(),
         description: z.string(),
-        datetime: z.string(),
+        publication_datetime: z.string(),
         spatialReferenceSystem: z.string(),
         dataQualityInfoStatement: z.string(),
         dataQualityInfoScore: z.string().default("dataSet"),
@@ -209,9 +216,11 @@ let schema = z.object({
         metaDataLanguage: z.string().default("eng"),
         created: z.string().nullable().optional(),
         updated: z.string().nullable().optional(),
+        datetime: z.string().nullable().optional(),
         start_datetime: z.string().nullable().optional(),
         end_datetime: z.string().nullable().optional(),
         license: z.string().nullable().optional(),
+        facility_type: z.string(),
         providers: z
           .array(
             z.object({
@@ -292,8 +301,11 @@ let form = useForm({
     requestBody: {
       properties: {
         ...nullToUndefined(toRaw(initialValues.value?.properties)),
-        datetime: initialValues.value?.properties.datetime
-          ? dateFormat(initialValues.value?.properties.datetime, "yyyy-mm-dd")
+        datetime: initialValues.value?.properties.publication_datetime
+          ? dateFormat(
+              initialValues.value?.properties.publication_datetime as string,
+              "yyyy-mm-dd",
+            )
           : undefined,
         legalRestrictions:
           (initialValues.value?.properties.legalRestrictions as string) ??
@@ -306,30 +318,58 @@ let form = useForm({
 })
 
 const keywordsGroups = computedAsync(async () => {
-  const collectionId = initialValues.value?.collection
+  // Get collection ID from either existing item or form selection
+  const collectionId = initialValues.value?.collection || form.values.collectionId
+  
+  if (!collectionId) {
+    return []
+  }
 
-  if (!collectionId) return []
+  try {
+    const collection = await $api("/collections/{collection_id}", {
+      path: {
+        collection_id: collectionId,
+      },
+    })
+    
+    const keywordsLink = collection.links.find(
+      (item) => item.rel === "keywords" && item.id,
+    )
 
-  const collection = await $api("/collections/{collection_id}", {
-    path: {
-      collection_id: collectionId,
-    },
-  })
-  const keywordsLink = collection.links.find(
-    (item) => item.rel === "keywords" && item.id,
-  )
+    // TODO: Fix type assertion
+    const facilityId = keywordsLink?.id as string
 
-  // TODO: Fix type assertion
-  const facilityId = keywordsLink?.id as string
+    if (!facilityId) {
+      return []
+    }
 
-  if (!facilityId) return []
-
-  return await $api("/keywords", {
-    query: {
-      facility_id: facilityId,
-    },
-  })
+    const keywordsResult = await $api("/keywords", {
+      query: {
+        facility_id: facilityId,
+      },
+    })
+    
+    return keywordsResult
+  } catch (error) {
+    console.error('Error loading keywords:', error)
+    return []
+  }
 }, [])
+
+// Add computed property for filtered keywords groups
+const filteredKeywordsGroups = computed(() => {
+  if (!keywordsGroups.value) return []
+ 
+  if (!selectedFacilityType.value) {
+    return [] // Return all groups if no filter selected
+  }
+ 
+  // Filter groups based on the group's facility_type, not the keywords' facility_type
+  return keywordsGroups.value.filter(group => {
+    return group.facility_type === selectedFacilityType.value || 
+           group.facility_type === "general"
+  })
+})
 
 let onSubmit = form.handleSubmit(async (values) => {
   try {
@@ -342,10 +382,32 @@ let onSubmit = form.handleSubmit(async (values) => {
         links: [],
       }
 
-      newItem.properties.datetime = new Date(
-        newItem.properties.datetime,
-      ).toISOString()
+      // Handle datetime fields from DateRangePicker
+      if (dateRangeValue.value.start && dateRangeValue.value.end) {
+        // Both dates selected - save as start_datetime and end_datetime
+        newItem.properties.datetime = null
+        newItem.properties.start_datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+        newItem.properties.end_datetime = new Date(
+          dateRangeValue.value.end.toString(),
+        ).toISOString()
+        // Don't set datetime when using date range
+      } else if (dateRangeValue.value.start && !dateRangeValue.value.end) {
+        // Only start date - save as datetime
+        newItem.properties.datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+        newItem.properties.start_datetime = undefined
+        newItem.properties.end_datetime = undefined
+      } else {
+        return toast({
+          title: "Please select a date or date range.",
+          variant: "destructive",
+        })
+      }
 
+      newItem.properties.facility_type = selectedFacilityType.value
       newItem.properties.keywords = keywords.value
 
       let newGeometry = geometry.value?.features[0]
@@ -388,10 +450,32 @@ let onSubmit = form.handleSubmit(async (values) => {
         links: [],
       }
 
-      newItem.properties.datetime = new Date(
-        newItem.properties.datetime,
-      ).toISOString()
-
+      // Handle datetime fields from DateRangePicker
+      if (dateRangeValue.value.start && dateRangeValue.value.end) {
+        // Both dates selected - save as start_datetime and end_datetime
+        newItem.properties.datetime = null
+        newItem.properties.start_datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+        newItem.properties.end_datetime = new Date(
+          dateRangeValue.value.end.toString(),
+        ).toISOString()
+        // Don't set datetime when using date range
+      } else if (dateRangeValue.value.start && !dateRangeValue.value.end) {
+        // Only start date - save as datetime
+        newItem.properties.datetime = new Date(
+          dateRangeValue.value.start.toString(),
+        ).toISOString()
+        newItem.properties.start_datetime = undefined
+        newItem.properties.end_datetime = undefined
+      } else {
+        return toast({
+          title: "Please select a date or date range.",
+          variant: "destructive",
+        })
+      }
+  
+      newItem.properties.facility_type = selectedFacilityType.value
       newItem.properties.keywords = keywords.value
 
       let newGeometry = geometry.value?.features[0]
@@ -431,20 +515,40 @@ let onSubmit = form.handleSubmit(async (values) => {
   }
 })
 
-let datetimeValue = computed({
+let publicationDatetimeValue = computed({
   get: () => {
-    return form.values.requestBody?.properties?.datetime
-      ? parseDate(form.values.requestBody?.properties?.datetime)
+    return form.values.requestBody?.properties?.publication_datetime
+      ? parseDate(form.values.requestBody?.properties?.publication_datetime)
       : undefined
   },
   set: (val) => val,
 })
 
 function getDisplayTime() {
-  let value = form.values.requestBody?.properties?.datetime
+  let value = form.values.requestBody?.properties?.publication_datetime
 
   return value ?? "Pick a date"
 }
+
+const initProps = initialValues.value?.properties
+
+// Date range picker logic - parse existing datetime fields on load
+const dateRangeValue = ref<DateRange>({
+  start: initProps?.start_datetime
+    ? parseDate(initProps.start_datetime.split("T")[0])
+    : initProps?.datetime
+      ? parseDate(initProps.datetime.split("T")[0])
+      : undefined,
+  end: initProps?.end_datetime
+    ? parseDate(initProps.end_datetime.split("T")[0])
+    : undefined,
+})
+
+function handleDateRangeChange(dateRange: DateRange) {
+  dateRangeValue.value = dateRange
+}
+
+const isSubmitting = computed(() => form.isSubmitting.value)
 </script>
 
 <template>
@@ -479,12 +583,12 @@ function getDisplayTime() {
 
         <Card v-if="collectionOptions.length > 0">
           <CardHeader>
-            <CardTitle class="text-lg">Data set collection</CardTitle>
+            <CardTitle class="text-lg">Data set domain</CardTitle>
           </CardHeader>
           <CardContent>
             <FormField v-slot="{ componentField }" name="collectionId">
               <FormItem class="flex flex-col gap-1">
-                <FormLabel>Collection</FormLabel>
+                <FormLabel>Domain</FormLabel>
                 <FormControl>
                   <CustomDropDownComponent
                     :options="collectionOptions"
@@ -529,7 +633,7 @@ function getDisplayTime() {
                 </FormItem>
               </FormField>
 
-              <FormField name="requestBody.properties.datetime">
+              <FormField name="requestBody.properties.publication_datetime">
                 <FormItem class="flex flex-col">
                   <FormLabel>
                     <NuxtLink
@@ -547,7 +651,8 @@ function getDisplayTime() {
                           :class="
                             cn(
                               'w-[240px] ps-3 text-start font-normal',
-                              !datetimeValue && 'text-muted-foreground',
+                              !publicationDatetimeValue &&
+                                'text-muted-foreground',
                             )
                           "
                         >
@@ -559,19 +664,19 @@ function getDisplayTime() {
                     </PopoverTrigger>
                     <PopoverContent class="w-auto p-0">
                       <Calendar
-                        v-model="datetimeValue"
+                        v-model="publicationDatetimeValue"
                         calendar-label="Date"
                         initial-focus
                         @update:model-value="
                           (v) => {
                             if (v) {
                               form.setFieldValue(
-                                'requestBody.properties.datetime',
+                                'requestBody.properties.publication_datetime',
                                 v.toString(),
                               )
                             } else {
                               form.setFieldValue(
-                                'requestBody.properties.datetime',
+                                'requestBody.properties.publication_datetime',
                                 undefined,
                               )
                             }
@@ -665,7 +770,7 @@ function getDisplayTime() {
                   >
                   <div class="flex flex-row space-x-4">
                     <CustomDropDownComponent
-                      :options="spatialReferenceSystem"
+                      :options="spatialReferenceSystemOptions"
                       v-bind="componentField"
                     />
                     <Input type="text" v-bind="componentField" />
@@ -779,38 +884,103 @@ function getDisplayTime() {
             </div>
           </CardContent>
         </Card>
-        <div class="grid grid-cols-3 gap-1">
-          <Card v-for="group in keywordsGroups">
+
+        <Card v-if="form.values.collectionId">
+          <CardHeader>
+            <CardTitle class="text-lg">Date Range</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              v-slot="{ componentField }"
+              name="requestBody.properties.datetime"
+            >
+              <div class="max-w-96 flex flex-col gap-5">
+                <div class="flex flex-col">
+                  <label
+                    class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2"
+                  >
+                    Select date or date range
+                  </label>
+                  <DateRangePicker
+                    :modelValue="dateRangeValue"
+                    @update:modelValue="handleDateRangeChange"
+                  />
+                  <p class="text-sm text-muted-foreground mt-2">
+                    Select a single date or a date range.
+                  </p>
+                </div>
+              </div>
+              <FormMessage />
+            </FormField>
+          </CardContent>
+        </Card>
+
+        <div>
+          <Card v-if="form.values.collectionId">
             <CardHeader>
-              <CardTitle class="text-lg">{{ group.group_name_en }}</CardTitle>
+              <CardTitle class="text-lg">Type of Origin</CardTitle>
             </CardHeader>
             <CardContent>
               <FormField
-                v-for="item in group.keywords"
-                v-slot="{ value }"
-                :key="item.id"
-                type="checkbox"
-                :value="item.nl_keyword"
-                :checked="isSelected(item)"
-                :unchecked-value="false"
-                name="items"
+                v-slot="{ componentField }"
+                name="requestBody.properties.facility_type"
               >
-                <FormItem class="flex flex-row items-start space-x-3 space-y-0">
+                <FormItem>
+                  <FormLabel>Filter by Type of Origin:</FormLabel>
                   <FormControl>
-                    <Checkbox
-                      @update:checked="handleChange(item)"
-                      :checked="isSelected(item)"
-                    />
+                    <select
+                      id="facility-filter"
+                      v-model="selectedFacilityType"
+                      @change="form.setFieldValue('requestBody.properties.facility_type', selectedFacilityType)"
+                      class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Type of Origin</option>
+                      <option value="experimentalFacility">Experimental Facilities</option>
+                      <option value="numericalModel">Numerical Models</option>
+                      <option value="Field">Field</option>
+                    </select>
                   </FormControl>
-                  <FormLabel class="font-normal">
-                    {{ item.nl_keyword }}
-                  </FormLabel>
                   <FormMessage />
                 </FormItem>
               </FormField>
             </CardContent>
           </Card>
+
+          <!-- Filtered Grid -->
+          <div class="grid grid-cols-3 gap-1">
+            <Card v-for="group in filteredKeywordsGroups" :key="group.id">
+              <CardHeader>
+                <CardTitle class="text-lg">{{ group.group_name_en }}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  v-for="item in group.keywords"
+                  v-slot="{ value }"
+                  :key="item.id"
+                  type="checkbox"
+                  :value="item.nl_keyword"
+                  :checked="isSelected(item)"
+                  :unchecked-value="false"
+                  name="items"
+                >
+                  <FormItem class="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        @update:checked="handleChange(item)"
+                        :checked="isSelected(item)"
+                      />
+                    </FormControl>
+                    <FormLabel class="font-normal">
+                      {{ item.nl_keyword }}
+                    </FormLabel>
+                    <FormMessage />
+                  </FormItem>
+                </FormField>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
         <div>
           <Card v-if="form.values.collectionId">
             <CardHeader>
@@ -830,7 +1000,7 @@ function getDisplayTime() {
                     :name="`requestBody.assets.${id}.title`"
                   >
                     <FormItem>
-                      <FormLabel>Title</FormLabel>
+                      <FormLabel>Title of the dataset</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
@@ -842,7 +1012,7 @@ function getDisplayTime() {
                     :name="`requestBody.assets.${id}.description`"
                   >
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>Description of the dataset</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
@@ -854,7 +1024,7 @@ function getDisplayTime() {
                     :name="`requestBody.assets.${id}.href`"
                   >
                     <FormItem>
-                      <FormLabel>Link</FormLabel>
+                      <FormLabel>Link to the dataset</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
@@ -866,7 +1036,7 @@ function getDisplayTime() {
                     :name="`requestBody.assets.${id}.type`"
                   >
                     <FormItem>
-                      <FormLabel>Type</FormLabel>
+                      <FormLabel>Type of dataset (e.g. file type)</FormLabel>
                       <FormControl>
                         <Input type="text" v-bind="componentField" />
                       </FormControl>
@@ -903,7 +1073,10 @@ function getDisplayTime() {
         <Button as-child variant="outline">
           <NuxtLink to="/items">Cancel</NuxtLink>
         </Button>
-        <Button type="submit">Publish project data </Button>
+        <Button type="submit" :disabled="isSubmitting">
+          <Loader2Icon v-if="isSubmitting" class="animate-spin size-4 mr-1.5" />
+          Publish project data
+        </Button>
       </div>
     </form>
   </Container>

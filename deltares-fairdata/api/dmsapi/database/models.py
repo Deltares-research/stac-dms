@@ -90,6 +90,7 @@ class FacilityKeywordGroupLink(SQLModel, table=True):
 class Keyword_GroupBase(SQLModel, table=False):
     group_name_nl: str
     group_name_en: str
+    facility_type: str
 
 
 class Keyword_Group(Keyword_GroupBase, table=True):
@@ -109,6 +110,8 @@ class Keyword_GroupCreate(Keyword_GroupBase):
 class Keyword_GroupUpdate(SQLModel, table=False):
     group_name_nl: str | None = Field(min_length=1, max_length=100, default=None)
     group_name_en: str | None = Field(min_length=1, max_length=100, default=None)
+    facility_type: str | None = Field(min_length=1, max_length=100, default=None)
+
 
 
 class Keyword_GroupPublic(Keyword_GroupBase):
@@ -123,6 +126,7 @@ class Keyword_GroupPublicWithKeywords(Keyword_GroupPublic):
                 {
                     "group_name_nl": "Sleutelwoord groep",
                     "group_name_en": "Keyword group",
+                    "facility_type": "Facility type",
                     "id": str(uuid.uuid4()),
                     "keywords": [
                         {

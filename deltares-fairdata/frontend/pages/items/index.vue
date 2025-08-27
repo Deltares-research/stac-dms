@@ -69,7 +69,7 @@ const collectionColumns: ColumnDef<
           variant: "ghost",
           onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
         },
-        () => ["Collection", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
+        () => ["Domain", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
       )
     },
     cell: ({ row }) => {
