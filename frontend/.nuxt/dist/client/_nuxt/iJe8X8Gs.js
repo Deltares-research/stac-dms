@@ -1,1 +1,0 @@
-import{m as n,o,c as r,F as t,U as c,y as l,H as m}from"./31PJL3iA.js";const f=n({__name:"Container",props:{class:{}},setup(s){const e=s;return(a,p)=>(o(),r("div",{class:c(l(m)("max-w-screen-lg w-full mx-auto px-8",e.class))},[t(a.$slots,"default")],2))}});export{f as _};
