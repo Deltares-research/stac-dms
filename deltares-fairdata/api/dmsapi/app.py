@@ -80,9 +80,11 @@ extensions = [
     TokenPaginationExtension(),
     filter_extension,
     KeywordExtension(db_engine=db_engine),
-    RBACExtension(),
-    SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]),
 ]
+
+if (settings.auth_enabled.lower() != "false" ):
+    extensions.append(RBACExtension())
+    extensions.append(SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]))
 
 middlewares = []
 
