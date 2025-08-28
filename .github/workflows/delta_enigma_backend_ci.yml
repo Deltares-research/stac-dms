@@ -7,14 +7,14 @@ on:
   # Automatically trigger it when detected changes in repo
   push:
     branches:
-      - main_delta_enigma
+      - main
       - prod
     paths:
       - "deltares-fairdata/api/**"
       - ".github/workflows/delta_engima_backend_ci.yml"
   pull_request:
     branches:
-      - main_delta_enigma
+      - main
       - prod
     paths:
       - "deltares-fairdata/api/**"

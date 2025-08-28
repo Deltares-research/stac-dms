@@ -4,14 +4,14 @@ on:
   push:
     branches:
       - prod
-      - main_delta_enigma
+      - main
     paths:
       - "delta-enigma/**"
       - ".github/workflows/delta_enigma_terraform.yaml"
   pull_request:
     branches:
       - prod
-      - main_delta_enigma
+      - main
     paths:
       - "delta-enigma/**"
       - ".github/workflows/delta_enigma_terraform.yaml"

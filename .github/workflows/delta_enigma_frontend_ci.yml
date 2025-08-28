@@ -7,14 +7,14 @@ on:
   # Automatically trigger it when detected changes in repo
   push:
     branches:
-      - main_delta_enigma
+      - main
       - prod
     paths:
       - "delta-enigma/frontend/**"
       - ".github/workflows/delta_engima_frontend_ci.yml"
   pull_request:
     branches:
-      - main_delta_enigma
+      - main
       - prod
     paths:
       - "delta_engima/frontend/**"
