@@ -61,7 +61,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: deltares-fairdata/storagefinder
+          context: deltares-storage-finder
           cache-from: type=gha
           cache-to: type=gha,mode=max
           target: run-prod
