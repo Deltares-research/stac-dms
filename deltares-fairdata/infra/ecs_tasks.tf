@@ -94,6 +94,108 @@ resource "aws_security_group" "frontend-ecs" {
   }
 }
 
+# StorageFinder Task Definition
+resource "aws_ecs_task_definition" "storagefinder" {
+  family                   = "dms-storagefinder-${terraform.workspace}"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 512
+  memory                   = 1024
+  network_mode             = "awsvpc"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name  = "storagefinder"
+      image = "${var.harbor_url}/${var.harbor_project}/storagefinder:${terraform.workspace}"
+      repositoryCredentials = {
+        credentialsParameter = aws_secretsmanager_secret.harbor_credentials.arn
+      }
+      cpu       = 512
+      memory    = 1024
+      essential = true
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+          protocol      = "tcp"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.ecs_log_group.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs-storagefinder"
+        }
+      }
+    }
+  ])
+}
+
+# StorageFinder Security Group
+resource "aws_security_group" "storagefinder-ecs" {
+  name   = "storagefinder-ecs-sg-${terraform.workspace}"
+  vpc_id = aws_vpc.vpc.id
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.frontend-alb.id]
+    description     = "Allow traffic from ALB to storagefinder container"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+}
+
+# StorageFinder Target Group
+resource "aws_lb_target_group" "ecs_storagefinder_tg" {
+  name        = "ecs-storagefinder-tg-${terraform.workspace}"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = aws_vpc.vpc.id
+
+  health_check {
+    enabled             = true
+    interval            = 30
+    path                = "/"
+    port                = "traffic-port"
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+    timeout             = 5
+    protocol            = "HTTP"
+    matcher             = "200-399"
+  }
+}
+
+# StorageFinder ECS Service
+resource "aws_ecs_service" "storagefinder_service" {
+  name            = "storagefinder-service"
+  cluster         = aws_ecs_cluster.cluster.name
+  task_definition = aws_ecs_task_definition.storagefinder.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = ["${aws_subnet.az1a.id}", "${aws_subnet.az1b.id}", "${aws_subnet.az1c.id}"]
+    security_groups  = ["${aws_security_group.storagefinder-ecs.id}"]
+    assign_public_ip = true
+  }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.ecs_storagefinder_tg.arn
+    container_name   = "storagefinder"
+    container_port   = 80
+  }
+}
+
 resource "aws_security_group" "frontend-alb" {
   name   = "frontend-alb-sg-${terraform.workspace}"
   vpc_id = aws_vpc.vpc.id
@@ -157,6 +259,22 @@ resource "aws_lb_listener_rule" "backend_routing" {
   condition {
     path_pattern {
       values = ["/api/*"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "storagefinder_routing" {
+  listener_arn = aws_lb_listener.ecs_alb_listener.arn
+  priority     = 200
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ecs_storagefinder_tg.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/storagefinder/*"]
     }
   }
 }
@@ -376,3 +494,4 @@ resource "aws_ecs_service" "backend_service" {
     container_port   = 8000
   }
 }
+
