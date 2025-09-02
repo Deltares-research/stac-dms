@@ -64,7 +64,7 @@ jobs:
           context: deltares-fairdata/frontend
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          target: run-prod
+          target: production-stage
           push: ${{ github.event_name != 'pull_request'}} # Don't push on pull requests, only on push
           tags: |
             ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/frontend:${{ github.sha }}
