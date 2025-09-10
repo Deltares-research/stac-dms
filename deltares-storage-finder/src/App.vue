@@ -1,8 +1,6 @@
 <template>
   <v-app>
-    <v-main
-      :style="bgStyle"
-    >
+    <v-main class="app-background">
       <router-view />
     </v-main>
   </v-app>
@@ -10,17 +8,36 @@
 
 <script setup>
 
-  import bg from '@/assets/background.png'
-  const bgStyle = {
-    background: `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.3)), url(${bg}) center center / cover no-repeat !important`,
-    minHeight: '100vh',
-  }
-
 </script>
 
 <style>
+.app-background {
+  position: relative;
+  min-height: 100vh;
+  background-color: #f0fcfa;
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .app-background::before {
+    background-image: linear-gradient(
+      330deg,
+      hsla(0, 0%, 100%, 0.8) 60%,
+      hsla(0, 0%, 100%, 0) 85%
+    );
+    clip-path: circle(50% at 50% 50%);
+    content: "";
+    padding-top: 80%;
+    position: fixed;
+    transform: translate3d(10%, 11%, 0);
+    width: 80%;
+    z-index: -1;
+  }
+}
+
 .v-application,
 .v-main {
-  background: transparent !important;
+  position: relative;
+  z-index: 1;
 }
 </style>
