@@ -1,0 +1,42 @@
+<template>
+  <v-app>
+    <v-app-bar>
+      <v-tabs
+        align-tabs="center"
+      >
+        <v-tab
+          to="/"
+        >
+          Search
+        </v-tab>
+        <v-tab
+          to="/register"
+        >
+          Register
+        </v-tab>
+        <v-tab
+          to="/domains"
+        >
+          Domains
+        </v-tab>
+        <v-tab 
+          to="/keywords"
+        >
+          Keywords
+        </v-tab>
+        <v-tab
+          to="/groups"
+        >
+          Groups
+        </v-tab>
+      </v-tabs>
+    </v-app-bar>
+    <v-main>
+      <NuxtPage />
+    </v-main>
+  </v-app>
+</template>
+
+<script>
+  
+</script>
