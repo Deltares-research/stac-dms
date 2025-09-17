@@ -1,4 +1,4 @@
-**Draft version: This is a beta version of the Storage Finder, answers may still contain inaccuracies and currently only a selection of data solutions is included, more to come. For improvement suggestions, please contact the Data Platform Team.**
+**Stable version: This is a stable version of the Storage Finder. However, answers may contain inaccuracies. For improvement suggestions, please contact the [Data Platform Team](mailto:fa4cf932.deltares.onmicrosoft.com@emea.teams.ms).**
 
 &nbsp;
 
