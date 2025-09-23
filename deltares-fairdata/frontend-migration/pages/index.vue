@@ -4,6 +4,7 @@
       <!-- LEFT: Results list -->
       <v-col :cols="12" :md="6" class="fill-height">
         <v-sheet height="100%" class="pa-4" style="overflow:auto">
+          <feature-filters v-model="filters" class="mb-4" />
           <v-row>
             <v-col cols="12" v-for="f in features" :key="f.id">
               <v-card class="mb-4" variant="elevated">
@@ -67,7 +68,16 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
+import FeatureFilters from '@/components/FeatureFilters.vue'
+
+// Temporary filter state (no logic yet)
+const filters = ref({
+  collection: 'any',
+  language: 'any',
+  legal: 'any',
+  srs: 'any',
+})
 
 /**
  * TEMPORARY: inline copy of search_result.geojson
