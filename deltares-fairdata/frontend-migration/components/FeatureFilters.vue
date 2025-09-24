@@ -16,14 +16,28 @@
 
       <v-divider vertical class="mx-3" />
 
-      <v-btn
-        variant="text"
-        density="comfortable"
-        @click="clear"
-      >
+      <v-btn variant="text" density="comfortable" @click="clear">
         Clear selections
       </v-btn>
 
+      <v-divider vertical class="mx-3" />
+
+      <!-- Active selection chips (hidden if nothing selected) -->
+      <div v-if="activeChips.length" class="d-flex flex-wrap ga-2 mr-2">
+        <v-chip
+          v-for="chip in activeChips"
+          :key="chip.key"
+          size="small"
+          variant="flat"
+          closable
+          @click:close="clearOne(chip.key)"
+          class="mb-1"
+        >
+          {{ chip.label }}: {{ chip.value }}
+        </v-chip>
+      </div>
+
+      <!-- spacer separating chips from sort -->
       <v-spacer />
 
       <!-- Sort (stub) -->
@@ -48,10 +62,7 @@
 
     <!-- Floating expanded content (overlays the rest) -->
     <v-expand-transition>
-      <div
-        v-show="expanded"
-        class="filters-popover elevation-8 rounded-b-lg"
-      >
+      <div v-show="expanded" class="filters-popover elevation-8 rounded-b-lg">
         <v-divider />
 
         <v-container fluid class="py-4">
@@ -108,7 +119,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, computed } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -148,26 +159,60 @@ function clear () {
     srs: 'any',
   })
 }
+
+function clearOne (key) {
+  if (key in local) local[key] = 'any'
+}
+
+/* Friendly labels for chip text */
+const FIELD_LABEL = {
+  collection: 'Collection',
+  language: 'Language',
+  legal: 'Legal',
+  srs: 'SRS',
+}
+const VALUE_LABEL = {
+  language: { eng: 'English', dut: 'Dutch' },
+  legal: {
+    license: 'License',
+    restricted: 'Restricted',
+    intellectualPropertyRights: 'IPR',
+  },
+  // srs/collection use raw values
+}
+
+/* Build the visible chips from current selections */
+const activeChips = computed(() => {
+  return Object.entries(local)
+    .filter(([, v]) => v && v !== 'any')
+    .map(([k, v]) => ({
+      key: k,
+      label: FIELD_LABEL[k] || k,
+      value:
+        (VALUE_LABEL[k] && VALUE_LABEL[k][v]) // mapped friendly value
+        || v,                                 // fallback to raw
+    }))
+})
 </script>
 
 <style scoped>
 /* The root sheet becomes the positioning context for the floating panel */
 .filters-root {
   position: relative;
-  z-index: 10;       /* above sibling content */
-  overflow: visible; /* let the popover escape the sheet's box */
+  z-index: 10;
+  overflow: visible;
 }
 
 /* The popover floats over the content below, aligned to the sheet's width */
 .filters-popover {
   position: absolute;
-  top: 100%;   /* start right below the header area */
+  top: 100%;
   left: 0;
   right: 0;
   background: #fff;
   border: 1px solid var(--v-theme-outline-variant);
-  border-top: none;  /* seamless with the sheet border */
-  z-index: 1000;     /* make sure it overlays cards/map */
+  border-top: none;
+  z-index: 1000;
 }
 
 /* Optional: subtle vertical separators on md+ screens */
