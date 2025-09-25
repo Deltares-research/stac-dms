@@ -1,5 +1,5 @@
 <template>
-  <v-sheet variant="outlined" class="rounded-lg filters-root">
+  <v-sheet variant="outlined" class="rounded-lg filters-root" ref="rootEl">
     <!-- Header -->
     <v-toolbar flat density="comfortable">
       <v-btn
@@ -20,9 +20,9 @@
         Clear selections
       </v-btn>
 
-      <v-divider vertical class="mx-3" />
+      <v-spacer />
 
-      <!-- Active selection chips (hidden if nothing selected) -->
+      <!-- Active selection chips -->
       <div v-if="activeChips.length" class="d-flex flex-wrap ga-2 mr-2">
         <v-chip
           v-for="chip in activeChips"
@@ -37,11 +37,10 @@
         </v-chip>
       </div>
 
-      <!-- spacer separating chips from sort -->
       <v-spacer />
 
       <!-- Sort (stub) -->
-      <v-menu>
+      <v-menu content-class="filters-portal">
         <template #activator="{ props }">
           <v-btn
             v-bind="props"
@@ -72,8 +71,12 @@
               <div class="text-subtitle-2 mb-2">Collection</div>
               <v-radio-group v-model="local.collection" density="compact">
                 <v-radio label="Any" value="any" />
-                <v-radio label="Flumes" value="Flumes" />
-                <v-radio label="Test" value="Test" />
+                <v-radio
+                  v-for="opt in (options.collection || [])"
+                  :key="`col-${opt}`"
+                  :label="labelFor('collection', opt)"
+                  :value="opt"
+                />
               </v-radio-group>
             </v-col>
 
@@ -82,8 +85,12 @@
               <div class="text-subtitle-2 mb-2">Language</div>
               <v-radio-group v-model="local.language" density="compact">
                 <v-radio label="Any" value="any" />
-                <v-radio label="English" value="eng" />
-                <v-radio label="Dutch" value="dut" />
+                <v-radio
+                  v-for="opt in (options.language || [])"
+                  :key="`lang-${opt}`"
+                  :label="labelFor('language', opt)"
+                  :value="opt"
+                />
               </v-radio-group>
             </v-col>
 
@@ -92,9 +99,12 @@
               <div class="text-subtitle-2 mb-2">Legal</div>
               <v-radio-group v-model="local.legal" density="compact">
                 <v-radio label="Any" value="any" />
-                <v-radio label="License" value="license" />
-                <v-radio label="Restricted" value="restricted" />
-                <v-radio label="IPR" value="intellectualPropertyRights" />
+                <v-radio
+                  v-for="opt in (options.legal || [])"
+                  :key="`legal-${opt}`"
+                  :label="labelFor('legal', opt)"
+                  :value="opt"
+                />
               </v-radio-group>
             </v-col>
 
@@ -103,12 +113,12 @@
               <div class="text-subtitle-2 mb-2">SRS</div>
               <v-radio-group v-model="local.srs" density="compact">
                 <v-radio label="Any" value="any" />
-                <v-radio label="EPSG:25831" value="EPSG:25831" />
                 <v-radio
-                  label="EPSG:28992"
-                  value="EPSG:28992 (Amersfoort / RD New)"
+                  v-for="opt in (options.srs || [])"
+                  :key="`srs-${opt}`"
+                  :label="labelFor('srs', opt)"
+                  :value="opt"
                 />
-                <v-radio label="Not applicable" value="not applicable" />
               </v-radio-group>
             </v-col>
           </v-row>
@@ -119,7 +129,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch, computed } from 'vue'
+import { reactive, ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -131,10 +141,20 @@ const props = defineProps({
       srs: 'any',
     }),
   },
+  options: {
+    type: Object,
+    default: () => ({
+      collection: [],
+      language: [],
+      legal: [],
+      srs: [],
+    }),
+  },
 })
 const emit = defineEmits(['update:modelValue'])
 
 const expanded = ref(false)
+const rootEl = ref(null)
 
 const local = reactive({
   collection: props.modelValue.collection ?? 'any',
@@ -143,67 +163,55 @@ const local = reactive({
   srs: props.modelValue.srs ?? 'any',
 })
 
-watch(local, (val) => {
-  emit('update:modelValue', { ...val })
-}, { deep: true })
-
-watch(() => props.modelValue, (v) => {
-  Object.assign(local, v || {})
-}, { deep: true })
+watch(local, (val) => emit('update:modelValue', { ...val }), { deep: true })
+watch(() => props.modelValue, (v) => Object.assign(local, v || {}), { deep: true })
 
 function clear () {
-  Object.assign(local, {
-    collection: 'any',
-    language: 'any',
-    legal: 'any',
-    srs: 'any',
-  })
+  Object.assign(local, { collection: 'any', language: 'any', legal: 'any', srs: 'any' })
 }
-
 function clearOne (key) {
   if (key in local) local[key] = 'any'
 }
 
-/* Friendly labels for chip text */
-const FIELD_LABEL = {
-  collection: 'Collection',
-  language: 'Language',
-  legal: 'Legal',
-  srs: 'SRS',
-}
+const FIELD_LABEL = { collection: 'Collection', language: 'Language', legal: 'Legal', srs: 'SRS' }
 const VALUE_LABEL = {
   language: { eng: 'English', dut: 'Dutch' },
-  legal: {
-    license: 'License',
-    restricted: 'Restricted',
-    intellectualPropertyRights: 'IPR',
-  },
-  // srs/collection use raw values
+  legal: { license: 'License', restricted: 'Restricted', intellectualPropertyRights: 'IPR' },
+}
+function labelFor (key, value) { return VALUE_LABEL[key]?.[value] ?? value }
+
+const activeChips = computed(() =>
+  Object.entries(local)
+    .filter(([, v]) => v && v !== 'any')
+    .map(([k, v]) => ({ key: k, label: FIELD_LABEL[k] || k, value: labelFor(k, v) }))
+)
+
+/* ---- Click outside to collapse ---- */
+function onDocPointerDown (e) {
+  if (!expanded.value) return
+  const root = rootEl.value?.$el ?? rootEl.value // Vuetify component or native el
+  const target = e.target
+  // If click is inside the filter, ignore
+  if (root && root.contains(target)) return
+  // If click is inside teleported menu content, ignore
+  if (target?.closest && target.closest('.filters-portal')) return
+  expanded.value = false
 }
 
-/* Build the visible chips from current selections */
-const activeChips = computed(() => {
-  return Object.entries(local)
-    .filter(([, v]) => v && v !== 'any')
-    .map(([k, v]) => ({
-      key: k,
-      label: FIELD_LABEL[k] || k,
-      value:
-        (VALUE_LABEL[k] && VALUE_LABEL[k][v]) // mapped friendly value
-        || v,                                 // fallback to raw
-    }))
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocPointerDown, true) // capture phase
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocPointerDown, true)
 })
 </script>
 
 <style scoped>
-/* The root sheet becomes the positioning context for the floating panel */
 .filters-root {
   position: relative;
   z-index: 10;
   overflow: visible;
 }
-
-/* The popover floats over the content below, aligned to the sheet's width */
 .filters-popover {
   position: absolute;
   top: 100%;
@@ -214,8 +222,6 @@ const activeChips = computed(() => {
   border-top: none;
   z-index: 1000;
 }
-
-/* Optional: subtle vertical separators on md+ screens */
 @media (min-width: 960px) {
   .filter-col {
     position: relative;

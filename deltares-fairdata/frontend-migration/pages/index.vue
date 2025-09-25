@@ -4,9 +4,14 @@
       <!-- LEFT: Results list -->
       <v-col :cols="12" :md="6" class="fill-height">
         <v-sheet height="100%" class="pa-4" style="overflow:auto">
-          <feature-filters v-model="filters" class="mb-4" />
+          <feature-filters
+            v-model="filters"
+            :options="filterOptions"
+            class="mb-4"
+          />
+
           <v-row>
-            <v-col cols="12" v-for="f in features" :key="f.id">
+            <v-col cols="12" v-for="f in filteredFeatures" :key="f.id">
               <v-card class="mb-4" variant="elevated">
                 <v-card-title class="text-wrap">
                   {{ f.properties?.title || 'Untitled' }}
@@ -71,7 +76,9 @@
 import { ref, computed } from 'vue'
 import FeatureFilters from '@/components/FeatureFilters.vue'
 
-// Temporary filter state (no logic yet)
+/* -------------------------
+   Filters state (v-model)
+------------------------- */
 const filters = ref({
   collection: 'any',
   language: 'any',
@@ -81,7 +88,6 @@ const filters = ref({
 
 /**
  * TEMPORARY: inline copy of search_result.geojson
- * (You can paste updates here while prototyping.)
  */
 const searchResult = {
   "type": "FeatureCollection",
@@ -375,17 +381,59 @@ const searchResult = {
   "numMatched": 6
 }
 
-/**
- * List of features from the local object.
- */
+/* Safely list features */
 const features = computed(() =>
   Array.isArray(searchResult?.features) ? searchResult.features : []
 )
 
-/**
- * Format ISO date like "2025-03-25T00:00:00Z" -> "25 March 2025".
- * If missing/invalid, return an em dash.
- */
+/* Normalizer (trims trailing spaces, handles nulls) */
+function norm (v) {
+  return typeof v === 'string' ? v.trim() : (v ?? '')
+}
+
+/* Build unique option lists from the data */
+const filterOptions = computed(() => {
+  const col = new Set()
+  const lang = new Set()
+  const legal = new Set()
+  const srs = new Set()
+
+  for (const f of features.value) {
+    if (!f) continue
+    const p = f.properties || {}
+
+    if (f.collection) col.add(norm(f.collection))
+    if (p.language) lang.add(norm(p.language))
+    if (p.legalRestrictions) legal.add(norm(p.legalRestrictions))
+    if (p.spatialReferenceSystem) srs.add(norm(p.spatialReferenceSystem))
+  }
+
+  // Return sorted arrays for predictable order
+  const sortAsc = (a, b) => String(a).localeCompare(String(b), 'en')
+  return {
+    collection: [...col].sort(sortAsc),
+    language:   [...lang].sort(sortAsc),
+    legal:      [...legal].sort(sortAsc),
+    srs:        [...srs].sort(sortAsc),
+  }
+})
+
+/* Filter the list of features by current selections */
+const filteredFeatures = computed(() => {
+  const sel = filters.value
+  return features.value.filter((f) => {
+    const p = f.properties || {}
+
+    const passCollection = sel.collection === 'any' || norm(f.collection) === sel.collection
+    const passLanguage   = sel.language   === 'any' || norm(p.language) === sel.language
+    const passLegal      = sel.legal      === 'any' || norm(p.legalRestrictions) === sel.legal
+    const passSrs        = sel.srs        === 'any' || norm(p.spatialReferenceSystem) === sel.srs
+
+    return passCollection && passLanguage && passLegal && passSrs
+  })
+})
+
+/* Utilities for UI */
 function formatDate (iso) {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -397,9 +445,6 @@ function formatDate (iso) {
   }).format(d)
 }
 
-/**
- * Each feature's "assets" has exactly one key; return its href.
- */
 function firstAssetHref (feature) {
   const assets = feature?.assets || {}
   const first = Object.values(assets)[0]
@@ -408,7 +453,7 @@ function firstAssetHref (feature) {
 </script>
 
 <style>
-/* Optional: clamp long descriptions to 3 lines */
+/* Clamp long descriptions to 3 lines */
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
