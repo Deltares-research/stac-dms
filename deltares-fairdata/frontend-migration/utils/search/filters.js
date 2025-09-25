@@ -3,10 +3,10 @@
 import {
   SEARCH_PROPS,
   WORLD_POLY,
-  toIso,
 } from './helpers.js'
 import { bboxPolygon } from '@turf/turf'
 
+import dateFormat from 'dateformat'
 /**
  * Build a text "OR" filter over many fields using SQL-like LIKE semantics.
  * Empty string becomes '%%' to match anything.
@@ -114,10 +114,11 @@ export function keywordsFilter(keywords) {
  * @returns {{op:'or', args:any[]} | undefined}
  */
 export function dateFilter(startDate, endDate) {
+  
   if (!startDate && !endDate) return undefined
 
-  const startDateIso = toIso(startDate) || '1900-01-01T00:00:00Z'
-  const endIso = toIso(endDate) || '9999-12-31T23:59:59Z'
+  const startDateIso = dateFormat(startDate, 'isoUtcDateTime') || '1900-01-01T00:00:00Z'
+  const endDateIso = dateFormat(endDate, 'isoUtcDateTime') || '9999-12-31T23:59:59Z'
 
   return {
     op: 'or',
@@ -127,7 +128,7 @@ export function dateFilter(startDate, endDate) {
         op: 'and',
         args: [
           { op: '>=', args: [ { property: 'properties.datetime' }, startDateIso ] },
-          { op: '<=', args: [ { property: 'properties.datetime' }, endIso ] },
+          { op: '<=', args: [ { property: 'properties.datetime' }, endDateIso ] },
         ],
       },
       // Case 2: overlapping range between [start_datetime, end_datetime] and [startIso, endIso]
@@ -135,9 +136,22 @@ export function dateFilter(startDate, endDate) {
         op: 'and',
         args: [
           { op: '>=', args: [ { property: 'properties.start_datetime' }, startDateIso ] },
-          { op: '<=', args: [ { property: 'properties.end_datetime' }, endIso ] },
+          { op: '<=', args: [ { property: 'properties.end_datetime' }, endDateIso ] },
         ],
       },
     ],
   }
+}
+
+/**
+ * Compose your final CQL2-JSON filter with the blocks you want.
+ * Pass only the params you need; undefined blocks are ignored.
+ */
+export function buildFilter({ q = '', bbox, includeEmptyGeometry = false, keywords = [], startDate, endDate } = {}) {
+  return [
+    geometryFilter(bbox, { includeEmptyGeometry }),
+    textFilter(q),
+    keywordsFilter(keywords),
+    dateFilter(startDate, endDate),
+  ]
 }

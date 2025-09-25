@@ -44,20 +44,3 @@ export const WORLD_POLY = {
     [ -180, -90 ], [ 180, -90 ], [ 180, 90 ], [ -180, 90 ], [ -180, -90 ],
   ] ],
 }
-
-// -------------- tiny helpers --------------
-/**
- * Convert a Date or date-like value to ISO 8601 (UTC) string.
- * Returns `undefined` for invalid inputs.
- * @param {Date|string|number|null|undefined} input
- * @returns {string|undefined}
- * @example
- * toIso(new Date())            // '2025-09-23T10:15:30.123Z'
- * toIso('2025-09-23')          // '2025-09-23T00:00:00.000Z'
- * toIso(null)                  // undefined
- */
-export function toIso(input) {
-  if (!input) return undefined
-  const d = input instanceof Date ? input : new Date(input)
-  return isNaN(d) ? undefined : d.toISOString()
-}
