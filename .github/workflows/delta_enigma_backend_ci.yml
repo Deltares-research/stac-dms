@@ -1,0 +1,127 @@
+name: Delta Enigma Backend CI
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches:
+      - main
+      - prod
+    paths:
+      - "deltares-fairdata/api/**"
+      - ".github/workflows/delta_engima_backend_ci.yml"
+  pull_request:
+    branches:
+      - main
+      - prod
+    paths:
+      - "deltares-fairdata/api/**"
+      - ".github/workflows/delta_engima_backend_ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  checks: write
+  pull-requests: write
+  id-token: write
+
+env:
+  REGISTRY_ADDRESS: containers.deltares.nl
+  HARBOR_PROJECT: delta-enigma
+  TAG: ${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
+  TARGET: ${{ github.ref == 'refs/heads/prod' && 'run-prod' || 'run-dev' }}
+  AWS_REGION: eu-west-1
+  CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-cluster-prod' || 'dms-cluster-dev' }}
+  TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-backend-prod' || 'dms-backend-dev' }}
+  SERVICE_NAME: backend-service
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Run Pytest
+        working-directory: deltares-fairdata/api
+        run: uv run pytest tests/ --junit-xml=test-results.xml
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            delta-enigma/api/test-results.xml
+
+  build-image:
+    runs-on: ubuntu-latest
+    needs: pytest
+    steps:
+      - name: Checkout the repository to the runner
+        uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_ADDRESS }}
+          username: ${{ secrets.DELTA_ENIGMA_HARBOR_USER }}
+          password: ${{ secrets.DELTA_ENIGMA_HARBOR_PASSWORD }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: deltares-fairdata/api
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          target: development
+          push: ${{ github.event_name != 'pull_request'}} # Don't push on pull requests, only on push
+          tags: |
+            ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/stac-fastapi-os:${{ github.sha }}
+            ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/stac-fastapi-os:${{ env.TAG }}
+
+      # When pushing we also restart the backend service with the new image
+      - name: Login to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        if: ${{ github.event_name != 'pull_request'}}
+        with:
+          role-to-assume: arn:aws:iam::324037299984:role/github-actions-terraform-role
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download task definition
+        if: ${{ github.event_name != 'pull_request'}}
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.TASK_DEFINITION_NAME }} --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        if: ${{ github.event_name != 'pull_request'}}
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: backend
+          image: ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/stac-fastapi-os:${{ github.sha }}
+
+      - name: Deploy Amazon ECS task definition
+        if: ${{ github.event_name != 'pull_request'}}
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.SERVICE_NAME }}
+          cluster: ${{ env.CLUSTER_NAME }}
+          wait-for-service-stability: true
