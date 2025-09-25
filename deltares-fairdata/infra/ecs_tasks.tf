@@ -494,4 +494,3 @@ resource "aws_ecs_service" "backend_service" {
     container_port   = 8000
   }
 }
-
