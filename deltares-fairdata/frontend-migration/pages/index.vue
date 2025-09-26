@@ -65,7 +65,9 @@
       <!-- RIGHT: Map -->
       <v-col :cols="12" :md="6" class="fill-height">
         <v-sheet height="100%">
-          <map-component />
+          <ClientOnly>
+            <map-component :polygons="polygonFeatures" />
+          </ClientOnly>
         </v-sheet>
       </v-col>
     </v-row>
@@ -432,6 +434,11 @@ const filteredFeatures = computed(() => {
     return passCollection && passLanguage && passLegal && passSrs
   })
 })
+
+/* ---- Only the Polygon features (for the map) ---- */
+const polygonFeatures = computed(() =>
+  filteredFeatures.value.filter(f => f?.geometry?.type === 'Polygon')
+)
 
 /* Utilities for UI */
 function formatDate (iso) {

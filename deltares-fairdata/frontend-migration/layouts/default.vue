@@ -1,35 +1,37 @@
 <template>
   <v-app>
     <v-app-bar>
-      <v-tabs
-        align-tabs="center"
-      >
-        <v-tab
-          to="/"
+      <ClientOnly>
+        <v-tabs
+          align-tabs="center"
         >
-          Search
-        </v-tab>
-        <v-tab
-          to="/register"
-        >
-          Register
-        </v-tab>
-        <v-tab
-          to="/domains"
-        >
-          Domains
-        </v-tab>
-        <v-tab 
-          to="/keywords"
-        >
-          Keywords
-        </v-tab>
-        <v-tab
-          to="/groups"
-        >
-          Groups
-        </v-tab>
-      </v-tabs>
+          <v-tab
+            to="/"
+          >
+            Search
+          </v-tab>
+          <v-tab
+            to="/register"
+          >
+            Register
+          </v-tab>
+          <v-tab
+            to="/domains"
+          >
+            Domains
+          </v-tab>
+          <v-tab 
+            to="/keywords"
+          >
+            Keywords
+          </v-tab>
+          <v-tab
+            to="/groups"
+          >
+            Groups
+          </v-tab>
+        </v-tabs>
+      </ClientOnly>
     </v-app-bar>
     <v-main>
       <NuxtPage />
