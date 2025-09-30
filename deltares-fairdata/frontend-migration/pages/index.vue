@@ -83,9 +83,8 @@ import FeatureFilters from '@/components/FeatureFilters.vue'
 ------------------------- */
 const filters = ref({
   collection: 'any',
-  keyword: 'any',   // changed from language
-  legal: 'any',
-  srs: 'any',
+  keyword: 'any',
+  startDate: '', // ISO 'YYYY-MM-DD'; empty means no start filter
 })
 
 /**
@@ -396,9 +395,7 @@ function norm (v) {
 /* Build unique option lists from the data */
 const filterOptions = computed(() => {
   const col = new Set()
-  const kw = new Set()   // collect en_keyword values
-  const legal = new Set()
-  const srs = new Set()
+  const kw = new Set()
 
   for (const f of features.value) {
     if (!f) continue
@@ -406,45 +403,43 @@ const filterOptions = computed(() => {
 
     if (f.collection) col.add(norm(f.collection))
 
-    // pull English keywords from properties.keywords[].en_keyword
     const list = Array.isArray(p.keywords) ? p.keywords : []
     for (const k of list) {
       const label = norm(k?.en_keyword)
       if (label) kw.add(label)
     }
-
-    if (p.legalRestrictions) legal.add(norm(p.legalRestrictions))
-    if (p.spatialReferenceSystem) srs.add(norm(p.spatialReferenceSystem))
   }
 
-  // Return sorted arrays for predictable order
   const sortAsc = (a, b) => String(a).localeCompare(String(b), 'en')
   return {
     collection: [...col].sort(sortAsc),
-    keyword:    [...kw].sort(sortAsc),   // <- for the new filter
-    legal:      [...legal].sort(sortAsc),
-    srs:        [...srs].sort(sortAsc),
+    keyword:    [...kw].sort(sortAsc),
   }
 })
 
-/* Filter the list of features by current selections */
+/* Filter the list of features by current selections (incl. Start date) */
 const filteredFeatures = computed(() => {
   const sel = filters.value
+  const selStartMs = sel.startDate ? Date.parse(sel.startDate) : NaN
+
   return features.value.filter((f) => {
     const p = f.properties || {}
 
     const passCollection = sel.collection === 'any' || norm(f.collection) === sel.collection
 
-    // derive the en_keyword list for each feature
     const enKeywords = (Array.isArray(p.keywords) ? p.keywords : [])
       .map(k => norm(k?.en_keyword))
       .filter(Boolean)
+    const passKeyword = sel.keyword === 'any' || enKeywords.includes(sel.keyword)
 
-    const passKeyword   = sel.keyword   === 'any' || enKeywords.includes(sel.keyword)
-    const passLegal     = sel.legal     === 'any' || norm(p.legalRestrictions) === sel.legal
-    const passSrs       = sel.srs       === 'any' || norm(p.spatialReferenceSystem) === sel.srs
+    // Start date: include only if feature datetime exists and is on/after selected day
+    let passStart = true
+    if (sel.startDate) {
+      const featMs = p.datetime ? Date.parse(p.datetime) : NaN
+      passStart = Number.isFinite(featMs) && Number.isFinite(selStartMs) && (featMs >= selStartMs)
+    }
 
-    return passCollection && passKeyword && passLegal && passSrs
+    return passCollection && passKeyword && passStart
   })
 })
 
@@ -483,7 +478,6 @@ function firstAssetHref (feature) {
 
 @media (min-width: 960px) {
   .two-col-page {
-    /* Subtract Vuetify's dynamic layout offsets to not exceed v-main */
     height: calc(100vh - var(--v-layout-top, 0px) - var(--v-layout-bottom, 0px));
     overflow: hidden;
   }

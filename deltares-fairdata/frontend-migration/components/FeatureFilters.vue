@@ -67,7 +67,7 @@
         <v-container fluid class="py-4">
           <v-row>
             <!-- Domain (collection) -->
-            <v-col cols="12" md="3" class="filter-col">
+            <v-col cols="12" md="4" class="filter-col">
               <div class="text-subtitle-2 mb-2">Domain</div>
               <v-radio-group v-model="local.collection" density="compact">
                 <v-radio label="Any" value="any" />
@@ -80,8 +80,8 @@
               </v-radio-group>
             </v-col>
 
-            <!-- Keyword (replaces Language) -->
-            <v-col cols="12" md="3" class="filter-col">
+            <!-- Keyword -->
+            <v-col cols="12" md="4" class="filter-col">
               <div class="text-subtitle-2 mb-2">Keyword</div>
               <v-radio-group v-model="local.keyword" density="compact">
                 <v-radio label="Any" value="any" />
@@ -94,32 +94,52 @@
               </v-radio-group>
             </v-col>
 
-            <!-- Legal restrictions -->
-            <v-col cols="12" md="3" class="filter-col">
-              <div class="text-subtitle-2 mb-2">Legal</div>
-              <v-radio-group v-model="local.legal" density="compact">
-                <v-radio label="Any" value="any" />
-                <v-radio
-                  v-for="opt in (options.legal || [])"
-                  :key="`legal-${opt}`"
-                  :label="labelFor('legal', opt)"
-                  :value="opt"
-                />
-              </v-radio-group>
-            </v-col>
+            <!-- Start date (button opens date picker) -->
+            <v-col cols="12" md="4" class="filter-col">
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="text-subtitle-2">Start date</div>
+                <v-btn
+                  v-if="local.startDate"
+                  size="x-small"
+                  variant="text"
+                  @click="local.startDate = ''"
+                >
+                  Clear
+                </v-btn>
+              </div>
 
-            <!-- Spatial reference system -->
-            <v-col cols="12" md="3" class="filter-col">
-              <div class="text-subtitle-2 mb-2">SRS</div>
-              <v-radio-group v-model="local.srs" density="compact">
-                <v-radio label="Any" value="any" />
-                <v-radio
-                  v-for="opt in (options.srs || [])"
-                  :key="`srs-${opt}`"
-                  :label="labelFor('srs', opt)"
-                  :value="opt"
-                />
-              </v-radio-group>
+              <v-menu
+                v-model="dateMenu"
+                :close-on-content-click="false"
+                content-class="filters-portal"
+                location="bottom start"
+                :offset="8"
+              >
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    variant="outlined"
+                    block
+                  >
+                    <v-icon start>mdi-calendar</v-icon>
+                    {{ local.startDate ? labelFor('startDate', local.startDate) : 'Pick a date' }}
+                  </v-btn>
+                </template>
+
+                <v-card>
+                  <v-date-picker
+                    v-model="tempDate"
+                    show-adjacent-months
+                    elevation="0"
+                  />
+                  <v-divider />
+                  <v-card-actions>
+                    <v-spacer />
+                    <v-btn variant="text" @click="dateMenu = false">Cancel</v-btn>
+                    <v-btn variant="flat" @click="applyDate">Apply</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-menu>
             </v-col>
           </v-row>
         </v-container>
@@ -136,18 +156,15 @@ const props = defineProps({
     type: Object,
     default: () => ({
       collection: 'any',
-      keyword: 'any',   // changed from language
-      legal: 'any',
-      srs: 'any',
+      keyword: 'any',
+      startDate: '', // ISO 'YYYY-MM-DD' or empty when not set
     }),
   },
   options: {
     type: Object,
     default: () => ({
       collection: [],
-      keyword: [],      // changed from language
-      legal: [],
-      srs: [],
+      keyword: [],
     }),
   },
 })
@@ -158,48 +175,69 @@ const rootEl = ref(null)
 
 const local = reactive({
   collection: props.modelValue.collection ?? 'any',
-  keyword: props.modelValue.keyword ?? 'any', // changed from language
-  legal: props.modelValue.legal ?? 'any',
-  srs: props.modelValue.srs ?? 'any',
+  keyword: props.modelValue.keyword ?? 'any',
+  startDate: props.modelValue.startDate ?? '',
 })
+
+/* --- Start date menu state --- */
+const dateMenu = ref(false)
+const tempDate = ref('')
+
+watch(dateMenu, (open) => {
+  if (open) tempDate.value = local.startDate || ''
+})
+
+function applyDate () {
+  local.startDate = tempDate.value || ''
+  dateMenu.value = false
+}
 
 watch(local, (val) => emit('update:modelValue', { ...val }), { deep: true })
 watch(() => props.modelValue, (v) => Object.assign(local, v || {}), { deep: true })
 
 function clear () {
-  Object.assign(local, { collection: 'any', keyword: 'any', legal: 'any', srs: 'any' })
+  Object.assign(local, { collection: 'any', keyword: 'any', startDate: '' })
 }
 function clearOne (key) {
-  if (key in local) local[key] = 'any'
+  if (key in local) {
+    local[key] = key === 'startDate' ? '' : 'any'
+  }
 }
 
-const FIELD_LABEL = { collection: 'Collection', keyword: 'Keyword', legal: 'Legal', srs: 'SRS' }
-const VALUE_LABEL = {
-  // keyword: identity (no special mapping)
-  legal: { license: 'License', restricted: 'Restricted', intellectualPropertyRights: 'IPR' },
+const FIELD_LABEL = { collection: 'Domain', keyword: 'Keyword', startDate: 'Start date' }
+const humanDateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+function labelFor (key, value) {
+  if (key === 'startDate') {
+    if (!value) return ''
+    const d = new Date(value)
+    return isNaN(d) ? value : humanDateFmt.format(d)
+  }
+  return value
 }
-function labelFor (key, value) { return VALUE_LABEL[key]?.[value] ?? value }
 
 const activeChips = computed(() =>
   Object.entries(local)
-    .filter(([, v]) => v && v !== 'any')
-    .map(([k, v]) => ({ key: k, label: FIELD_LABEL[k] || k, value: labelFor(k, v) }))
+    .filter(([k, v]) => (k === 'startDate' ? !!v : v && v !== 'any'))
+    .map(([k, v]) => ({
+      key: k,
+      label: FIELD_LABEL[k] || k,
+      value: labelFor(k, v),
+    }))
 )
 
 /* ---- Click outside to collapse ---- */
 function onDocPointerDown (e) {
   if (!expanded.value) return
-  const root = rootEl.value?.$el ?? rootEl.value // Vuetify component or native el
+  const root = rootEl.value?.$el ?? rootEl.value
   const target = e.target
-  // If click is inside the filter, ignore
   if (root && root.contains(target)) return
-  // If click is inside teleported menu content, ignore
+  // Ignore clicks inside teleported menus (sort + date picker)
   if (target?.closest && target.closest('.filters-portal')) return
   expanded.value = false
 }
 
 onMounted(() => {
-  document.addEventListener('pointerdown', onDocPointerDown, true) // capture phase
+  document.addEventListener('pointerdown', onDocPointerDown, true)
 })
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onDocPointerDown, true)
