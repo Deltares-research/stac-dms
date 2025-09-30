@@ -1,9 +1,9 @@
 <template>
-  <v-container fluid class="pa-0 ma-0 fill-height">
-    <v-row no-gutters class="fill-height">
-      <!-- LEFT: Results list -->
-      <v-col :cols="12" :md="6" class="fill-height">
-        <v-sheet height="100%" class="pa-4" style="overflow:auto">
+  <v-container fluid class="pa-0 ma-0 two-col-page">
+    <v-row no-gutters class="two-col-row">
+      <!-- LEFT: Results list (its own scroll) -->
+      <v-col :cols="12" :md="6" class="left-col">
+        <v-sheet class="left-scroll pa-4">
           <feature-filters
             v-model="filters"
             :options="filterOptions"
@@ -62,9 +62,9 @@
         </v-sheet>
       </v-col>
 
-      <!-- RIGHT: Map -->
-      <v-col :cols="12" :md="6" class="fill-height">
-        <v-sheet height="100%">
+      <!-- RIGHT: Map (fixed to visible viewport below app bar) -->
+      <v-col :cols="12" :md="6" class="right-col">
+        <v-sheet class="right-map">
           <ClientOnly>
             <map-component :polygons="polygonFeatures" />
           </ClientOnly>
@@ -466,5 +466,41 @@ function firstAssetHref (feature) {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+@media (min-width: 960px) {
+  .two-col-page {
+    /* Subtract Vuetify's dynamic layout offsets to not exceed v-main */
+    height: calc(100vh - var(--v-layout-top, 0px) - var(--v-layout-bottom, 0px));
+    overflow: hidden;
+  }
+  .two-col-row {
+    height: 100%;
+    min-height: 0;
+  }
+  .left-col,
+  .right-col {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .left-scroll {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .right-col {
+    overflow: hidden;
+  }
+  .right-map {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .right-map .mapboxgl-map,
+  .right-map > * {
+    height: 100%;
+  }
 }
 </style>
