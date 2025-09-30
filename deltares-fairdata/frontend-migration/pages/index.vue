@@ -12,7 +12,38 @@
           class="pa-4"
           style="overflow:auto"
         >
-          <v-row>
+          <!-- Loading state -->
+          <div
+            v-if="authLoading"
+            class="d-flex justify-center align-center"
+            style="height: 200px;"
+          >
+            <v-progress-circular indeterminate color="primary" />
+          </div>
+          
+          <!-- Not authenticated state -->
+          <div
+            v-else-if="!isAuthenticated"
+            class="d-flex flex-column justify-center align-center text-center"
+            style="height: 200px;"
+          >
+            <v-icon
+              size="64"
+              color="grey-lighten-1"
+              class="mb-4"
+            >
+              mdi-account-circle
+            </v-icon>
+            <h3 class="text-h6 mb-2">
+              Please log in to search data
+            </h3>
+            <p class="text-body-2 text-grey">
+              Use the login button in the top right to access the FAIR data finder
+            </p>
+          </div>
+          
+          <!-- Search results -->
+          <v-row v-else>
             <v-col
               v-for="f in features"
               :key="f.id"
@@ -85,19 +116,38 @@
 </template>
 
 <script setup>
-  import {computed, onMounted} from 'vue'
+  import { computed, watch } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
-  import {useRoute, useRouter} from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
+  import { useAuth } from '~/composables/useAuth'
 
-  //Store
-  const searchStore = useSearchPageStore()
-
-  //Router
-  const route = useRoute() 
-  const router = useRouter()
-  console.log("page was loaded")
-
+  // Authentication
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
   
+  // Search functionality
+  const store = useSearchPageStore()
+  const route = useRoute() 
+  
+  const q = route.query
+  
+  store.q = q.q || ''
+  store.startDate = q.start || undefined
+  store.endDate = q.end || undefined
+  store.keywords = toArr(q.keywords)
+  store.collections = toArr(q.collections)
+  store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
+  
+  // Only search if user is authenticated
+  watch(
+    () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, isAuthenticated.value],
+    () => { 
+      if (isAuthenticated.value) {
+        store.search() 
+      }
+    },
+    { deep: true, immediate: true }
+  )
+
   
   /**
    * TEMPORARY: inline copy of search_result.geojson
@@ -394,18 +444,15 @@
     "numReturned": 6,
     "numMatched": 6
   }
-  const features = computed(() =>
-    Array.isArray(searchResult?.features) ? searchResult.features : [])
-  /**
-   * List of features from the local object.
-   */
 
-  //TODO: It could be that I need to move it to the store
-  /*   const features = computed(() =>
-    Array.isArray(searchStore.featureCollection?.features) ? searchStore.featureCollection.features : []
-  )
-    
- */
+  const features = computed(() => {
+    // Show empty state if not authenticated
+    if (!isAuthenticated.value) {
+      return []
+    }
+    return Array.isArray(searchResult?.features) ? searchResult.features : []
+  })
+
   /**
    * Format ISO date like "2025-03-25T00:00:00Z" -> "25 March 2025".
    * If missing/invalid, return an em dash.
@@ -429,23 +476,11 @@
     const first = Object.values(assets)[0]
     return first?.href || ''
   }
+
   function toArr(v) {
     return v ? (Array.isArray(v) ? v.map(String) : [String(v)]) : []
   }
 
-  //hydrate the store from the route query on first load
-  // --- 1) hydrate from URL once, then search ---
-  onMounted(async () => {
-    console.log("onMounted", searchStore)
-    const q = route.query
-    searchStore.q = q.q || ''
-    searchStore.startDate = q.start || undefined
-    searchStore.endDate = q.end || undefined
-    searchStore.keywords = toArr(q.keywords)
-    searchStore.collections = toArr(q.collections)
-    searchStore.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
-    await searchStore.search()
-  })
 </script>
 
 <style>

@@ -6,6 +6,12 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  /*   runtimeConfig: {
+      dmsToken: process.env.NUXT_DMS_TOKEN || '',      // <-- put DSN in .env as NUXT_DSN
+      public: {
+        apiUrl: process.env.API_URL || '',  // optional to read on client if needed
+      },
+    }, */
   css: ['mapbox-gl/dist/mapbox-gl.css'],
   build: {
     transpile: ['vuetify'],

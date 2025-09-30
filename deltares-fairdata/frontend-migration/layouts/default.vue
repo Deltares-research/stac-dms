@@ -2,34 +2,28 @@
   <v-app>
     <v-app-bar>
       <v-tabs
-        align-tabs="center"
+        align-tabs="start"
       >
         <v-tab
           to="/"
         >
           Search
         </v-tab>
-        <v-tab
-          to="/register"
-        >
-          Register
-        </v-tab>
-        <v-tab
-          to="/domains"
-        >
-          Domains
-        </v-tab>
-        <v-tab 
-          to="/keywords"
-        >
-          Keywords
-        </v-tab>
-        <v-tab
-          to="/groups"
-        >
-          Groups
-        </v-tab>
       </v-tabs>
+      
+      <!-- Login button positioned at the right -->
+      <v-spacer />
+      <v-btn
+        :loading="isLoading"
+        color="primary"
+        variant="text"
+        @click="handleLogin"
+      >
+        <v-icon class="me-2">
+          mdi-account
+        </v-icon>
+        Login
+      </v-btn>
     </v-app-bar>
     <v-main>
       <NuxtPage />
@@ -37,6 +31,12 @@
   </v-app>
 </template>
 
-<script>
-  
+<script setup>
+  import { useAuth } from '~/composables/useAuth'
+
+  const { login, isLoading } = useAuth()
+
+  const handleLogin = () => {
+    login()
+  }
 </script>

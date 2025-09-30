@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import searchBody from '@/utils/search/searchBody.js' // the modular builder you made
-import { useNuxtApp } from '#app'
-
+import { useNuxtApp, useRuntimeConfig } from '#app'
 
 export const useSearchPageStore = defineStore('searchPage', () => {
   //State
@@ -27,8 +26,14 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   //Functions
   async function search() {
     console.log('SEARCH action:', q.value, startDate.value, endDate.value, keywords.value, collections.value, includeEmptyGeometry.value, bboxFilter.value)
+    const cfg = useRuntimeConfig()
     searchStatus.value = 'pending'; searchError.value = null
     const { $api } = useNuxtApp()
+    console.log('cfg.dsn:', cfg.dmsToken)
+    console.log('Cookie', `DMS_TOKEN=${ import.meta.env.VITE_DMS_TOKEN }`)
+    //for development, SSR cookie:
+    const headers = { Cookie: `DMS_TOKEN=${ import.meta.env.VITE_DMS_TOKEN }` }
+
     try {
 
       const { data } = await $api('/search', {
@@ -43,7 +48,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
           bbox: bboxFilter.value, 
         }),
         credentials: 'include',
-        server: false,
+        headers,
       
         onRequest ({ request, options }) {
           console.log('[search:onRequest]', request, options)
