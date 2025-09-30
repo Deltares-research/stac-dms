@@ -22,11 +22,17 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { $api } = useNuxtApp()
       
-      const { data, error: authError } = await $api('/auth/me', {
+      const userData = await $api('/auth/me', {
         credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
       })
+
+      console.log('userData', JSON.stringify(userData, undefined, 2))
       
-      if (authError) {
+      if (!userData) {
         // User is not authenticated
         user.value = null
         isAuthenticated.value = false
@@ -34,8 +40,9 @@ export const useAuthStore = defineStore('auth', () => {
       }
       
       // User is authenticated
-      user.value = data.value
+      user.value = userData
       isAuthenticated.value = true
+      console.log('Setting isAuthenticated to true')
       return true
       
     } catch (err) {

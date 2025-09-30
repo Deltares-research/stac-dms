@@ -6,28 +6,14 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  /*   runtimeConfig: {
-      dmsToken: process.env.NUXT_DMS_TOKEN || '',      // <-- put DSN in .env as NUXT_DSN
-      public: {
-        apiUrl: process.env.API_URL || '',  // optional to read on client if needed
-      },
-    }, */
+
   css: ['mapbox-gl/dist/mapbox-gl.css'],
   build: {
     transpile: ['vuetify'],
   },
   modules: [
     '@pinia/nuxt',
-    ['nuxt-open-fetch', {
-      clients: {
-        api: {
-          // Point this to your actual OpenAPI schema endpoint
-          // (commonly /openapi.json or /swagger.json)
-          schema: `${process.env.API_URL}/openapi.json`,
-          baseURL: '/api',
-        },
-      },
-    }],
+    'nuxt-open-fetch',
     (_options, nuxt) => {
       nuxt.hooks.hook('vite:extendConfig', (config) => {
         // @ts-expect-error
@@ -43,8 +29,23 @@ export default defineNuxtConfig({
     },
   },
 
+  openFetch: {
+    clients: {
+      api: {
+        schema: "http://localhost:8000" + "/api/api",
+        baseURL: "/api",
+      },
+    },
+  },
+
   routeRules: {
-    "/api/**": { proxy: process.env.API_URL + "/api/**" },
+    "/api/**": {
+      proxy: "http://localhost:8000" + "/api/**",
+      headers: {
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': 'http://localhost:3000',
+      }
+    },
   },
 
 })

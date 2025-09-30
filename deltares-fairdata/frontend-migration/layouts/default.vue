@@ -32,6 +32,7 @@
 </template>
 
 <script setup>
+
   import { useAuth } from '~/composables/useAuth'
 
   const { login, isLoading } = useAuth()

@@ -16,16 +16,22 @@ export const usePermissionsStore = defineStore('permissions', () => {
     try {
       const { $api } = useNuxtApp()
       
-      const { data, error: permError } = await $api('/permissions', {
+      const permissionData = await $api('/permissions', {
         credentials: 'include',
-      })
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })      
       
-      if (permError) {
+      if (!permissionData) {
         permissions.value = []
         return false
       }
       
-      permissions.value = data.value || []
+      permissions.value = permissionData.value || permissionData || []
+      console.log('permissions', JSON.stringify(permissions.value, undefined, 2))
+      
       return true
       
     } catch (err) {
@@ -69,15 +75,15 @@ export const usePermissionsStore = defineStore('permissions', () => {
     try {
       const { $api } = useNuxtApp()
       
-      const { data, error: permError } = await $api(`/collection-permissions/${ collectionId }`, {
+      const permissionData = await $api(`/collection-permissions/${ collectionId }`, {
         credentials: 'include',
       })
       
-      if (permError) {
+      if (!permissionData) {
         return []
       }
       
-      return data.value || []
+      return permissionData.value || permissionData || []
       
     } catch (err) {
       console.error('Failed to fetch collection permissions:', err)
