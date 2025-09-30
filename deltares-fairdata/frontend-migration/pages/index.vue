@@ -83,7 +83,7 @@ import FeatureFilters from '@/components/FeatureFilters.vue'
 ------------------------- */
 const filters = ref({
   collection: 'any',
-  language: 'any',
+  keyword: 'any',   // changed from language
   legal: 'any',
   srs: 'any',
 })
@@ -396,7 +396,7 @@ function norm (v) {
 /* Build unique option lists from the data */
 const filterOptions = computed(() => {
   const col = new Set()
-  const lang = new Set()
+  const kw = new Set()   // collect en_keyword values
   const legal = new Set()
   const srs = new Set()
 
@@ -405,7 +405,14 @@ const filterOptions = computed(() => {
     const p = f.properties || {}
 
     if (f.collection) col.add(norm(f.collection))
-    if (p.language) lang.add(norm(p.language))
+
+    // pull English keywords from properties.keywords[].en_keyword
+    const list = Array.isArray(p.keywords) ? p.keywords : []
+    for (const k of list) {
+      const label = norm(k?.en_keyword)
+      if (label) kw.add(label)
+    }
+
     if (p.legalRestrictions) legal.add(norm(p.legalRestrictions))
     if (p.spatialReferenceSystem) srs.add(norm(p.spatialReferenceSystem))
   }
@@ -414,7 +421,7 @@ const filterOptions = computed(() => {
   const sortAsc = (a, b) => String(a).localeCompare(String(b), 'en')
   return {
     collection: [...col].sort(sortAsc),
-    language:   [...lang].sort(sortAsc),
+    keyword:    [...kw].sort(sortAsc),   // <- for the new filter
     legal:      [...legal].sort(sortAsc),
     srs:        [...srs].sort(sortAsc),
   }
@@ -427,11 +434,17 @@ const filteredFeatures = computed(() => {
     const p = f.properties || {}
 
     const passCollection = sel.collection === 'any' || norm(f.collection) === sel.collection
-    const passLanguage   = sel.language   === 'any' || norm(p.language) === sel.language
-    const passLegal      = sel.legal      === 'any' || norm(p.legalRestrictions) === sel.legal
-    const passSrs        = sel.srs        === 'any' || norm(p.spatialReferenceSystem) === sel.srs
 
-    return passCollection && passLanguage && passLegal && passSrs
+    // derive the en_keyword list for each feature
+    const enKeywords = (Array.isArray(p.keywords) ? p.keywords : [])
+      .map(k => norm(k?.en_keyword))
+      .filter(Boolean)
+
+    const passKeyword   = sel.keyword   === 'any' || enKeywords.includes(sel.keyword)
+    const passLegal     = sel.legal     === 'any' || norm(p.legalRestrictions) === sel.legal
+    const passSrs       = sel.srs       === 'any' || norm(p.spatialReferenceSystem) === sel.srs
+
+    return passCollection && passKeyword && passLegal && passSrs
   })
 })
 

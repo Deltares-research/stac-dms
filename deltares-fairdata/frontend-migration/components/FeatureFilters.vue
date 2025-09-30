@@ -80,15 +80,15 @@
               </v-radio-group>
             </v-col>
 
-            <!-- Language -->
+            <!-- Keyword (replaces Language) -->
             <v-col cols="12" md="3" class="filter-col">
-              <div class="text-subtitle-2 mb-2">Language</div>
-              <v-radio-group v-model="local.language" density="compact">
+              <div class="text-subtitle-2 mb-2">Keyword</div>
+              <v-radio-group v-model="local.keyword" density="compact">
                 <v-radio label="Any" value="any" />
                 <v-radio
-                  v-for="opt in (options.language || [])"
-                  :key="`lang-${opt}`"
-                  :label="labelFor('language', opt)"
+                  v-for="opt in (options.keyword || [])"
+                  :key="`kw-${opt}`"
+                  :label="labelFor('keyword', opt)"
                   :value="opt"
                 />
               </v-radio-group>
@@ -136,7 +136,7 @@ const props = defineProps({
     type: Object,
     default: () => ({
       collection: 'any',
-      language: 'any',
+      keyword: 'any',   // changed from language
       legal: 'any',
       srs: 'any',
     }),
@@ -145,7 +145,7 @@ const props = defineProps({
     type: Object,
     default: () => ({
       collection: [],
-      language: [],
+      keyword: [],      // changed from language
       legal: [],
       srs: [],
     }),
@@ -158,7 +158,7 @@ const rootEl = ref(null)
 
 const local = reactive({
   collection: props.modelValue.collection ?? 'any',
-  language: props.modelValue.language ?? 'any',
+  keyword: props.modelValue.keyword ?? 'any', // changed from language
   legal: props.modelValue.legal ?? 'any',
   srs: props.modelValue.srs ?? 'any',
 })
@@ -167,15 +167,15 @@ watch(local, (val) => emit('update:modelValue', { ...val }), { deep: true })
 watch(() => props.modelValue, (v) => Object.assign(local, v || {}), { deep: true })
 
 function clear () {
-  Object.assign(local, { collection: 'any', language: 'any', legal: 'any', srs: 'any' })
+  Object.assign(local, { collection: 'any', keyword: 'any', legal: 'any', srs: 'any' })
 }
 function clearOne (key) {
   if (key in local) local[key] = 'any'
 }
 
-const FIELD_LABEL = { collection: 'Collection', language: 'Language', legal: 'Legal', srs: 'SRS' }
+const FIELD_LABEL = { collection: 'Collection', keyword: 'Keyword', legal: 'Legal', srs: 'SRS' }
 const VALUE_LABEL = {
-  language: { eng: 'English', dut: 'Dutch' },
+  // keyword: identity (no special mapping)
   legal: { license: 'License', restricted: 'Restricted', intellectualPropertyRights: 'IPR' },
 }
 function labelFor (key, value) { return VALUE_LABEL[key]?.[value] ?? value }
