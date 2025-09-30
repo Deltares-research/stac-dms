@@ -66,9 +66,9 @@
 
         <v-container fluid class="py-4">
           <v-row>
-            <!-- Collection -->
+            <!-- Domain (collection) -->
             <v-col cols="12" md="3" class="filter-col">
-              <div class="text-subtitle-2 mb-2">Collection</div>
+              <div class="text-subtitle-2 mb-2">Domain</div>
               <v-radio-group v-model="local.collection" density="compact">
                 <v-radio label="Any" value="any" />
                 <v-radio
