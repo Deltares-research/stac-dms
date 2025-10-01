@@ -94,8 +94,9 @@
               </v-radio-group>
             </v-col>
 
-            <!-- Start date (button opens date picker) -->
+            <!-- Start & End date (buttons open date pickers) -->
             <v-col cols="12" md="4" class="filter-col">
+              <!-- Start date -->
               <div class="d-flex align-center justify-space-between mb-2">
                 <div class="text-subtitle-2">Start date</div>
                 <v-btn
@@ -109,7 +110,7 @@
               </div>
 
               <v-menu
-                v-model="dateMenu"
+                v-model="startMenu"
                 :close-on-content-click="false"
                 content-class="filters-portal"
                 location="bottom start"
@@ -128,15 +129,61 @@
 
                 <v-card>
                   <v-date-picker
-                    v-model="tempDate"
+                    v-model="tempStart"
                     show-adjacent-months
                     elevation="0"
                   />
                   <v-divider />
                   <v-card-actions>
                     <v-spacer />
-                    <v-btn variant="text" @click="dateMenu = false">Cancel</v-btn>
-                    <v-btn variant="flat" @click="applyDate">Apply</v-btn>
+                    <v-btn variant="text" @click="startMenu = false">Cancel</v-btn>
+                    <v-btn variant="flat" @click="applyStart">Apply</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-menu>
+
+              <!-- End date -->
+              <div class="d-flex align-center justify-space-between mt-6 mb-2">
+                <div class="text-subtitle-2">End date</div>
+                <v-btn
+                  v-if="local.endDate"
+                  size="x-small"
+                  variant="text"
+                  @click="local.endDate = ''"
+                >
+                  Clear
+                </v-btn>
+              </div>
+
+              <v-menu
+                v-model="endMenu"
+                :close-on-content-click="false"
+                content-class="filters-portal"
+                location="bottom start"
+                :offset="8"
+              >
+                <template #activator="{ props }">
+                  <v-btn
+                    v-bind="props"
+                    variant="outlined"
+                    block
+                  >
+                    <v-icon start>mdi-calendar</v-icon>
+                    {{ local.endDate ? labelFor('endDate', local.endDate) : 'Pick a date' }}
+                  </v-btn>
+                </template>
+
+                <v-card>
+                  <v-date-picker
+                    v-model="tempEnd"
+                    show-adjacent-months
+                    elevation="0"
+                  />
+                  <v-divider />
+                  <v-card-actions>
+                    <v-spacer />
+                    <v-btn variant="text" @click="endMenu = false">Cancel</v-btn>
+                    <v-btn variant="flat" @click="applyEnd">Apply</v-btn>
                   </v-card-actions>
                 </v-card>
               </v-menu>
@@ -157,7 +204,8 @@ const props = defineProps({
     default: () => ({
       collection: 'any',
       keyword: 'any',
-      startDate: '', // ISO 'YYYY-MM-DD' or empty when not set
+      startDate: '', // ISO 'YYYY-MM-DD'
+      endDate: '',   // ISO 'YYYY-MM-DD'
     }),
   },
   options: {
@@ -177,37 +225,48 @@ const local = reactive({
   collection: props.modelValue.collection ?? 'any',
   keyword: props.modelValue.keyword ?? 'any',
   startDate: props.modelValue.startDate ?? '',
+  endDate: props.modelValue.endDate ?? '',
 })
 
-/* --- Start date menu state --- */
-const dateMenu = ref(false)
-const tempDate = ref('')
+/* --- Date menus state --- */
+const startMenu = ref(false)
+const endMenu = ref(false)
+const tempStart = ref('')
+const tempEnd = ref('')
 
-watch(dateMenu, (open) => {
-  if (open) tempDate.value = local.startDate || ''
-})
+watch(startMenu, (open) => { if (open) tempStart.value = local.startDate || '' })
+watch(endMenu,   (open) => { if (open) tempEnd.value   = local.endDate   || '' })
 
-function applyDate () {
-  local.startDate = tempDate.value || ''
-  dateMenu.value = false
+function applyStart () {
+  local.startDate = tempStart.value || ''
+  startMenu.value = false
+}
+function applyEnd () {
+  local.endDate = tempEnd.value || ''
+  endMenu.value = false
 }
 
 watch(local, (val) => emit('update:modelValue', { ...val }), { deep: true })
 watch(() => props.modelValue, (v) => Object.assign(local, v || {}), { deep: true })
 
 function clear () {
-  Object.assign(local, { collection: 'any', keyword: 'any', startDate: '' })
+  Object.assign(local, { collection: 'any', keyword: 'any', startDate: '', endDate: '' })
 }
 function clearOne (key) {
   if (key in local) {
-    local[key] = key === 'startDate' ? '' : 'any'
+    local[key] = (key === 'startDate' || key === 'endDate') ? '' : 'any'
   }
 }
 
-const FIELD_LABEL = { collection: 'Domain', keyword: 'Keyword', startDate: 'Start date' }
+const FIELD_LABEL = {
+  collection: 'Domain',
+  keyword: 'Keyword',
+  startDate: 'Start date',
+  endDate: 'End date',
+}
 const humanDateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
 function labelFor (key, value) {
-  if (key === 'startDate') {
+  if (key === 'startDate' || key === 'endDate') {
     if (!value) return ''
     const d = new Date(value)
     return isNaN(d) ? value : humanDateFmt.format(d)
@@ -217,7 +276,7 @@ function labelFor (key, value) {
 
 const activeChips = computed(() =>
   Object.entries(local)
-    .filter(([k, v]) => (k === 'startDate' ? !!v : v && v !== 'any'))
+    .filter(([k, v]) => (k === 'startDate' || k === 'endDate') ? !!v : v && v !== 'any')
     .map(([k, v]) => ({
       key: k,
       label: FIELD_LABEL[k] || k,
@@ -231,7 +290,7 @@ function onDocPointerDown (e) {
   const root = rootEl.value?.$el ?? rootEl.value
   const target = e.target
   if (root && root.contains(target)) return
-  // Ignore clicks inside teleported menus (sort + date picker)
+  // Ignore clicks inside teleported menus (sort + date pickers)
   if (target?.closest && target.closest('.filters-portal')) return
   expanded.value = false
 }

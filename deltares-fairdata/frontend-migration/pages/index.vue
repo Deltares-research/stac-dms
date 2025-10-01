@@ -85,6 +85,7 @@ const filters = ref({
   collection: 'any',
   keyword: 'any',
   startDate: '', // ISO 'YYYY-MM-DD'; empty means no start filter
+  endDate: '',   // ISO 'YYYY-MM-DD'; empty means no end filter
 })
 
 /**
@@ -153,7 +154,7 @@ const searchResult = {
       "stac_extensions":[],
       "id":"t2zXW7UyJg_-af-tGlpY6",
       "collection":"Flumes",
-      "geometry":{"type":"Polygon","coordinates":[[[6.087818732169567,52.51153291540706],[6.092256167975523,52.49356714781513],[6.116556411674811,52.49863983513521],[6.087818732169567,52.51153291540706]]]},
+      "geometry":{"type":"Polygon","coordinates":[[[6.087818732169567,52.51153291540706],[6.092256167975523,52.49356714781513],[6.116556411674811,52.49863983513521],[6.087818732169567,52.51153291540706]]]} ,
       "bbox":[6.087818732169567,52.49356714781513,6.116556411674811,52.51153291540706],
       "properties":{
         "title":"Cone penetration test Zwolle area",
@@ -198,7 +199,7 @@ const searchResult = {
       "stac_extensions":[],
       "id":"zVEL5FRmYGyyPoxHyzbMo",
       "collection":"Flumes",
-      "geometry":{"type":"Polygon","coordinates":[[[4.5437996792731035,51.85911984102647],[4.57584042085402,51.83251227910464],[4.586219816014036,51.84423764537528],[4.559143132987908,51.86453154853599],[4.5437996792731035,51.85911984102647]]]},
+      "geometry":{"type":"Polygon","coordinates":[[[4.5437996792731035,51.85911984102647],[4.57584042085402,51.83251227910464],[4.586219816014036,51.84423764537528],[4.559143132987908,51.86453154853599],[4.5437996792731035,51.85911984102647]]]} ,
       "bbox":[4.5437996792731035,51.83251227910464,4.586219816014036,51.86453154853599],
       "properties":{
         "title":"Hoge Snelheidslijn Barendrecht (fictief)",
@@ -332,7 +333,7 @@ const searchResult = {
       "stac_extensions":[],
       "id":"TOQ-UGv4UEtQBOdS7lz86",
       "collection":"Test",
-      "geometry":{"type":"Polygon","coordinates":[[[5.014964976209292,50.306841344504676],[5.374767222303041,50.31824511513142],[5.638439097303041,50.23484682031926],[5.505229868787416,50.11696287384922],[4.950420298474916,50.22518073703304],[5.014964976209292,50.306841344504676]]]},
+      "geometry":{"type":"Polygon","coordinates":[[[5.014964976209292,50.306841344504676],[5.374767222303041,50.31824511513142],[5.638439097303041,50.23484682031926],[5.505229868787416,50.11696287384922],[4.950420298474916,50.22518073703304],[5.014964976209292,50.306841344504676]]]} ,
       "bbox":[4.950420298474916,50.11696287384922,5.638439097303041,50.31824511513142],
       "properties":{
         "title":"51651",
@@ -417,10 +418,17 @@ const filterOptions = computed(() => {
   }
 })
 
-/* Filter the list of features by current selections (incl. Start date) */
+/* Filter the list of features by current selections (incl. Start/End date) */
 const filteredFeatures = computed(() => {
   const sel = filters.value
+
+  // Start boundary: use selected day at 00:00:00 local time
   const selStartMs = sel.startDate ? Date.parse(sel.startDate) : NaN
+
+  // End boundary: include the whole selected day (set to 23:59:59.999)
+  const selEndBoundMs = sel.endDate
+    ? (() => { const d = new Date(sel.endDate); if (isNaN(d)) return NaN; d.setHours(23,59,59,999); return d.getTime() })()
+    : NaN
 
   return features.value.filter((f) => {
     const p = f.properties || {}
@@ -432,14 +440,22 @@ const filteredFeatures = computed(() => {
       .filter(Boolean)
     const passKeyword = sel.keyword === 'any' || enKeywords.includes(sel.keyword)
 
-    // Start date: include only if feature datetime exists and is on/after selected day
+    // Feature datetime
+    const featMs = p.datetime ? Date.parse(p.datetime) : NaN
+
+    // Start date: require a valid feature datetime and be on/after start
     let passStart = true
     if (sel.startDate) {
-      const featMs = p.datetime ? Date.parse(p.datetime) : NaN
       passStart = Number.isFinite(featMs) && Number.isFinite(selStartMs) && (featMs >= selStartMs)
     }
 
-    return passCollection && passKeyword && passStart
+    // End date: require a valid feature datetime and be on/before end-of-day
+    let passEnd = true
+    if (sel.endDate) {
+      passEnd = Number.isFinite(featMs) && Number.isFinite(selEndBoundMs) && (featMs <= selEndBoundMs)
+    }
+
+    return passCollection && passKeyword && passStart && passEnd
   })
 })
 
