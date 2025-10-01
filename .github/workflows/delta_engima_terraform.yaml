@@ -1,4 +1,4 @@
-name: "Terraform Infrastructure Change Management Pipeline with GitHub Actions"
+name: "Delta Engima Terraform Infrastructure Change Management Pipeline"
 
 on:
   push:
