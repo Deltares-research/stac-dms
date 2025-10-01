@@ -26,11 +26,10 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   //Functions
   async function search() {
     console.log('SEARCH action:', q.value, startDate.value, endDate.value, keywords.value, collections.value, includeEmptyGeometry.value, bboxFilter.value)
-    const cfg = useRuntimeConfig()
+   
     searchStatus.value = 'pending'; searchError.value = null
     const { $api } = useNuxtApp()
-    console.log('cfg.dsn:', cfg.dmsToken)
-    console.log('Cookie', `DMS_TOKEN=${ import.meta.env.VITE_DMS_TOKEN }`)
+  
     //for development, SSR cookie:
     const headers = { Cookie: `DMS_TOKEN=${ import.meta.env.VITE_DMS_TOKEN }` }
 

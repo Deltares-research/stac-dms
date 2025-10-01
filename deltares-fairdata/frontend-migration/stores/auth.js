@@ -29,8 +29,6 @@ export const useAuthStore = defineStore('auth', () => {
           'Content-Type': 'application/json',
         },
       })
-
-      console.log('userData', JSON.stringify(userData, undefined, 2))
       
       if (!userData) {
         // User is not authenticated
@@ -42,7 +40,6 @@ export const useAuthStore = defineStore('auth', () => {
       // User is authenticated
       user.value = userData
       isAuthenticated.value = true
-      console.log('Setting isAuthenticated to true')
       return true
       
     } catch (err) {
@@ -66,24 +63,26 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
     
     try {
-      const { $api } = useNuxtApp()
-      
-      await $api('/auth/logout', {
-        method: 'POST',
-      })
-      
-      // Clear user data
+      // Clear user data first
       user.value = null
       isAuthenticated.value = false
       
-      // Redirect to home page
+      // Clear the DMS_TOKEN cookie
       if (process.client) {
+        document.cookie = 'DMS_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
         window.location.href = '/'
       }
       
     } catch (err) {
       console.error('Logout failed:', err)
       error.value = err
+      // Even if logout fails, clear local state and redirect
+      user.value = null
+      isAuthenticated.value = false
+      if (process.client) {
+        document.cookie = 'DMS_TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+        window.location.href = '/'
+      }
     } finally {
       isLoading.value = false
     }
@@ -93,8 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
   }
 
-  // Initialize auth check on store creation
-  checkAuth()
+  // Auth check will be called explicitly when needed
 
   return {
     // State

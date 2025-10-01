@@ -18,8 +18,8 @@
 
 <script setup>
   // This page requires specific permission
-  definePageMeta({
-    middleware: 'permissions',
-    permission: 'keyword:all'
-  })
+  // definePageMeta({
+  //   middleware: 'permissions',
+  //   permission: 'keyword:all'
+  // })
 </script>

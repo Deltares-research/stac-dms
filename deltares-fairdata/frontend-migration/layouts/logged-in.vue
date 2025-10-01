@@ -84,11 +84,6 @@
     isLoading,
   } = useAuth()
 
-  console.log('isAuthenticated:', isAuthenticated.value)
-  console.log('hasPermission collection:create:', hasPermission('collection:create'))
-  console.log('hasPermission keyword:all:', hasPermission('keyword:all'))
-  console.log('hasPermission group:read:', hasPermission('group:read'))
-
   const handleLogin = () => {
     login()
   }

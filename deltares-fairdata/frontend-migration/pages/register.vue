@@ -18,7 +18,7 @@
 
 <script setup>
   // This page requires authentication
-  definePageMeta({
-    middleware: 'auth'
-  })
+  // definePageMeta({
+  //   middleware: 'auth'
+  // })
 </script>

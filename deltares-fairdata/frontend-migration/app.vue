@@ -17,20 +17,19 @@
 
 <script setup>
   import { useAuth } from '~/composables/useAuth'
-  import { computed } from 'vue'
+  import { computed, onMounted } from 'vue'
 
-  const { isAuthenticated, isLoading } = useAuth()
-
-  console.log('useAuth result:', { isAuthenticated, isLoading })
-  
+  const { isAuthenticated, isLoading, checkAuth } = useAuth()  
 
   const layoutName = computed(() => {
-    console.log('layoutName computed called')
-    console.log('isAuthenticated', isAuthenticated.value);
     if(isAuthenticated.value) {
-      console.log('isAuthenticated', isAuthenticated.value);
       return 'logged-in'
     }
     return 'default'
+  })
+
+  // Check authentication on app mount
+  onMounted(async () => {
+    await checkAuth()
   })
 </script>

@@ -30,7 +30,6 @@ export const usePermissionsStore = defineStore('permissions', () => {
       }
       
       permissions.value = permissionData.value || permissionData || []
-      console.log('permissions', JSON.stringify(permissions.value, undefined, 2))
       
       return true
       
@@ -104,8 +103,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
     error.value = null
   }
 
-  // Initialize permissions fetch on store creation
-  fetchPermissions()
+  // Permissions will be fetched explicitly when needed
 
   return {
     // State
