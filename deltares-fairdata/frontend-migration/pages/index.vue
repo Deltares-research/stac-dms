@@ -1,51 +1,22 @@
 <template>
-  <v-container fluid class="pa-0 ma-0 fill-height">
-    <v-row no-gutters class="fill-height">
-      <!-- LEFT: Results list -->
+  <v-container fluid class="pa-0 ma-0 two-col-page">
+    <v-row no-gutters class="two-col-row">
+      <!-- LEFT: Results list (its own scroll) -->
       <v-col
         :cols="12"
         :md="6"
-        class="fill-height"
+        class="left-col"
       >
-        <v-sheet
-          height="100%"
-          class="pa-4"
-          style="overflow:auto"
-        >
-          <!-- Loading state -->
-          <div
-            v-if="authLoading"
-            class="d-flex justify-center align-center"
-            style="height: 200px;"
-          >
-            <v-progress-circular indeterminate color="primary" />
-          </div>
-          
-          <!-- Not authenticated state -->
-          <div
-            v-else-if="!isAuthenticated"
-            class="d-flex flex-column justify-center align-center text-center"
-            style="height: 200px;"
-          >
-            <v-icon
-              size="64"
-              color="grey-lighten-1"
-              class="mb-4"
-            >
-              mdi-account-circle
-            </v-icon>
-            <h3 class="text-h6 mb-2">
-              Please log in to search data
-            </h3>
-            <p class="text-body-2 text-grey">
-              Use the login button in the top right to access the FAIR data finder
-            </p>
-          </div>
-          
-          <!-- Search results -->
-          <v-row v-else>
+        <v-sheet class="left-scroll pa-4">
+          <feature-filters
+            v-model="filters"
+            :options="filterOptions"
+            class="mb-4"
+          />
+
+          <v-row>
             <v-col
-              v-for="f in features"
+              v-for="f in filteredFeatures"
               :key="f.id"
               cols="12"
             >
@@ -101,14 +72,16 @@
         </v-sheet>
       </v-col>
 
-      <!-- RIGHT: Map -->
+      <!-- RIGHT: Map (fixed to visible viewport below app bar) -->
       <v-col
         :cols="12"
         :md="6"
-        class="fill-height"
+        class="right-col"
       >
-        <v-sheet height="100%">
-          <map-component />
+        <v-sheet class="right-map">
+          <ClientOnly>
+            <map-component :polygons="polygonFeatures" />
+          </ClientOnly>
         </v-sheet>
       </v-col>
     </v-row>
@@ -116,11 +89,11 @@
 </template>
 
 <script setup>
-  import { computed, watch } from 'vue'
+  import { computed, watch, ref } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
   import { useRoute, useRouter } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
-
+  import FeatureFilters from '@/components/FeatureFilters.vue'
   // Authentication
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   
@@ -216,7 +189,7 @@
         "stac_extensions":[],
         "id":"t2zXW7UyJg_-af-tGlpY6",
         "collection":"Flumes",
-        "geometry":{"type":"Polygon","coordinates":[[[6.087818732169567,52.51153291540706],[6.092256167975523,52.49356714781513],[6.116556411674811,52.49863983513521],[6.087818732169567,52.51153291540706]]]},
+        "geometry":{"type":"Polygon","coordinates":[[[6.087818732169567,52.51153291540706],[6.092256167975523,52.49356714781513],[6.116556411674811,52.49863983513521],[6.087818732169567,52.51153291540706]]]} ,
         "bbox":[6.087818732169567,52.49356714781513,6.116556411674811,52.51153291540706],
         "properties":{
           "title":"Cone penetration test Zwolle area",
@@ -261,7 +234,7 @@
         "stac_extensions":[],
         "id":"zVEL5FRmYGyyPoxHyzbMo",
         "collection":"Flumes",
-        "geometry":{"type":"Polygon","coordinates":[[[4.5437996792731035,51.85911984102647],[4.57584042085402,51.83251227910464],[4.586219816014036,51.84423764537528],[4.559143132987908,51.86453154853599],[4.5437996792731035,51.85911984102647]]]},
+        "geometry":{"type":"Polygon","coordinates":[[[4.5437996792731035,51.85911984102647],[4.57584042085402,51.83251227910464],[4.586219816014036,51.84423764537528],[4.559143132987908,51.86453154853599],[4.5437996792731035,51.85911984102647]]]} ,
         "bbox":[4.5437996792731035,51.83251227910464,4.586219816014036,51.86453154853599],
         "properties":{
           "title":"Hoge Snelheidslijn Barendrecht (fictief)",
@@ -377,7 +350,6 @@
           "originatorMetaDataEmail":"Jelle.vanMiltenburg@deltares.nl",
           "originatorMetaDataRoleCode":"originator",
           "metaDataLanguage":"eng",
-          "metaDataDateTime":"2025-03-25T14:43:53.914Z",
           "keywords":[{"nl_keyword":"Golven","en_keyword":"Waves","external_id":null,"id":"0747eaa1-61a7-4983-8503-3e292826fcc7"},{"nl_keyword":"Tunnel","en_keyword":"Tube","external_id":null,"id":"7d51d545-e80b-46b3-b6b0-1d2ae732fe60"}],
           "created":"2025-03-25T14:43:59.959617Z"
         },
@@ -395,7 +367,7 @@
         "stac_extensions":[],
         "id":"TOQ-UGv4UEtQBOdS7lz86",
         "collection":"Test",
-        "geometry":{"type":"Polygon","coordinates":[[[5.014964976209292,50.306841344504676],[5.374767222303041,50.31824511513142],[5.638439097303041,50.23484682031926],[5.505229868787416,50.11696287384922],[4.950420298474916,50.22518073703304],[5.014964976209292,50.306841344504676]]]},
+        "geometry":{"type":"Polygon","coordinates":[[[5.014964976209292,50.306841344504676],[5.374767222303041,50.31824511513142],[5.638439097303041,50.23484682031926],[5.505229868787416,50.11696287384922],[4.950420298474916,50.22518073703304],[5.014964976209292,50.306841344504676]]]} ,
         "bbox":[4.950420298474916,50.11696287384922,5.638439097303041,50.31824511513142],
         "properties":{
           "title":"51651",
@@ -444,15 +416,29 @@
     "numReturned": 6,
     "numMatched": 6
   }
+ 
 
-  const features = computed(() => {
+  /* -------------------------
+   Filters state (v-model)
+------------------------- */
+  const filters = ref({
+    query: '',         // <— NEW free-search text
+    collection: 'any',
+    keyword: 'any',
+    startDate: '',     // ISO 'YYYY-MM-DD'; empty means no start filter
+    endDate: '',       // ISO 'YYYY-MM-DD'; empty means no end filter
+  })
+
+
+
+  /*   const features = computed(() => {
     // Show empty state if not authenticated
     if (!isAuthenticated.value) {
       return []
     }
     return Array.isArray(searchResult?.features) ? searchResult.features : []
   })
-
+ */
   /**
    * Format ISO date like "2025-03-25T00:00:00Z" -> "25 March 2025".
    * If missing/invalid, return an em dash.
@@ -481,14 +467,138 @@
     return v ? (Array.isArray(v) ? v.map(String) : [String(v)]) : []
   }
 
+  /* Safely list features */
+  const features = computed(() =>
+    Array.isArray(searchResult?.features) ? searchResult.features : []
+  )
+
+  /* Normalizer (trims trailing spaces, handles nulls) */
+  function norm (v) {
+    return typeof v === 'string' ? v.trim() : (v ?? '')
+  }
+
+  /* Build unique option lists from the data */
+  const filterOptions = computed(() => {
+    const col = new Set()
+    const kw = new Set()
+
+    for (const f of features.value) {
+      if (!f) continue
+      const p = f.properties || {}
+
+      if (f.collection) col.add(norm(f.collection))
+
+      const list = Array.isArray(p.keywords) ? p.keywords : []
+      for (const k of list) {
+        const label = norm(k?.en_keyword)
+        if (label) kw.add(label)
+      }
+    }
+
+    const sortAsc = (a, b) => String(a).localeCompare(String(b), 'en')
+    return {
+      collection: [...col].sort(sortAsc),
+      keyword:    [...kw].sort(sortAsc),
+    }
+  })
+
+  /* Filter the list of features by current selections (incl. Start/End date + free search) */
+  const filteredFeatures = computed(() => {
+    const sel = filters.value
+
+    // Free-text search
+    const q = (sel.query || '').trim().toLowerCase()
+
+    // Start boundary
+    const selStartMs = sel.startDate ? Date.parse(sel.startDate) : NaN
+
+    // End boundary: whole day inclusive
+    const selEndBoundMs = sel.endDate
+      ? (() => { const d = new Date(sel.endDate); if (isNaN(d)) return NaN; d.setHours(23,59,59,999); return d.getTime() })()
+      : NaN
+
+    return features.value.filter((f) => {
+      const p = f.properties || {}
+
+      const passCollection = sel.collection === 'any' || norm(f.collection) === sel.collection
+
+      const enKeywords = (Array.isArray(p.keywords) ? p.keywords : [])
+        .map(k => norm(k?.en_keyword))
+        .filter(Boolean)
+      const passKeyword = sel.keyword === 'any' || enKeywords.includes(sel.keyword)
+
+      // Free-search against title + description
+      const hayTitle = (p.title || '').toString()
+      const hayDesc  = (p.description || '').toString()
+      const passQuery = q === '' || (hayTitle + ' ' + hayDesc).toLowerCase().includes(q)
+
+      // Date boundaries
+      const featMs = p.datetime ? Date.parse(p.datetime) : NaN
+
+      let passStart = true
+      if (sel.startDate) {
+        passStart = Number.isFinite(featMs) && Number.isFinite(selStartMs) && (featMs >= selStartMs)
+      }
+
+      let passEnd = true
+      if (sel.endDate) {
+        passEnd = Number.isFinite(featMs) && Number.isFinite(selEndBoundMs) && (featMs <= selEndBoundMs)
+      }
+
+      return passCollection && passKeyword && passQuery && passStart && passEnd
+    })
+  })
+
+  /* ---- Only the Polygon features (for the map) ---- */
+  const polygonFeatures = computed(() =>
+    filteredFeatures.value.filter(f => f?.geometry?.type === 'Polygon')
+  )
+
+
+
 </script>
 
 <style>
-/* Optional: clamp long descriptions to 3 lines */
+/* Clamp long descriptions to 3 lines */
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+@media (min-width: 960px) {
+  .two-col-page {
+    height: calc(100vh - var(--v-layout-top, 0px) - var(--v-layout-bottom, 0px));
+    overflow: hidden;
+  }
+  .two-col-row {
+    height: 100%;
+    min-height: 0;
+  }
+  .left-col,
+  .right-col {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .left-scroll {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .right-col {
+    overflow: hidden;
+  }
+  .right-map {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .right-map .mapboxgl-map,
+  .right-map > * {
+    height: 100%;
+  }
 }
 </style>
