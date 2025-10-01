@@ -65,6 +65,28 @@
         <v-divider />
 
         <v-container fluid class="py-4">
+          <!-- Free search (above the other filters) -->
+          <v-row class="mb-4">
+            <v-col cols="12">
+              <form @submit.prevent="applyQuery">
+                <div class="d-flex align-center ga-2">
+                  <v-text-field
+                    v-model="tempQuery"
+                    variant="outlined"
+                    placeholder="Search title or description"
+                    hide-details
+                    clearable
+                    class="flex-grow-1"
+                    @click:clear="tempQuery = ''; applyQuery()"
+                  />
+                  <v-btn type="submit">
+                    Search
+                  </v-btn>
+                </div>
+              </form>
+            </v-col>
+          </v-row>
+
           <v-row>
             <!-- Domain (collection) -->
             <v-col cols="12" md="4" class="filter-col">
@@ -202,10 +224,11 @@ const props = defineProps({
   modelValue: {
     type: Object,
     default: () => ({
+      query: '',        // <— NEW free-search text
       collection: 'any',
       keyword: 'any',
-      startDate: '', // ISO 'YYYY-MM-DD'
-      endDate: '',   // ISO 'YYYY-MM-DD'
+      startDate: '',    // ISO 'YYYY-MM-DD'
+      endDate: '',      // ISO 'YYYY-MM-DD'
     }),
   },
   options: {
@@ -222,11 +245,19 @@ const expanded = ref(false)
 const rootEl = ref(null)
 
 const local = reactive({
+  query: props.modelValue.query ?? '',
   collection: props.modelValue.collection ?? 'any',
   keyword: props.modelValue.keyword ?? 'any',
   startDate: props.modelValue.startDate ?? '',
   endDate: props.modelValue.endDate ?? '',
 })
+
+/* --- Free search (apply on button / enter) --- */
+const tempQuery = ref(local.query || '')
+watch(() => local.query, (v) => { if (v !== tempQuery.value) tempQuery.value = v })
+function applyQuery () {
+  local.query = (tempQuery.value || '').trim()
+}
 
 /* --- Date menus state --- */
 const startMenu = ref(false)
@@ -250,15 +281,18 @@ watch(local, (val) => emit('update:modelValue', { ...val }), { deep: true })
 watch(() => props.modelValue, (v) => Object.assign(local, v || {}), { deep: true })
 
 function clear () {
-  Object.assign(local, { collection: 'any', keyword: 'any', startDate: '', endDate: '' })
+  Object.assign(local, { query: '', collection: 'any', keyword: 'any', startDate: '', endDate: '' })
+  tempQuery.value = ''
 }
 function clearOne (key) {
-  if (key in local) {
-    local[key] = (key === 'startDate' || key === 'endDate') ? '' : 'any'
-  }
+  if (!(key in local)) return
+  if (key === 'startDate' || key === 'endDate') local[key] = ''
+  else if (key === 'query') { local.query = ''; tempQuery.value = '' }
+  else local[key] = 'any'
 }
 
 const FIELD_LABEL = {
+  query: 'Search',
   collection: 'Domain',
   keyword: 'Keyword',
   startDate: 'Start date',
@@ -276,11 +310,14 @@ function labelFor (key, value) {
 
 const activeChips = computed(() =>
   Object.entries(local)
-    .filter(([k, v]) => (k === 'startDate' || k === 'endDate') ? !!v : v && v !== 'any')
+    .filter(([k, v]) =>
+      (k === 'startDate' || k === 'endDate') ? !!v :
+      (k === 'query' ? (v && v.trim() !== '') : v && v !== 'any')
+    )
     .map(([k, v]) => ({
       key: k,
       label: FIELD_LABEL[k] || k,
-      value: labelFor(k, v),
+      value: k === 'query' ? v : labelFor(k, v),
     }))
 )
 

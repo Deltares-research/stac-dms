@@ -82,10 +82,11 @@ import FeatureFilters from '@/components/FeatureFilters.vue'
    Filters state (v-model)
 ------------------------- */
 const filters = ref({
+  query: '',         // <— NEW free-search text
   collection: 'any',
   keyword: 'any',
-  startDate: '', // ISO 'YYYY-MM-DD'; empty means no start filter
-  endDate: '',   // ISO 'YYYY-MM-DD'; empty means no end filter
+  startDate: '',     // ISO 'YYYY-MM-DD'; empty means no start filter
+  endDate: '',       // ISO 'YYYY-MM-DD'; empty means no end filter
 })
 
 /**
@@ -315,7 +316,6 @@ const searchResult = {
         "originatorMetaDataEmail":"Jelle.vanMiltenburg@deltares.nl",
         "originatorMetaDataRoleCode":"originator",
         "metaDataLanguage":"eng",
-        "metaDataDateTime":"2025-03-25T14:43:53.914Z",
         "keywords":[{"nl_keyword":"Golven","en_keyword":"Waves","external_id":null,"id":"0747eaa1-61a7-4983-8503-3e292826fcc7"},{"nl_keyword":"Tunnel","en_keyword":"Tube","external_id":null,"id":"7d51d545-e80b-46b3-b6b0-1d2ae732fe60"}],
         "created":"2025-03-25T14:43:59.959617Z"
       },
@@ -418,14 +418,17 @@ const filterOptions = computed(() => {
   }
 })
 
-/* Filter the list of features by current selections (incl. Start/End date) */
+/* Filter the list of features by current selections (incl. Start/End date + free search) */
 const filteredFeatures = computed(() => {
   const sel = filters.value
 
-  // Start boundary: use selected day at 00:00:00 local time
+  // Free-text search
+  const q = (sel.query || '').trim().toLowerCase()
+
+  // Start boundary
   const selStartMs = sel.startDate ? Date.parse(sel.startDate) : NaN
 
-  // End boundary: include the whole selected day (set to 23:59:59.999)
+  // End boundary: whole day inclusive
   const selEndBoundMs = sel.endDate
     ? (() => { const d = new Date(sel.endDate); if (isNaN(d)) return NaN; d.setHours(23,59,59,999); return d.getTime() })()
     : NaN
@@ -440,22 +443,25 @@ const filteredFeatures = computed(() => {
       .filter(Boolean)
     const passKeyword = sel.keyword === 'any' || enKeywords.includes(sel.keyword)
 
-    // Feature datetime
+    // Free-search against title + description
+    const hayTitle = (p.title || '').toString()
+    const hayDesc  = (p.description || '').toString()
+    const passQuery = q === '' || (hayTitle + ' ' + hayDesc).toLowerCase().includes(q)
+
+    // Date boundaries
     const featMs = p.datetime ? Date.parse(p.datetime) : NaN
 
-    // Start date: require a valid feature datetime and be on/after start
     let passStart = true
     if (sel.startDate) {
       passStart = Number.isFinite(featMs) && Number.isFinite(selStartMs) && (featMs >= selStartMs)
     }
 
-    // End date: require a valid feature datetime and be on/before end-of-day
     let passEnd = true
     if (sel.endDate) {
       passEnd = Number.isFinite(featMs) && Number.isFinite(selEndBoundMs) && (featMs <= selEndBoundMs)
     }
 
-    return passCollection && passKeyword && passStart && passEnd
+    return passCollection && passKeyword && passQuery && passStart && passEnd
   })
 })
 
