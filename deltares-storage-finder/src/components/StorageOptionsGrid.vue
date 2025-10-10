@@ -73,6 +73,19 @@
           </div>
           <div v-else>
             <MarkdownView :source="mdSource" />
+            
+            <v-divider class="my-4" />
+            
+            <div class="text-center">
+              <v-btn
+                variant="text"
+                color="primary"
+                @click="openTRL"
+              >
+                <v-icon start>mdi-information-outline</v-icon>
+                Learn about Technology Readiness Level (TRL)
+              </v-btn>
+            </div>
           </div>
         </v-card-text>
 
@@ -97,6 +110,29 @@
           </div>
           <div v-else class="pl-5">
             <MarkdownView :source="infoMd" />
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="trlDialog" max-width="800">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <span>Technology Readiness Level (TRL)</span>
+          <v-spacer />
+          <v-btn icon variant="text" @click="trlDialog = false" aria-label="Close">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-divider />
+
+        <v-card-text>
+          <div v-if="loadingTRL" class="py-6">
+            <v-progress-linear indeterminate />
+          </div>
+          <div v-else class="pl-5">
+            <MarkdownView :source="trlMd" />
           </div>
         </v-card-text>
       </v-card>
@@ -184,6 +220,25 @@
     }
   }
 
+  const trlDialog = ref(false)
+  const trlMd = ref('')
+  const loadingTRL = ref(false)
+
+  async function openTRL() {
+    trlDialog.value = true
+    loadingTRL.value = true
+    trlMd.value = ''
+    try {
+      const mod = await import('@/content/trl.md?raw')
+      trlMd.value = typeof mod === 'string' ? mod : (mod.default ?? '')
+      if (!trlMd.value) throw new Error('Empty markdown')
+    } catch {
+      trlMd.value = '_TRL information not available yet._'
+    } finally {
+      loadingTRL.value = false
+    }
+  }
+
   function isMaybe(card) {
     if (isGreyed(card)) return false
     const a = app.answers
@@ -248,6 +303,13 @@
   top: 8px;
   right: 20px;
   z-index: 1;
+}
+
+:deep(.v-card-text img) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
 }
 
 </style>
