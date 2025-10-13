@@ -77,6 +77,11 @@ export const useAppStore = defineStore('app', {
         contactOn: {},
       },
 
+      { id: 14, title: 'Deltares Online Archive', subtitle: 'Online Archive on Deltares Campus containing data from previous projects',
+        allow: { q1: ['archive'], q2: [], q3: [], q4: ['size-yes', 'size-no'], q5: ['confidentiality-no'], q6: ['access-na', 'access-h7'], q7: [] },
+        contactOn: {},
+      },
+
     ],
   }),
 })
