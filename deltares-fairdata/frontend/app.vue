@@ -20,7 +20,10 @@ async function logout() {
 <template>
   <NuxtLoadingIndicator class="fixed top-0 left-0" />
   <div class="grid grid-cols-2 py-2 px-4 border-b border-border">
-    <nav class="flex">
+    <nav class="flex items-center">
+      <NuxtLink to="/" class="flex items-center mr-4">
+        <img src="/Stars4Water_Logo.png" alt="Logo" class="h-8 w-auto" />
+      </NuxtLink>
       <Button as-child variant="link">
         <NuxtLink to="/">Search</NuxtLink>
       </Button>
@@ -49,8 +52,6 @@ async function logout() {
       </nav>
     </div>
   </div>
-
   <NuxtPage />
-
   <Toaster />
 </template>
