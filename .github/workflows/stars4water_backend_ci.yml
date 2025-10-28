@@ -33,7 +33,7 @@ permissions:
 env:
   REGISTRY_ADDRESS: containers.deltares.nl
   HARBOR_PROJECT: fair-data
-  TAG: ${{ github.ref == 'refs/heads/prod' && 'prod_s4w' || 'dev_s4w' }}
+  TAG: ${{ github.ref == 'refs/heads/prod' && 'prod-s4w' || 'dev-s4w' }}
   TARGET: ${{ github.ref == 'refs/heads/prod' && 'run-prod' || 'run-dev' }}
   AWS_REGION: eu-west-1
   CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 's4w-cluster-prod' || 's4w-cluster-dev' }}
