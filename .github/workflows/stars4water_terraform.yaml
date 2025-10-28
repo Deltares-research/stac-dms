@@ -22,7 +22,7 @@ env:
   # environment
   IS_PROD: ${{ ((github.ref_name == 'prod') || (github.base_ref == 'prod')) }}
   # Terraform workspace is prod when pushing or merging to prod branch, otherwise dev
-  TF_WORKSPACE: ${{ ((github.ref_name == 'prod') || (github.base_ref == 'prod')) && 'prod-s4w' || 'dev-s4w' }}
+  TF_WORKSPACE: ${{ ((github.ref_name == 'prod') || (github.base_ref == 'prod')) && 'prods4w' || 'devs4w' }}
   TF_VAR_harbor_username: ${{ secrets.HARBOR_USER }}
   TF_VAR_harbor_password: ${{ secrets.HARBOR_PASSWORD }}
   TF_VAR_azure_app_client_secret: ${{ secrets.AZURE_APP_CLIENT_SECRET }}
@@ -36,7 +36,7 @@ jobs:
   terraform:
     name: "Terraform Infrastructure Change Management"
     runs-on: ubuntu-latest
-    environment: ${{ ((github.ref_name == 'prod') || (github.base_ref == 'prod')) && 'prod-s4w' || 'dev-s4w' }}
+    environment: ${{ ((github.ref_name == 'prod') || (github.base_ref == 'prod')) && 'prods4w' || 'devs4w' }}
     defaults:
       run:
         shell: bash
