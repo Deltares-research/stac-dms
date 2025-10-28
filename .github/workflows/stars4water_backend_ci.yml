@@ -36,7 +36,7 @@ env:
   TAG: ${{ github.ref == 'refs/heads/prod' && 'prods4w' || 'devs4w' }}
   TARGET: ${{ github.ref == 'refs/heads/prod' && 'run-prod' || 'run-dev' }}
   AWS_REGION: eu-west-1
-  CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 's4w-cluster-prod' || 's4w-cluster-dev' }}
+  CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-cluster-prods4w' || 'dms-cluster-devs4w' }}
   TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-backend-prods4w' || 'dms-backend-devs4w' }}
   SERVICE_NAME: backend-service
 
