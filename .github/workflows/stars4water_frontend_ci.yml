@@ -36,7 +36,7 @@ env:
   API_URL: ${{ github.ref == 'refs/heads/prod' && 'https://deltares-fairdata.com' || 'https://s4w.deltares-fairdata.com' }}
   AWS_REGION: eu-west-1
   CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 's4w-cluster-prod' || 's4w-cluster-dev' }}
-  TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 's4w-frontend-prod' || 's4w-frontend-dev' }}
+  TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-frontend-prod' || 'dms-frontend-devs4w' }}
   SERVICE_NAME: frontend-service
 
 jobs:
