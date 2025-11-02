@@ -11,6 +11,7 @@ import { Fill, Icon, Stroke, Style } from "ol/style"
 import CircleStyle from "ol/style/Circle"
 import type { GeometryFunction } from "ol/style/Style"
 import { Feature, MapBrowserEvent } from "ol"
+import type { Feature as FeatureType } from "ol"
 import dateFormat from "dateformat"
 import {
   Carousel,
@@ -44,9 +45,34 @@ let { featureCollection, onChangeBbox, onHoverItem, onActiveItem } =
     onActiveItem?(id: string): void
   }>()
 
-let features = computed(() =>
-  featureCollection ? geoJson.readFeatures(featureCollection) : undefined,
-)
+// Function to check if a feature spans the whole world
+function isWorldSpanning(feature: Feature): boolean {
+  const geometry = feature.getGeometry()
+  if (!geometry) return false
+  
+  const extent = geometry.getExtent()
+  if (!extent) return false
+  
+  // Transform extent to WGS84 to check actual coordinates
+  const wgs84Extent = transformExtent(extent, 'EPSG:3857', 'EPSG:4326')
+  
+  // Check if the extent spans close to the full world
+  // Longitude: -180 to 180 (360 degrees)
+  // Latitude: -90 to 90 (180 degrees)
+  const lonSpan = wgs84Extent[2] - wgs84Extent[0]
+  const latSpan = wgs84Extent[3] - wgs84Extent[1]
+  
+  // Consider it world-spanning if it covers more than 300 degrees longitude
+  // or more than 150 degrees latitude
+  return lonSpan > 300 || latSpan > 150
+}
+
+let features = computed(() => {
+  if (!featureCollection) return undefined
+  
+  const allFeatures = geoJson.readFeatures(featureCollection)
+  return allFeatures.filter((feature: FeatureType) => !isWorldSpanning(feature))  // Added explicit type
+})
 
 let center = ref([0, 0])
 let zoom = ref(1)
