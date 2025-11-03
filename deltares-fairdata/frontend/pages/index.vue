@@ -25,7 +25,7 @@ let selectedItemId = ref<string>()
 let activeItemId = ref<string>()
 
 let bbox = ref<Extent>([180, 90, -180, -90])
-let bboxFilter = ref<Extent>([180, 90, -180, -90])
+let bboxFilter = ref<Extent | undefined>(undefined)
 
 // Reactive filter state
 const filterState = reactive({
@@ -224,14 +224,6 @@ let filter = computed(() => {
       datetimeFilter,
     ].filter(Boolean),
   }
-})
-
-watch(filter, () => {
-  // re-trigger API call
-  useApi("/search", {
-    method: "post",
-    body: apiBody.value as any,
-  })
 })
 
 let collections = computed(() =>
