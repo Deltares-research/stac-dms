@@ -361,7 +361,24 @@ const formatDate = (value: any): string => {
                     </a>
                   </template>
                   <template v-else>
-                    {{ formatValue(prop.key, prop.value) }}
+                    <template v-if="Array.isArray(prop.value)">
+                      {{ prop.value.join(', ') }}
+                    </template>
+                    <template v-else-if="prop.key === 'contact' && typeof prop.value === 'object'">
+                      <div class="space-y-1">
+                        <div><strong>Name:</strong> {{ prop.value.name }}</div>
+                        <div><strong>Organization:</strong> {{ prop.value.organization }}</div>
+                        <div>
+                          <strong>Email:</strong>
+                          <a :href="`mailto:${prop.value.email}`" class="text-blue-500 hover:underline">
+                            {{ prop.value.email }}
+                          </a>
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else>
+                      {{ formatDate(prop.value) }}
+                    </template>
                   </template>
                 </td>
               </tr>
