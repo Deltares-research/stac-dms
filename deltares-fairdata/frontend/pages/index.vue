@@ -226,6 +226,14 @@ let filter = computed(() => {
   }
 })
 
+watch(filter, () => {
+  // re-trigger API call
+  useApi("/search", {
+    method: "post",
+    body: apiBody.value as any,
+  })
+})
+
 let collections = computed(() =>
   filterState.collections.length > 0 ? filterState.collections : undefined,
 )
