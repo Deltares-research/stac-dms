@@ -42,9 +42,9 @@ async function logout() {
     </nav>
     <div class="flex justify-end">
       <nav class="flex">
-        <Button v-if="notAuthenticated" variant="link">
+        <!-- <Button v-if="notAuthenticated" variant="link">
           <a href="/api/auth/login"> Login</a>
-        </Button>
+        </Button> -->
         <Button v-if="data" variant="ghost" @click="logout">
           <User class="w-4 h-4 mr-2" />
           {{ data.display_name }} Logout
