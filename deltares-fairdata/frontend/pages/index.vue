@@ -237,10 +237,26 @@ let apiBody = computed(() => ({
   "filter-lang": "cql2-json",
 }))
 
-let { data: searchResults, status } = await useApi("/search", {
+// console.log("[SERVER] Search API Request Body:", JSON.stringify(apiBody.value, null, 2))
+
+// let { data: searchResults, status } = await useApi("/search", {
+//   method: "post",
+//   body: apiBody.value as any,
+// })
+
+// Add this to see what's happening
+const { data: searchResults, status, error } = await useApi("/search", {
   method: "post",
   body: apiBody.value as any,
 })
+
+// Log to see what's happening
+console.log('Search results:', searchResults.value)
+console.log('Status:', status.value)
+console.log('Error:', error.value)
+ 
+// console.log("[SERVER] Search API Response Status:", status.value)
+// console.log("[SERVER] Search API Response:", JSON.stringify(searchResults.value, null, 2))
 
 function onSubmit() {
   const query: LocationQueryRaw = { q: filterState.q }

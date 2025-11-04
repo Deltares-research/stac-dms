@@ -7,7 +7,7 @@ WORKDIR /src
 
 FROM base AS base-dev
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 
 FROM base AS base-prod
 
