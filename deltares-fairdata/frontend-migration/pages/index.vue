@@ -39,6 +39,28 @@
               class="mb-4"
             />
 
+            <!-- Search input -->
+            <v-row class="mb-4">
+              <v-col cols="12">
+                <form @submit.prevent="applyQuery">
+                  <div class="d-flex align-center ga-2">
+                    <v-text-field
+                      v-model="queryInput"
+                      variant="outlined"
+                      placeholder="Search title or description"
+                      hide-details
+                      clearable
+                      class="flex-grow-1"
+                      @click:clear="queryInput = ''; applyQuery()"
+                    />
+                    <v-btn type="submit">
+                      Search
+                    </v-btn>
+                  </div>
+                </form>
+              </v-col>
+            </v-row>
+
             <v-row>
               <v-col
                 v-for="f in features"
@@ -50,47 +72,39 @@
                     {{ f.properties?.title || 'Untitled' }}
                   </v-card-title>
 
-                  <v-card-subtitle class="d-flex align-center flex-wrap gap-2">
-                    <v-chip size="small" variant="flat">
-                      {{ formatDate(f.properties?.datetime) }}
-                    </v-chip>
-                  </v-card-subtitle>
-
                   <v-card-text>
                     <p class="mb-3 line-clamp-3">
                       {{ f.properties?.description || 'No description.' }}
                     </p>
 
-                    <div class="d-flex align-center">
+                    <div class="d-flex align-center mb-3">
                       <v-icon class="mr-2" size="small">
                         mdi-link-variant
                       </v-icon>
-                      <a
+                      <span v-if="firstAssetHref(f)">
+                        {{ firstAssetHref(f) }}
+                      </span>
+                      <span v-else>—</span>
+                    </div>
+
+                    <div class="mb-3">
+                      <v-btn
                         v-if="firstAssetHref(f)"
                         :href="firstAssetHref(f)"
                         target="_blank"
                         rel="noopener noreferrer"
+                        variant="tonal"
+                        density="comfortable"
+                        prepend-icon="mdi-open-in-new"
                       >
-                        {{ firstAssetHref(f) }}
-                      </a>
-                      <span v-else>—</span>
+                        View details
+                      </v-btn>
+                    </div>
+
+                    <div class="text-body-2">
+                      {{ formatDate(f) }}
                     </div>
                   </v-card-text>
-
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn
-                      v-if="firstAssetHref(f)"
-                      :href="firstAssetHref(f)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      variant="tonal"
-                      density="comfortable"
-                      prepend-icon="mdi-open-in-new"
-                    >
-                      Open asset
-                    </v-btn>
-                  </v-card-actions>
                 </v-card>
               </v-col>
             </v-row>
@@ -111,16 +125,17 @@
 </template>
 
 <script setup>
-  import { computed, watch, onMounted } from 'vue'
+  import { computed, watch, onMounted, ref } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
   import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
   import FeatureFilters from '@/components/FeatureFilters.vue'
+  import { formatDate } from '~/utils/helpers'
 
-  // Authentication
+
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   
-  // Search functionality
+ 
   const store = useSearchPageStore()
   const route = useRoute() 
   
@@ -131,8 +146,14 @@
   store.endDate = q.end || undefined
   store.keywords = toArr(q.keywords)
   store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
+
+ 
+  const queryInput = ref(store.q || '')
+  function applyQuery() {
+    store.q = (queryInput.value || '').trim()
+  }
   
-  // Fetch collections and initialize selected ones from query params
+  s
   onMounted(async () => {
     await store.fetchCollections()
     const ids = toArr(q.collections)
@@ -144,7 +165,7 @@
     }
   })
   
-  // Only search if user is authenticated
+
   watch(
     () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, isAuthenticated.value],
     () => {
@@ -176,15 +197,6 @@
 
   function sortAsc(a, b) {
     return norm(a).localeCompare(norm(b))
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr) return '—'
-    try {
-      return new Date(dateStr).toLocaleDateString()
-    } catch {
-      return '—'
-    }
   }
 
   function firstAssetHref(feature) {

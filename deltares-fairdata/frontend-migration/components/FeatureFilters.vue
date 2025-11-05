@@ -27,7 +27,7 @@
         density="comfortable"
         @click="clear"
       >
-        Clear selections
+        Clear filters
       </v-btn>
 
       <v-spacer />
@@ -46,33 +46,6 @@
           {{ chip.label }}: {{ chip.value }}
         </v-chip>
       </div>
-
-      <v-spacer />
-
-      <!-- Sort (stub) -->
-      <v-menu content-class="filters-portal">
-        <template #activator="{ props }">
-          <v-btn
-            v-bind="props"
-            variant="text"
-            density="comfortable"
-            append-icon="mdi-menu-down"
-          >
-            Sort by
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item value="title-asc">
-            Title (A–Z)
-          </v-list-item>
-          <v-list-item value="date-desc">
-            Date (newest)
-          </v-list-item>
-          <v-list-item value="date-asc">
-            Date (oldest)
-          </v-list-item>
-        </v-list>
-      </v-menu>
     </v-toolbar>
 
     <!-- Floating expanded content (overlays the rest) -->
@@ -81,28 +54,6 @@
         <v-divider />
 
         <v-container fluid class="py-4">
-          <!-- Free search (above the other filters) -->
-          <v-row class="mb-4">
-            <v-col cols="12">
-              <form @submit.prevent="applyQuery">
-                <div class="d-flex align-center ga-2">
-                  <v-text-field
-                    v-model="tempQuery"
-                    variant="outlined"
-                    placeholder="Search title or description"
-                    hide-details
-                    clearable
-                    class="flex-grow-1"
-                    @click:clear="tempQuery = ''; applyQuery()"
-                  />
-                  <v-btn type="submit">
-                    Search
-                  </v-btn>
-                </div>
-              </form>
-            </v-col>
-          </v-row>
-
           <v-row>
             <!-- Domain (collection) -->
             <v-col
@@ -163,15 +114,16 @@
               <div class="text-subtitle-2 mb-2">
                 Keyword
               </div>
-              <v-radio-group v-model="selectedKeyword" density="compact">
-                <v-radio label="Any" value="any" />
-                <v-radio
-                  v-for="opt in (props.options.keyword || [])"
-                  :key="`kw-${opt}`"
-                  :label="labelFor('keyword', opt)"
-                  :value="opt"
-                />
-              </v-radio-group>
+              <v-autocomplete
+                v-model="selectedKeyword"
+                :items="[]"
+                prepend-inner-icon="mdi-magnify"
+                placeholder="Search keyword..."
+                variant="outlined"
+                density="compact"
+                clearable
+                hide-details
+              />
             </v-col>
 
             <!-- Start & End date (buttons open date pickers) -->
@@ -289,6 +241,21 @@
               </v-menu>
             </v-col>
           </v-row>
+
+          <!-- Include Empty Geometry Checkbox -->
+          <v-row>
+            <v-col
+              cols="12"
+              class="filter-col"
+            >
+              <v-checkbox
+                v-model="store.includeEmptyGeometry"
+                label="Include items without geometry"
+                hide-details
+                density="compact"
+              />
+            </v-col>
+          </v-row>
         </v-container>
       </div>
     </v-expand-transition>
@@ -312,13 +279,6 @@
   const store = useSearchPageStore()
   const expanded = ref(false)
   const rootEl = ref(null)
-
-  /* --- Free search (apply on button / enter) --- */
-  const tempQuery = ref(store.q || '')
-  watch(() => store.q, (v) => { if (v !== tempQuery.value) tempQuery.value = v })
-  function applyQuery () {
-    store.q = (tempQuery.value || '').trim()
-  }
 
   /* --- Convert store arrays to single values for display --- */
   const selectedCollection = computed({
@@ -350,8 +310,14 @@
   }
 
   const selectedKeyword = computed({
-    get: () => store.keywords?.length ? store.keywords[0] : 'any',
-    set: (value) => { store.keywords = value === 'any' ? [] : [value] },
+    get: () => store.keywords?.length ? store.keywords[0] : null,
+    set: (value) => {
+      if (!value || value === 'any') {
+        store.keywords = []
+      } else {
+        store.keywords = [value]
+      }
+    },
   })
 
   /* --- Date menus state --- */
@@ -378,7 +344,7 @@
     store.keywords = []
     store.startDate = undefined
     store.endDate = undefined
-    tempQuery.value = ''
+    store.includeEmptyGeometry = false
   }
   function clearOne (key) {
     if (key === 'startDate') {
@@ -387,11 +353,12 @@
       store.endDate = undefined
     } else if (key === 'query') {
       store.q = ''
-      tempQuery.value = ''
     } else if (key === 'collection') {
       store.collections = store.collections.map(c => ({ ...c, selected: false }))
     } else if (key === 'keyword') {
       store.keywords = []
+    } else if (key === 'includeEmptyGeometry') {
+      store.includeEmptyGeometry = false
     }
   }
 
@@ -401,6 +368,7 @@
     keyword: 'Keyword',
     startDate: 'Start date',
     endDate: 'End date',
+    includeEmptyGeometry: 'Include empty geometry',
   }
   const humanDateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
   function labelFor (key, value) {
@@ -438,7 +406,11 @@
     }
     
     if (store.keywords && store.keywords.length > 0) {
-      chips.push({ key: 'keyword', label: FIELD_LABEL.keyword, value: labelFor('keyword', store.keywords[0]) })
+      chips.push({ key: 'keyword', label: FIELD_LABEL.keyword, value: store.keywords[0] })
+    }
+    
+    if (store.includeEmptyGeometry) {
+      chips.push({ key: 'includeEmptyGeometry', label: FIELD_LABEL.includeEmptyGeometry, value: 'Yes' })
     }
     
     return chips
