@@ -71,6 +71,8 @@ function searchBboxArea() {
 
 watch(filterState, onSubmit)
 
+onSubmit()
+
 const searchTermProperties = [
   "properties.title",
   "properties.description",
