@@ -10,8 +10,6 @@
           Search
         </v-tab>
       </v-tabs>
-      
-      <!-- Login button positioned at the right -->
       <v-spacer />
       <v-btn
         :loading="isLoading"
@@ -26,7 +24,7 @@
       </v-btn>
     </v-app-bar>
     <v-main>
-      <NuxtPage />
+      <slot /> <!-- This is where the page content will be rendered -->
     </v-main>
   </v-app>
 </template>

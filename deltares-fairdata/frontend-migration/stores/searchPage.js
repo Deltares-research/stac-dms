@@ -30,12 +30,9 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     searchStatus.value = 'pending'; searchError.value = null
     const { $api } = useNuxtApp()
   
-    //for development, SSR cookie:
-    const headers = { Cookie: `DMS_TOKEN=${ import.meta.env.VITE_DMS_TOKEN }` }
-
     try {
 
-      const { data } = await $api('/search', {
+      const data = await $api('/search', {
         method: 'POST',
         body: searchBody({
           q: q.value,
@@ -47,8 +44,10 @@ export const useSearchPageStore = defineStore('searchPage', () => {
           bbox: bboxFilter.value, 
         }),
         credentials: 'include',
-        headers,
-      
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
         onRequest ({ request, options }) {
           console.log('[search:onRequest]', request, options)
         },
@@ -61,7 +60,8 @@ export const useSearchPageStore = defineStore('searchPage', () => {
           console.warn('[search:onResponseError]', response?.status, response?._data)
         },
       })
-      featureCollection.value = data.value
+  
+      featureCollection.value = data
       searchStatus.value = 'success'
       
     }catch (e) {

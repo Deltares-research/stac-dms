@@ -67,7 +67,7 @@
       </div>
     </v-app-bar>
     <v-main>
-      <NuxtPage />
+      <slot />
     </v-main>
   </v-app>
 </template>

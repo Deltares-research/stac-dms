@@ -10,26 +10,26 @@
       size="64"
     />
   </div>
-  <NuxtLayout v-else :name="layoutName">
-    <NuxtPage />
-  </NuxtLayout>
+  <ClientOnly v-else>
+    <NuxtLayout :name="layoutName">
+      <NuxtPage />
+    </NuxtLayout>
+  </ClientOnly>
 </template>
 
 <script setup>
   import { useAuth } from '~/composables/useAuth'
-  import { computed, onMounted } from 'vue'
+  import { computed } from 'vue'
 
-  const { isAuthenticated, isLoading, checkAuth } = useAuth()  
-
+  const { isAuthenticated, isLoading, checkAuth } = useAuth()
+  
+  // Check authentication on server-side (SSR)
+  await checkAuth()
+  
   const layoutName = computed(() => {
     if(isAuthenticated.value) {
       return 'logged-in'
     }
     return 'default'
-  })
-
-  // Check authentication on app mount
-  onMounted(async () => {
-    await checkAuth()
   })
 </script>

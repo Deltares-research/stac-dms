@@ -148,10 +148,23 @@ export function dateFilter(startDate, endDate) {
  * Pass only the params you need; undefined blocks are ignored.
  */
 export function buildFilter({ q = '', bbox, includeEmptyGeometry = false, keywords = [], startDate, endDate } = {}) {
-  return [
+  const filters = [
     geometryFilter(bbox, { includeEmptyGeometry }),
     textFilter(q),
     keywordsFilter(keywords),
     dateFilter(startDate, endDate),
-  ]
+  ].filter(Boolean) // Remove undefined filters
+
+  if (filters.length === 1) {
+    return filters[0]
+  }
+
+  if (filters.length > 1) {
+    return {
+      op: 'and',
+      args: filters,
+    }
+  }
+
+  return undefined
 }

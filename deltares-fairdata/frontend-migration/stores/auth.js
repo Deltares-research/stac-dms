@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useNuxtApp } from '#app'
+import { useNuxtApp, useRequestHeaders } from '#app'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -22,11 +22,15 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { $api } = useNuxtApp()
       
+      // For SSR, we need to forward request headers to include cookies
+      const headers = process.server ? useRequestHeaders() : {}
+      
       const userData = await $api('/auth/me', {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          ...headers, // Forward server-side headers (including cookies)
         },
       })
       
@@ -43,8 +47,14 @@ export const useAuthStore = defineStore('auth', () => {
       return true
       
     } catch (err) {
-      console.error('Auth check failed:', err)
-      error.value = err
+      // 401 Unauthorized is normal for unauthenticated users - don't log as error
+      if (err?.status !== 401) {
+        console.error('Auth check failed:', err)
+        error.value = err?.message || 'Authentication failed'
+      } else {
+        // Clear any previous errors for normal unauthenticated state
+        error.value = null
+      }
       user.value = null
       isAuthenticated.value = false
       return false
@@ -75,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
       
     } catch (err) {
       console.error('Logout failed:', err)
-      error.value = err
+      error.value = err?.message || 'Logout failed'
       // Even if logout fails, clear local state and redirect
       user.value = null
       isAuthenticated.value = false

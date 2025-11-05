@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useNuxtApp } from '#app'
+import { useNuxtApp, useRequestHeaders } from '#app'
 
 export const usePermissionsStore = defineStore('permissions', () => {
   // State
@@ -16,11 +16,15 @@ export const usePermissionsStore = defineStore('permissions', () => {
     try {
       const { $api } = useNuxtApp()
       
+      // For SSR, we need to forward request headers to include cookies
+      const headers = process.server ? useRequestHeaders() : {}
+      
       const permissionData = await $api('/permissions', {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
+          ...headers, // Forward server-side headers (including cookies)
         },
       })      
       
@@ -35,7 +39,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
       
     } catch (err) {
       console.error('Failed to fetch permissions:', err)
-      error.value = err
+      error.value = err?.message || 'Failed to fetch permissions'
       permissions.value = []
       return false
     } finally {
@@ -86,7 +90,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
       
     } catch (err) {
       console.error('Failed to fetch collection permissions:', err)
-      error.value = err
+      error.value = err?.message || 'Failed to fetch collection permissions'
       return []
     } finally {
       isLoading.value = false
