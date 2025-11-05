@@ -35,14 +35,13 @@
           <!-- Authenticated state with features -->
           <div v-else-if="isAuthenticated">
             <feature-filters
-              v-model="filters"
               :options="filterOptions"
               class="mb-4"
             />
 
             <v-row>
               <v-col
-                v-for="f in filteredFeatures"
+                v-for="f in features"
                 :key="f.id"
                 cols="12"
               >
@@ -112,9 +111,9 @@
 </template>
 
 <script setup>
-  import { computed, watch, ref } from 'vue'
+  import { computed, watch } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
-  import { useRoute, useRouter } from 'vue-router'
+  import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
   import FeatureFilters from '@/components/FeatureFilters.vue'
 
@@ -152,15 +151,6 @@
     }
     const collection = store.featureCollection
     return Array.isArray(collection?.features) ? collection.features : []
-  })
-
-  // Filter state
-  const filters = ref({
-    query: '',
-    startDate: '',
-    endDate: '',
-    collection: 'any',
-    keyword: 'any',
   })
 
   // Helper functions
@@ -211,58 +201,6 @@
       keyword: [...kw].sort(sortAsc),
     }
   })
-
-  /* Filter the list of features by current selections (incl. Start/End date + free search) */
-  const filteredFeatures = computed(() => {
-    const sel = filters.value
-
-    // Free-text search
-    const q = (sel.query || '').trim().toLowerCase()
-
-    // Start boundary
-    const selStartMs = sel.startDate ? Date.parse(sel.startDate) : NaN
-
-    // End boundary: whole day inclusive
-    const selEndBoundMs = sel.endDate
-      ? (() => { const d = new Date(sel.endDate); if (isNaN(d)) return NaN; d.setHours(23,59,59,999); return d.getTime() })()
-      : NaN
-
-    return features.value.filter((f) => {
-      const p = f.properties || {}
-
-      const passCollection = sel.collection === 'any' || norm(f.collection) === sel.collection
-
-      const enKeywords = (Array.isArray(p.keywords) ? p.keywords : [])
-        .map(k => norm(k?.en_keyword))
-        .filter(Boolean)
-      const passKeyword = sel.keyword === 'any' || enKeywords.includes(sel.keyword)
-
-      // Free-search against title + description
-      const hayTitle = (p.title || '').toString()
-      const hayDesc = (p.description || '').toString()
-      const passQuery = q === '' || (hayTitle + ' ' + hayDesc).toLowerCase().includes(q)
-
-      // Date boundaries
-      const featMs = p.datetime ? Date.parse(p.datetime) : NaN
-
-      let passStart = true
-      if (sel.startDate) {
-        passStart = Number.isFinite(featMs) && Number.isFinite(selStartMs) && (featMs >= selStartMs)
-      }
-
-      let passEnd = true
-      if (sel.endDate) {
-        passEnd = Number.isFinite(featMs) && Number.isFinite(selEndBoundMs) && (featMs <= selEndBoundMs)
-      }
-
-      return passCollection && passKeyword && passQuery && passStart && passEnd
-    })
-  })
-
-  /* ---- Only the Polygon features (for the map) ---- */
-  const polygonFeatures = computed(() =>
-    filteredFeatures.value.filter(f => f?.geometry?.type === 'Polygon')
-  )
 </script>
 
 <style>

@@ -1,22 +1,32 @@
 <template>
-  <v-sheet variant="outlined" class="rounded-lg filters-root" ref="rootEl">
+  <v-sheet
+    ref="rootEl"
+    variant="outlined"
+    class="rounded-lg filters-root"
+  >
     <!-- Header -->
     <v-toolbar flat density="comfortable">
       <v-btn
         icon
         class="ml-1"
-        @click="expanded = !expanded"
         :aria-label="expanded ? 'Collapse filters' : 'Expand filters'"
+        @click="expanded = !expanded"
       >
         <v-icon>{{ expanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
       </v-btn>
 
-      <v-icon start class="mr-2">mdi-filter</v-icon>
+      <v-icon start class="mr-2">
+        mdi-filter
+      </v-icon>
       <span class="text-subtitle-1 font-weight-medium">Filter</span>
 
       <v-divider vertical class="mx-3" />
 
-      <v-btn variant="text" density="comfortable" @click="clear">
+      <v-btn
+        variant="text"
+        density="comfortable"
+        @click="clear"
+      >
         Clear selections
       </v-btn>
 
@@ -30,8 +40,8 @@
           size="small"
           variant="flat"
           closable
-          @click:close="clearOne(chip.key)"
           class="mb-1"
+          @click:close="clearOne(chip.key)"
         >
           {{ chip.label }}: {{ chip.value }}
         </v-chip>
@@ -52,9 +62,15 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item value="title-asc">Title (A–Z)</v-list-item>
-          <v-list-item value="date-desc">Date (newest)</v-list-item>
-          <v-list-item value="date-asc">Date (oldest)</v-list-item>
+          <v-list-item value="title-asc">
+            Title (A–Z)
+          </v-list-item>
+          <v-list-item value="date-desc">
+            Date (newest)
+          </v-list-item>
+          <v-list-item value="date-asc">
+            Date (oldest)
+          </v-list-item>
         </v-list>
       </v-menu>
     </v-toolbar>
@@ -89,12 +105,18 @@
 
           <v-row>
             <!-- Domain (collection) -->
-            <v-col cols="12" md="4" class="filter-col">
-              <div class="text-subtitle-2 mb-2">Domain</div>
-              <v-radio-group v-model="local.collection" density="compact">
+            <v-col
+              cols="12"
+              md="4"
+              class="filter-col"
+            >
+              <div class="text-subtitle-2 mb-2">
+                Domain
+              </div>
+              <v-radio-group v-model="selectedCollection" density="compact">
                 <v-radio label="Any" value="any" />
                 <v-radio
-                  v-for="opt in (options.collection || [])"
+                  v-for="opt in (props.options.collection || [])"
                   :key="`col-${opt}`"
                   :label="labelFor('collection', opt)"
                   :value="opt"
@@ -103,12 +125,18 @@
             </v-col>
 
             <!-- Keyword -->
-            <v-col cols="12" md="4" class="filter-col">
-              <div class="text-subtitle-2 mb-2">Keyword</div>
-              <v-radio-group v-model="local.keyword" density="compact">
+            <v-col
+              cols="12"
+              md="4"
+              class="filter-col"
+            >
+              <div class="text-subtitle-2 mb-2">
+                Keyword
+              </div>
+              <v-radio-group v-model="selectedKeyword" density="compact">
                 <v-radio label="Any" value="any" />
                 <v-radio
-                  v-for="opt in (options.keyword || [])"
+                  v-for="opt in (props.options.keyword || [])"
                   :key="`kw-${opt}`"
                   :label="labelFor('keyword', opt)"
                   :value="opt"
@@ -117,15 +145,21 @@
             </v-col>
 
             <!-- Start & End date (buttons open date pickers) -->
-            <v-col cols="12" md="4" class="filter-col">
+            <v-col
+              cols="12"
+              md="4"
+              class="filter-col"
+            >
               <!-- Start date -->
               <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-subtitle-2">Start date</div>
+                <div class="text-subtitle-2">
+                  Start date
+                </div>
                 <v-btn
-                  v-if="local.startDate"
+                  v-if="store.startDate"
                   size="x-small"
                   variant="text"
-                  @click="local.startDate = ''"
+                  @click="store.startDate = undefined"
                 >
                   Clear
                 </v-btn>
@@ -144,8 +178,10 @@
                     variant="outlined"
                     block
                   >
-                    <v-icon start>mdi-calendar</v-icon>
-                    {{ local.startDate ? labelFor('startDate', local.startDate) : 'Pick a date' }}
+                    <v-icon start>
+                      mdi-calendar
+                    </v-icon>
+                    {{ store.startDate ? labelFor('startDate', store.startDate) : 'Pick a date' }}
                   </v-btn>
                 </template>
 
@@ -158,20 +194,26 @@
                   <v-divider />
                   <v-card-actions>
                     <v-spacer />
-                    <v-btn variant="text" @click="startMenu = false">Cancel</v-btn>
-                    <v-btn variant="flat" @click="applyStart">Apply</v-btn>
+                    <v-btn variant="text" @click="startMenu = false">
+                      Cancel
+                    </v-btn>
+                    <v-btn variant="flat" @click="applyStart">
+                      Apply
+                    </v-btn>
                   </v-card-actions>
                 </v-card>
               </v-menu>
 
               <!-- End date -->
               <div class="d-flex align-center justify-space-between mt-6 mb-2">
-                <div class="text-subtitle-2">End date</div>
+                <div class="text-subtitle-2">
+                  End date
+                </div>
                 <v-btn
-                  v-if="local.endDate"
+                  v-if="store.endDate"
                   size="x-small"
                   variant="text"
-                  @click="local.endDate = ''"
+                  @click="store.endDate = undefined"
                 >
                   Clear
                 </v-btn>
@@ -190,8 +232,10 @@
                     variant="outlined"
                     block
                   >
-                    <v-icon start>mdi-calendar</v-icon>
-                    {{ local.endDate ? labelFor('endDate', local.endDate) : 'Pick a date' }}
+                    <v-icon start>
+                      mdi-calendar
+                    </v-icon>
+                    {{ store.endDate ? labelFor('endDate', store.endDate) : 'Pick a date' }}
                   </v-btn>
                 </template>
 
@@ -204,8 +248,12 @@
                   <v-divider />
                   <v-card-actions>
                     <v-spacer />
-                    <v-btn variant="text" @click="endMenu = false">Cancel</v-btn>
-                    <v-btn variant="flat" @click="applyEnd">Apply</v-btn>
+                    <v-btn variant="text" @click="endMenu = false">
+                      Cancel
+                    </v-btn>
+                    <v-btn variant="flat" @click="applyEnd">
+                      Apply
+                    </v-btn>
                   </v-card-actions>
                 </v-card>
               </v-menu>
@@ -218,126 +266,142 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+  import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+  import { useSearchPageStore } from '~/stores/searchPage'
 
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    default: () => ({
-      query: '',        // <— NEW free-search text
-      collection: 'any',
-      keyword: 'any',
-      startDate: '',    // ISO 'YYYY-MM-DD'
-      endDate: '',      // ISO 'YYYY-MM-DD'
-    }),
-  },
-  options: {
-    type: Object,
-    default: () => ({
-      collection: [],
-      keyword: [],
-    }),
-  },
-})
-const emit = defineEmits(['update:modelValue'])
+  const props = defineProps({
+    options: {
+      type: Object,
+      default: () => ({
+        collection: [],
+        keyword: [],
+      }),
+    },
+  })
 
-const expanded = ref(false)
-const rootEl = ref(null)
+  const store = useSearchPageStore()
+  const expanded = ref(false)
+  const rootEl = ref(null)
 
-const local = reactive({
-  query: props.modelValue.query ?? '',
-  collection: props.modelValue.collection ?? 'any',
-  keyword: props.modelValue.keyword ?? 'any',
-  startDate: props.modelValue.startDate ?? '',
-  endDate: props.modelValue.endDate ?? '',
-})
-
-/* --- Free search (apply on button / enter) --- */
-const tempQuery = ref(local.query || '')
-watch(() => local.query, (v) => { if (v !== tempQuery.value) tempQuery.value = v })
-function applyQuery () {
-  local.query = (tempQuery.value || '').trim()
-}
-
-/* --- Date menus state --- */
-const startMenu = ref(false)
-const endMenu = ref(false)
-const tempStart = ref('')
-const tempEnd = ref('')
-
-watch(startMenu, (open) => { if (open) tempStart.value = local.startDate || '' })
-watch(endMenu,   (open) => { if (open) tempEnd.value   = local.endDate   || '' })
-
-function applyStart () {
-  local.startDate = tempStart.value || ''
-  startMenu.value = false
-}
-function applyEnd () {
-  local.endDate = tempEnd.value || ''
-  endMenu.value = false
-}
-
-watch(local, (val) => emit('update:modelValue', { ...val }), { deep: true })
-watch(() => props.modelValue, (v) => Object.assign(local, v || {}), { deep: true })
-
-function clear () {
-  Object.assign(local, { query: '', collection: 'any', keyword: 'any', startDate: '', endDate: '' })
-  tempQuery.value = ''
-}
-function clearOne (key) {
-  if (!(key in local)) return
-  if (key === 'startDate' || key === 'endDate') local[key] = ''
-  else if (key === 'query') { local.query = ''; tempQuery.value = '' }
-  else local[key] = 'any'
-}
-
-const FIELD_LABEL = {
-  query: 'Search',
-  collection: 'Domain',
-  keyword: 'Keyword',
-  startDate: 'Start date',
-  endDate: 'End date',
-}
-const humanDateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
-function labelFor (key, value) {
-  if (key === 'startDate' || key === 'endDate') {
-    if (!value) return ''
-    const d = new Date(value)
-    return isNaN(d) ? value : humanDateFmt.format(d)
+  /* --- Free search (apply on button / enter) --- */
+  const tempQuery = ref(store.q || '')
+  watch(() => store.q, (v) => { if (v !== tempQuery.value) tempQuery.value = v })
+  function applyQuery () {
+    store.q = (tempQuery.value || '').trim()
   }
-  return value
-}
 
-const activeChips = computed(() =>
-  Object.entries(local)
-    .filter(([k, v]) =>
-      (k === 'startDate' || k === 'endDate') ? !!v :
-      (k === 'query' ? (v && v.trim() !== '') : v && v !== 'any')
-    )
-    .map(([k, v]) => ({
-      key: k,
-      label: FIELD_LABEL[k] || k,
-      value: k === 'query' ? v : labelFor(k, v),
-    }))
-)
+  /* --- Convert store arrays to single values for display --- */
+  const selectedCollection = computed({
+    get: () => store.collections?.length ? store.collections[0] : 'any',
+    set: (value) => { store.collections = value === 'any' ? [] : [value] },
+  })
 
-/* ---- Click outside to collapse ---- */
-function onDocPointerDown (e) {
-  if (!expanded.value) return
-  const root = rootEl.value?.$el ?? rootEl.value
-  const target = e.target
-  if (root && root.contains(target)) return
-  // Ignore clicks inside teleported menus (sort + date pickers)
-  if (target?.closest && target.closest('.filters-portal')) return
-  expanded.value = false
-}
+  const selectedKeyword = computed({
+    get: () => store.keywords?.length ? store.keywords[0] : 'any',
+    set: (value) => { store.keywords = value === 'any' ? [] : [value] },
+  })
 
-onMounted(() => {
-  document.addEventListener('pointerdown', onDocPointerDown, true)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onDocPointerDown, true)
-})
+  /* --- Date menus state --- */
+  const startMenu = ref(false)
+  const endMenu = ref(false)
+  const tempStart = ref('')
+  const tempEnd = ref('')
+
+  watch(startMenu, (open) => { if (open) tempStart.value = store.startDate || '' })
+  watch(endMenu,   (open) => { if (open) tempEnd.value   = store.endDate   || '' })
+
+  function applyStart () {
+    store.startDate = tempStart.value || undefined
+    startMenu.value = false
+  }
+  function applyEnd () {
+    store.endDate = tempEnd.value || undefined
+    endMenu.value = false
+  }
+
+  function clear () {
+    store.q = ''
+    store.collections = []
+    store.keywords = []
+    store.startDate = undefined
+    store.endDate = undefined
+    tempQuery.value = ''
+  }
+  function clearOne (key) {
+    if (key === 'startDate') {
+      store.startDate = undefined
+    } else if (key === 'endDate') {
+      store.endDate = undefined
+    } else if (key === 'query') {
+      store.q = ''
+      tempQuery.value = ''
+    } else if (key === 'collection') {
+      store.collections = []
+    } else if (key === 'keyword') {
+      store.keywords = []
+    }
+  }
+
+  const FIELD_LABEL = {
+    query: 'Search',
+    collection: 'Domain',
+    keyword: 'Keyword',
+    startDate: 'Start date',
+    endDate: 'End date',
+  }
+  const humanDateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+  function labelFor (key, value) {
+    if (key === 'startDate' || key === 'endDate') {
+      if (!value) return ''
+      const d = new Date(value)
+      return isNaN(d) ? value : humanDateFmt.format(d)
+    }
+    return value
+  }
+
+  const activeChips = computed(() => {
+    const chips = []
+    
+    if (store.q && store.q.trim() !== '') {
+      chips.push({ key: 'query', label: FIELD_LABEL.query, value: store.q })
+    }
+    
+    if (store.startDate) {
+      chips.push({ key: 'startDate', label: FIELD_LABEL.startDate, value: labelFor('startDate', store.startDate) })
+    }
+    
+    if (store.endDate) {
+      chips.push({ key: 'endDate', label: FIELD_LABEL.endDate, value: labelFor('endDate', store.endDate) })
+    }
+    
+    if (store.collections && store.collections.length > 0) {
+      chips.push({ key: 'collection', label: FIELD_LABEL.collection, value: labelFor('collection', store.collections[0]) })
+    }
+    
+    if (store.keywords && store.keywords.length > 0) {
+      chips.push({ key: 'keyword', label: FIELD_LABEL.keyword, value: labelFor('keyword', store.keywords[0]) })
+    }
+    
+    return chips
+  })
+
+  /* ---- Click outside to collapse ---- */
+  function onDocPointerDown (e) {
+    if (!expanded.value) return
+    const root = rootEl.value?.$el ?? rootEl.value
+    const target = e.target
+    if (root && root.contains(target)) return
+    // Ignore clicks inside teleported menus (sort + date pickers)
+    if (target?.closest && target.closest('.filters-portal')) return
+    expanded.value = false
+  }
+
+  onMounted(() => {
+    document.addEventListener('pointerdown', onDocPointerDown, true)
+  })
+  onBeforeUnmount(() => {
+    document.removeEventListener('pointerdown', onDocPointerDown, true)
+  })
 </script>
 
 <style scoped>
