@@ -111,7 +111,7 @@
 </template>
 
 <script setup>
-  import { computed, watch } from 'vue'
+  import { computed, watch, onMounted } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
   import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
@@ -130,8 +130,19 @@
   store.startDate = q.start || undefined
   store.endDate = q.end || undefined
   store.keywords = toArr(q.keywords)
-  store.collections = toArr(q.collections)
   store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
+  
+  // Fetch collections and initialize selected ones from query params
+  onMounted(async () => {
+    await store.fetchCollections()
+    const ids = toArr(q.collections)
+    if (ids.length > 0) {
+      store.collections = store.collections.map(c => ({
+        ...c,
+        selected: ids.includes(c.id)
+      }))
+    }
+  })
   
   // Only search if user is authenticated
   watch(

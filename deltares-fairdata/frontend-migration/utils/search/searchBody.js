@@ -6,7 +6,7 @@ export default function ({ collections, ...rest } = {}) {
     filter: buildFilter(rest),
   }
   if (Array.isArray(collections) && collections.length) {
-    body.collections = collections
+    body.collections = collections.map(c => typeof c === 'string' ? c : c.id)
   }
   return body
 }

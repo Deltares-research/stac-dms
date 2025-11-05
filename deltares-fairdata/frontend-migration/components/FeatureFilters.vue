@@ -113,15 +113,45 @@
               <div class="text-subtitle-2 mb-2">
                 Domain
               </div>
-              <v-radio-group v-model="selectedCollection" density="compact">
-                <v-radio label="Any" value="any" />
-                <v-radio
-                  v-for="opt in (props.options.collection || [])"
-                  :key="`col-${opt}`"
-                  :label="labelFor('collection', opt)"
-                  :value="opt"
-                />
-              </v-radio-group>
+              <v-autocomplete
+                v-model="selectedCollection"
+                :items="store.collections"
+                item-title="title"
+                item-value="id"
+                return-object
+                prepend-inner-icon="mdi-magnify"
+                placeholder="Search domain..."
+                variant="outlined"
+                density="compact"
+                clearable
+                hide-details
+                @update:model-value="handleCollectionChange"
+              >
+                <template #item="{ props: itemProps, item }">
+                  <v-list-item v-bind="itemProps">
+                    <template #prepend>
+                      <v-list-item-action>
+                        <v-icon v-if="item.raw.selected" color="primary">
+                          mdi-check
+                        </v-icon>
+                      </v-list-item-action>
+                    </template>
+                    <v-list-item-title>
+                      <div class="d-flex flex-column">
+                        <div class="text-caption text-grey-darken-1">
+                          {{ item.raw.description || '' }}
+                        </div>
+                        <div class="text-body-2 font-weight-medium">
+                          {{ item.raw.title }}
+                        </div>
+                      </div>
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+                <template #selection="{ item }">
+                  {{ item.raw.title }}
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <!-- Keyword -->
@@ -292,9 +322,32 @@
 
   /* --- Convert store arrays to single values for display --- */
   const selectedCollection = computed({
-    get: () => store.collections?.length ? store.collections[0] : 'any',
-    set: (value) => { store.collections = value === 'any' ? [] : [value] },
+    get: () => {
+      const selected = store.collections.find(c => c.selected)
+      return selected || null
+    },
+    set: (value) => {
+      if (!value || value === 'any') {
+        store.collections = store.collections.map(c => ({ ...c, selected: false }))
+      } else {
+        store.collections = store.collections.map(c => ({
+          ...c,
+          selected: c.id === value.id
+        }))
+      }
+    },
   })
+
+  function handleCollectionChange(value) {
+    if (!value || value === 'any') {
+      store.collections = store.collections.map(c => ({ ...c, selected: false }))
+    } else {
+      store.collections = store.collections.map(c => ({
+        ...c,
+        selected: c.id === value.id
+      }))
+    }
+  }
 
   const selectedKeyword = computed({
     get: () => store.keywords?.length ? store.keywords[0] : 'any',
@@ -321,7 +374,7 @@
 
   function clear () {
     store.q = ''
-    store.collections = []
+    store.collections = store.collections.map(c => ({ ...c, selected: false }))
     store.keywords = []
     store.startDate = undefined
     store.endDate = undefined
@@ -336,7 +389,7 @@
       store.q = ''
       tempQuery.value = ''
     } else if (key === 'collection') {
-      store.collections = []
+      store.collections = store.collections.map(c => ({ ...c, selected: false }))
     } else if (key === 'keyword') {
       store.keywords = []
     }
@@ -355,6 +408,9 @@
       if (!value) return ''
       const d = new Date(value)
       return isNaN(d) ? value : humanDateFmt.format(d)
+    }
+    if (key === 'collection') {
+      return value?.title || value
     }
     return value
   }
@@ -375,7 +431,10 @@
     }
     
     if (store.collections && store.collections.length > 0) {
-      chips.push({ key: 'collection', label: FIELD_LABEL.collection, value: labelFor('collection', store.collections[0]) })
+      const selected = store.collections.find(c => c.selected)
+      if (selected) {
+        chips.push({ key: 'collection', label: FIELD_LABEL.collection, value: selected.title })
+      }
     }
     
     if (store.keywords && store.keywords.length > 0) {
