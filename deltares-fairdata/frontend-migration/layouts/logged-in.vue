@@ -35,7 +35,7 @@
         </v-tab>
       </v-tabs>
       
-      <!-- User info and logout button positioned at the right -->
+     
       <v-spacer />
       <div v-if="isAuthenticated" class="d-flex align-center">
         <span class="text-subtitle2 me-3">{{ displayName }}</span>

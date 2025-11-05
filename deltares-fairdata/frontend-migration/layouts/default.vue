@@ -24,7 +24,7 @@
       </v-btn>
     </v-app-bar>
     <v-main>
-      <slot /> <!-- This is where the page content will be rendered -->
+      <slot /> 
     </v-main>
   </v-app>
 </template>

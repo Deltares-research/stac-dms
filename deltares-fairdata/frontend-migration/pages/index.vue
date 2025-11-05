@@ -153,7 +153,6 @@
     store.q = (queryInput.value || '').trim()
   }
   
-  s
   onMounted(async () => {
     await store.fetchCollections()
     const ids = toArr(q.collections)
