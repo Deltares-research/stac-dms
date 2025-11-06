@@ -1,5 +1,11 @@
 {
-  // https://nuxt.com/docs/guide/concepts/typescript
+  "compilerOptions": {
+    "types": [
+      "@nuxt/types",
+      "@nuxtjs/eslint-config",
+      "nuxt/schema"
+    ]
+  },
   "files": [],
   "references": [
     {
