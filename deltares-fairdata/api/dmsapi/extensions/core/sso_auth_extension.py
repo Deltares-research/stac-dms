@@ -144,7 +144,7 @@ class SSOAuthExtension(ApiExtension):
             openid = await self.sso_client.verify_and_process(request)
             if not openid:
                 raise HTTPException(status_code=401, detail="Authentication failed")
-        response = RedirectResponse(url="/")
+        response = RedirectResponse(url="http://localhost:3000/")
         expiration, token = self.create_token(openid, APP_SECRET_KEY)
         response.set_cookie(
             key=COOKIE_NAME, value=token, expires=expiration
