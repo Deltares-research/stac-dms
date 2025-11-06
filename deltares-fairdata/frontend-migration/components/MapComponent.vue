@@ -47,6 +47,7 @@
   })
   
   // Timestamp that updates when featureCollection changes
+  //TODO: pass the layerKey as id to the layerConfig buildGeojsonLayer function. 
   const layerTimestamp = ref(Date.now())
   
   watch(
@@ -68,7 +69,21 @@
     if (!store.featureCollection) {
       return []
     }
-    return geojsonBounds.extent(store.featureCollection) || []
+    const extent = geojsonBounds.extent(store.featureCollection)
+    if (!extent || extent.length < 4) {
+      return []
+    }
+    // Validate that all values are valid numbers
+    const [minLng, minLat, maxLng, maxLat] = extent
+    if (
+      typeof minLng !== 'number' || isNaN(minLng) ||
+      typeof minLat !== 'number' || isNaN(minLat) ||
+      typeof maxLng !== 'number' || isNaN(maxLng) ||
+      typeof maxLat !== 'number' || isNaN(maxLat)
+    ) {
+      return []
+    }
+    return extent
   })
   
   function onMapCreated(map) {
