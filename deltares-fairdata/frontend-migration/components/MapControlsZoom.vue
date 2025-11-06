@@ -20,20 +20,8 @@
     if (!mapInstance || !props.bounds || props.bounds.length < 4) {
       return
     }
-    
-    // Validate bounds - ensure all values are valid numbers
-    const [minLng, minLat, maxLng, maxLat] = props.bounds
-    if (
-      typeof minLng !== 'number' || isNaN(minLng) ||
-      typeof minLat !== 'number' || isNaN(minLat) ||
-      typeof maxLng !== 'number' || isNaN(maxLng) ||
-      typeof maxLat !== 'number' || isNaN(maxLat)
-    ) {
-      return
-    }
-    
-    const sw = [minLng, minLat]
-    const ne = [maxLng, maxLat]
+    const sw = [props.bounds[0], props.bounds[1]]
+    const ne = [props.bounds[2], props.bounds[3]]
     mapInstance.fitBounds([sw, ne], {
       padding: 100,
       maxZoom: 12,
