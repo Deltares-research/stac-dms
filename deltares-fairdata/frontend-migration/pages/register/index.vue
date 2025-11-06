@@ -25,7 +25,28 @@
     </div>
 
     <div class="flex-grow-1 d-flex flex-column py-4 px-6" style="min-height: 0;">
+      <!-- Loading state -->
+      <div
+        v-if="store.isLoading"
+        class="d-flex justify-center align-center"
+        style="min-height: 200px;"
+      >
+        <v-progress-circular
+          indeterminate
+          color="primary"
+        />
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="store.error" class="d-flex justify-center align-center pa-4">
+        <v-alert type="error" variant="tonal">
+          {{ store.error }}
+        </v-alert>
+      </div>
+
+      <!-- Data table -->
       <v-data-table
+        v-else
         :headers="headers"
         :items="paginatedDatasets"
         :items-per-page="itemsPerPage"
@@ -89,9 +110,9 @@
       </v-data-table>
 
       <!-- Pagination -->
-      <div class="d-flex justify-end align-center mt-4">
+      <div v-if="!store.isLoading && !store.error" class="d-flex justify-end align-center mt-4">
         <v-btn
-          :disabled="currentPage === 1"
+          :disabled="!store.hasPreviousPage"
           variant="outlined"
           class="mr-2"
           @click="previousPage"
@@ -99,7 +120,7 @@
           Previous
         </v-btn>
         <v-btn
-          :disabled="currentPage >= totalPages"
+          :disabled="!store.hasNextPage"
           variant="outlined"
           @click="nextPage"
         >
@@ -111,81 +132,17 @@
 </template>
 
 <script setup>
-  import { ref, computed } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import dateFormat from 'dateformat'
+  import { useRegisterStore } from '~/stores/register'
 
   // Component name for Vue linting
   defineOptions({
     name: 'RegisterIndexPage'
   })
 
-  // Dummy data matching the image examples
-  const dummyDatasets = [
-    {
-      id: 1,
-      title: '51651',
-      description: '16651',
-      domain: 'test',
-      storageLocation: '',
-      date: new Date('2025-11-06T12:16:30')
-    },
-    {
-      id: 2,
-      title: 'zandmotor',
-      description: 'Measurement of dune development',
-      domain: 'flumes',
-      storageLocation: '',
-      date: new Date('2025-01-15T01:00:00')
-    },
-    {
-      id: 3,
-      title: 'hoge snelheidslijn barendrecht (fictief)',
-      description: 'Resultaten van funderingsberekening...',
-      domain: 'flumes',
-      storageLocation: '',
-      date: new Date('2025-02-11T01:00:00')
-    },
-    {
-      id: 4,
-      title: 'cone penetration test zwolle area',
-      description: 'Short description Hanzeweg en Delft...',
-      domain: 'flumes',
-      storageLocation: '',
-      date: new Date('2025-03-06T01:00:00')
-    },
-    {
-      id: 5,
-      title: 'determine waterflow conditions delft-area',
-      description: 'This is data related to a magnificent ...',
-      domain: 'flumes',
-      storageLocation: '',
-      date: new Date('2025-03-25T01:00:00')
-    },
-    {
-      id: 6,
-      title: 'idlab: flood data analysis',
-      description: 'iDlab Deltares project to analyse how...',
-      domain: 'flumes',
-      storageLocation: '',
-      date: new Date('2024-12-18T01:00:00')
-    },
-    {
-      id: 7,
-      title: 'test dataset 7',
-      description: 'Another test dataset for demonstration purposes',
-      domain: 'flumes',
-      storageLocation: 's3://bucket/path',
-      date: new Date('2025-04-10T14:30:00')
-    },
-    {
-      id: 8,
-      title: 'test dataset 8',
-      description: 'Yet another dataset with a longer description that should be truncated properly',
-      domain: 'test',
-      storageLocation: '',
-      date: new Date('2025-05-20T09:15:00')
-    }
-  ]
+  // Store
+  const store = useRegisterStore()
 
   // Table configuration
   const headers = [
@@ -198,8 +155,6 @@
     { title: '', key: 'delete', sortable: false }
   ]
 
-  const itemsPerPage = ref(10)
-  const currentPage = ref(1)
   const sortByOptions = ref([{ key: 'date', order: 'desc' }])
 
   // Handle sort updates from Vuetify data table
@@ -212,9 +167,23 @@
     }
   }
 
+  // Map STAC items to table format
+  const mappedDatasets = computed(() => {
+    return store.items.map(item => ({
+      id: item.id,
+      title: item.properties?.title || '—',
+      description: item.properties?.description || '—',
+      domain: item.collection || '—',
+      storageLocation: item.properties?.storagelocation || '—',
+      date: item.properties?.datetime ? new Date(item.properties.datetime) : null,
+      // Keep original item for edit/delete operations
+      _original: item
+    }))
+  })
+
   // Computed properties
   const sortedDatasets = computed(() => {
-    const data = [...dummyDatasets]
+    const data = [...mappedDatasets.value]
     if (sortByOptions.value.length === 0) {
       return data
     }
@@ -242,14 +211,12 @@
     })
   })
 
-  const totalPages = computed(() => {
-    return Math.ceil(sortedDatasets.value.length / itemsPerPage.value)
-  })
+  const itemsPerPage = computed(() => store.itemsPerPage)
 
   const paginatedDatasets = computed(() => {
-    const start = (currentPage.value - 1) * itemsPerPage.value
-    const end = start + itemsPerPage.value
-    return sortedDatasets.value.slice(start, end)
+    // Since we're using API pagination, we show all items from current page
+    // The API already returns paginated results
+    return sortedDatasets.value
   })
 
   // Methods
@@ -258,27 +225,28 @@
     return dateFormat(date, 'dd-mm-yyyy HH:MM:ss')
   }
 
-  function previousPage() {
-    if (currentPage.value > 1) {
-      currentPage.value--
-    }
+  async function previousPage() {
+    await store.previousPage()
   }
 
-  function nextPage() {
-    if (currentPage.value < totalPages.value) {
-      currentPage.value++
-    }
+  async function nextPage() {
+    await store.nextPage()
   }
 
   function handleEdit(item) {
     console.log('Edit item:', item)
-    // TODO: Navigate to edit page
+    // TODO: Navigate to edit page using item.id or item._original
   }
 
   function handleDelete(item) {
     console.log('Delete item:', item)
-    // TODO: Implement delete functionality
+    // TODO: Implement delete functionality using item.id or item._original
   }
+
+  // Fetch items on mount
+  onMounted(async () => {
+    await store.fetchItems()
+  })
 </script>
 
 <style scoped>
