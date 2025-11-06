@@ -34,15 +34,18 @@ export const useSearchPageStore = defineStore('searchPage', () => {
 
       const data = await $api('/search', {
         method: 'POST',
-        body: searchBody({
-          q: q.value,
-          startDate: startDate.value,
-          endDate: endDate.value,
-          keywords: keywords.value,
-          collections: selectedIds,
-          includeEmptyGeometry: includeEmptyGeometry.value,
-          bbox: bboxFilter.value, 
-        }),
+        body: {
+          ...searchBody({
+            q: q.value,
+            startDate: startDate.value,
+            endDate: endDate.value,
+            keywords: keywords.value,
+            collections: selectedIds,
+            includeEmptyGeometry: includeEmptyGeometry.value,
+            bbox: bboxFilter.value, 
+          }),
+          limit: 1000,
+        },
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
