@@ -1,16 +1,13 @@
 <template>
-  <v-container fluid class="pa-0 ma-0 fill-height">
-    <v-row no-gutters class="fill-height">
+  <v-container fluid class="pa-0 ma-0 two-col-page">
+    <v-row no-gutters class="two-col-row">
+      <!-- LEFT: Results list (its own scroll) -->
       <v-col
         :cols="12"
         :md="6"
-        class="fill-height"
+        class="left-col"
       >
-        <v-sheet
-          height="100%"
-          class="pa-4"
-          style="overflow:auto"
-        >
+        <v-sheet class="left-scroll pa-4">
           <!-- Not authenticated state -->
           <div
             v-if="!isAuthenticated && !authLoading"
@@ -111,12 +108,13 @@
           </div>
         </v-sheet>
       </v-col>
+      <!-- RIGHT: Map (fixed to visible viewport below app bar) -->
       <v-col
         :cols="12"
         :md="6"
-        class="fill-height"
+        class="right-col"
       >
-        <v-sheet height="100%">
+        <v-sheet class="right-map">
           <map-component />
         </v-sheet>
       </v-col>
@@ -225,7 +223,35 @@
   })
 </script>
 
-<style>
+<style scoped>
+/* Two-column layout with scrolling */
+.two-col-page {
+  height: calc(100vh - 64px); /* Adjust based on app bar height */
+}
+
+.two-col-row {
+  height: 100%;
+}
+
+.left-col {
+  height: 100%;
+  overflow: hidden;
+}
+
+.left-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.right-col {
+  height: 100%;
+}
+
+.right-map {
+  height: 100%;
+}
+
 /* Clamp long descriptions to 3 lines */
 .line-clamp-3 {
   display: -webkit-box;
