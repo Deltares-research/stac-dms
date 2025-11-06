@@ -50,7 +50,7 @@ export function textFilter(q = '') {
 export function geometryFilter(bbox, { includeEmptyGeometry = false } = {}) {
     
 
-  const geom = bbox.value ? bboxPolygon(bbox.value).geometry : undefined 
+  const geom = (bbox && bbox.value) ? bboxPolygon(bbox.value).geometry : undefined 
  
   const geomArgs = [
     geom
