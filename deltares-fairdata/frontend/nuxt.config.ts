@@ -32,7 +32,7 @@ export default defineNuxtConfig({
   openFetch: {
     clients: {
       api: {
-        schema: "http://localhost:8000" + "/api/api",
+        schema: process.env.API_URL + "/api/api",
         baseURL: "/api",
       },
     },
@@ -40,7 +40,7 @@ export default defineNuxtConfig({
 
   routeRules: {
     "/api/**": {
-      proxy: "http://localhost:8000" + "/api/**",
+      proxy: process.env.API_URL + "/api/**",
       headers: {
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Allow-Origin': 'http://localhost:3000',
