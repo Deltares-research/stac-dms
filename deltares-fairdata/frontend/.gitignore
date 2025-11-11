@@ -6,6 +6,9 @@
 .cache
 dist
 
+# Node dependencies
+node_modules
+
 # Logs
 logs
 *.log
@@ -19,5 +22,3 @@ logs
 .env
 .env.*
 !.env.example
-
-

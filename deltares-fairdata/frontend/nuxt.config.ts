@@ -1,31 +1,51 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
+
 export default defineNuxtConfig({
+  imports: {
+    autoImport: true,
+  },
+  compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  css: ['mapbox-gl/dist/mapbox-gl.css'],
+  build: {
+    transpile: ['vuetify'],
+  },
   modules: [
-    "@nuxtjs/tailwindcss",
-    "shadcn-nuxt",
-    "@nuxt/image",
-    "nuxt-open-fetch",
+    '@pinia/nuxt',
+    'nuxt-open-fetch',
+    (_options, nuxt) => {
+      nuxt.hooks.hook('vite:extendConfig', (config) => {
+        // @ts-expect-error
+        config.plugins.push(vuetify({ autoImport: true }))
+      })
+    }
   ],
-
-  shadcn: {
-    prefix: "",
-    componentDir: "./components/ui",
+  vite: {
+    vue: {
+      template: {
+        transformAssetUrls, // To resolve relative asset URLs
+      },
+    },
   },
 
   openFetch: {
     clients: {
       api: {
-        schema: process.env.API_URL + "/api/api",
+        schema: "http://localhost:8000" + "/api/api",
         baseURL: "/api",
       },
     },
   },
 
   routeRules: {
-    "/api/**": { proxy: process.env.API_URL + "/api/**" },
+    "/api/**": {
+      proxy: "http://localhost:8000" + "/api/**",
+      headers: {
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': 'http://localhost:3000',
+      }
+    },
   },
 
-  compatibilityDate: "2025-03-11",
 })
