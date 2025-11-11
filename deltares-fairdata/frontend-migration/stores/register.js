@@ -113,7 +113,7 @@ export const useRegisterStore = defineStore('register', () => {
       return true
 
     } catch (err) {
-      console.error('Failed to fetch items:', err)
+      console.error('Failed to fetch items:', err?.message || err?.toString() || 'Unknown error')
       error.value = err?.message || 'Failed to fetch items'
       items.value = []
       totalMatched.value = 0

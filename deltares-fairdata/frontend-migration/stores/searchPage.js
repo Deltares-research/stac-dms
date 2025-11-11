@@ -68,7 +68,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
       searchStatus.value = 'success'
       
     }catch (e) {
-      searchError.value = e
+      searchError.value = e?.message || e?.toString() || 'Unknown error'
       searchStatus.value = 'error'
     }
   }
@@ -87,7 +87,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
       
       collections.value = (data?.collections || []).map(c => ({ ...c, selected: false }))
     } catch (e) {
-      console.error('Failed to fetch collections:', e)
+      console.error('Failed to fetch collections:', e?.message || e?.toString() || 'Unknown error')
       collections.value = []
     }
   }

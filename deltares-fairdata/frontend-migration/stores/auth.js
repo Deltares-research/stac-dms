@@ -15,17 +15,18 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => isAuthenticated.value && user.value !== null)
 
   // Actions
-  async function checkAuth() {
+  async function checkAuth($api = null) {
     isLoading.value = true
     error.value = null
     
     try {
-      const { $api } = useNuxtApp()
+      // Get $api from parameter or useNuxtApp (fallback for client-side calls)
+      const api = $api || useNuxtApp().$api
       
       // For SSR, we need to forward request headers to include cookies
       const headers = process.server ? useRequestHeaders() : {}
       
-      const userData = await $api('/auth/me', {
+      const userData = await api('/auth/me', {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -49,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       // 401 Unauthorized is normal for unauthenticated users - don't log as error
       if (err?.status !== 401) {
-        console.error('Auth check failed:', err)
+        console.error('Auth check failed:', err?.message || err?.toString() || 'Unknown error')
         error.value = err?.message || 'Authentication failed'
       } else {
         // Clear any previous errors for normal unauthenticated state
@@ -84,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
       
     } catch (err) {
-      console.error('Logout failed:', err)
+      console.error('Logout failed:', err?.message || err?.toString() || 'Unknown error')
       error.value = err?.message || 'Logout failed'
       // Even if logout fails, clear local state and redirect
       user.value = null

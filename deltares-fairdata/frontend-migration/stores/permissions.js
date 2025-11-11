@@ -9,17 +9,18 @@ export const usePermissionsStore = defineStore('permissions', () => {
   const error = ref(null)
 
   // Actions
-  async function fetchPermissions() {
+  async function fetchPermissions($api = null) {
     isLoading.value = true
     error.value = null
     
     try {
-      const { $api } = useNuxtApp()
+      // Get $api from parameter or useNuxtApp (fallback for client-side calls)
+      const api = $api || useNuxtApp().$api
       
       // For SSR, we need to forward request headers to include cookies
       const headers = process.server ? useRequestHeaders() : {}
       
-      const permissionData = await $api('/permissions', {
+      const permissionData = await api('/permissions', {
         credentials: 'include',
         headers: {
           'Accept': 'application/json',
@@ -38,7 +39,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
       return true
       
     } catch (err) {
-      console.error('Failed to fetch permissions:', err)
+      console.error('Failed to fetch permissions:', err?.message || err?.toString() || 'Unknown error')
       error.value = err?.message || 'Failed to fetch permissions'
       permissions.value = []
       return false
@@ -71,14 +72,15 @@ export const usePermissionsStore = defineStore('permissions', () => {
   }
 
   // Collection-specific permissions
-  async function fetchCollectionPermissions(collectionId) {
+  async function fetchCollectionPermissions(collectionId, $api = null) {
     isLoading.value = true
     error.value = null
     
     try {
-      const { $api } = useNuxtApp()
+      // Get $api from parameter or useNuxtApp (fallback for client-side calls)
+      const api = $api || useNuxtApp().$api
       
-      const permissionData = await $api(`/collection-permissions/${ collectionId }`, {
+      const permissionData = await api(`/collection-permissions/${ collectionId }`, {
         credentials: 'include',
       })
       
@@ -89,7 +91,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
       return permissionData.value || permissionData || []
       
     } catch (err) {
-      console.error('Failed to fetch collection permissions:', err)
+      console.error('Failed to fetch collection permissions:', err?.message || err?.toString() || 'Unknown error')
       error.value = err?.message || 'Failed to fetch collection permissions'
       return []
     } finally {

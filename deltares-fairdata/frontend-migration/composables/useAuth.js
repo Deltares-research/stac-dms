@@ -37,11 +37,11 @@ export function useAuth() {
     return await authStore.logout()
   }
 
-  async function checkAuth() {
-    const authResult = await authStore.checkAuth()
+  async function checkAuth($api = null) {
+    const authResult = await authStore.checkAuth($api)
     if (authResult) {
       // Refresh permissions when user is authenticated
-      await permissionsStore.fetchPermissions()
+      await permissionsStore.fetchPermissions($api)
     }
     return authResult
   }

@@ -20,11 +20,14 @@
 <script setup>
   import { useAuth } from '~/composables/useAuth'
   import { computed } from 'vue'
+  import { useNuxtApp } from '#app'
 
+  const nuxtApp = useNuxtApp()
   const { isAuthenticated, isLoading, checkAuth } = useAuth()
   
   // Check authentication on server-side (SSR)
-  await checkAuth()
+  // Pass the $api instance to avoid calling useNuxtApp() in stores during SSR
+  await checkAuth(nuxtApp.$api)
   
   const layoutName = computed(() => {
     if(isAuthenticated.value) {
