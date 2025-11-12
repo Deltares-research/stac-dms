@@ -262,8 +262,8 @@
             </v-card-text>
           </v-card>
 
-          <!-- Date Range -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
+          <!-- Date Range - Always visible but disabled until domain selected -->
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Date Range
             </v-card-title>
@@ -282,6 +282,7 @@
                         v-model="startDateDisplay"
                         label="Start date"
                         variant="outlined"
+                        :disabled="!formData.collectionId"
                         readonly
                         prepend-inner-icon="mdi-calendar"
                       />
@@ -318,6 +319,7 @@
                         v-model="endDateDisplay"
                         label="End date (optional)"
                         variant="outlined"
+                        :disabled="!formData.collectionId"
                         readonly
                         prepend-inner-icon="mdi-calendar"
                       />
@@ -348,8 +350,8 @@
             </v-card-text>
           </v-card>
 
-          <!-- Type of Origin -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
+          <!-- Type of Origin - Always visible but disabled until domain selected -->
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Type of Origin
             </v-card-title>
@@ -359,6 +361,7 @@
                 :items="facilityTypeOptions"
                 label="Filter by Type of Origin"
                 variant="outlined"
+                :disabled="!formData.collectionId"
                 @update:model-value="handleFacilityTypeChange"
               />
             </v-card-text>
@@ -399,8 +402,8 @@
             </v-card-text>
           </v-card>
 
-          <!-- Storage Location Data Set -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
+          <!-- Storage Location Data Set - Always visible but disabled until domain selected -->
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Storage location data set
             </v-card-title>
@@ -416,6 +419,7 @@
                       v-model="asset.title"
                       label="Title of the dataset"
                       variant="outlined"
+                      :disabled="!formData.collectionId"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -423,6 +427,7 @@
                       v-model="asset.description"
                       label="Description of the dataset"
                       variant="outlined"
+                      :disabled="!formData.collectionId"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -430,6 +435,7 @@
                       v-model="asset.href"
                       label="Link to the dataset"
                       variant="outlined"
+                      :disabled="!formData.collectionId"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -437,6 +443,7 @@
                       v-model="asset.type"
                       label="Type of dataset (e.g. file type)"
                       variant="outlined"
+                      :disabled="!formData.collectionId"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -444,6 +451,7 @@
                       variant="outlined"
                       color="error"
                       prepend-icon="mdi-delete"
+                      :disabled="!formData.collectionId"
                       @click="removeAsset(assetId)"
                     >
                       Remove
@@ -454,6 +462,7 @@
               <v-btn
                 variant="outlined"
                 prepend-icon="mdi-plus"
+                :disabled="!formData.collectionId"
                 @click="addAsset"
               >
                 Add
@@ -461,15 +470,102 @@
             </v-card-text>
           </v-card>
 
-          <!-- Geometry - Placeholder for now -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
+          <!-- Geometry - Always visible but disabled until domain selected -->
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Geometry
             </v-card-title>
             <v-card-text>
-              <p class="text-body-2 text-grey-darken-1">
-                Geometry drawing component will be implemented here.
+              <p class="text-body-2 text-grey-darken-1 mb-4">
+                Map is coming
               </p>
+              
+              <div class="pa-4 border rounded-lg bg-grey-lighten-5">
+                <div class="d-flex justify-space-between align-center mb-4">
+                  <h3 class="text-subtitle-2 font-weight-medium">
+                    Enter coordinates manually
+                  </h3>
+                  <v-tooltip location="top">
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        icon
+                        size="small"
+                        variant="text"
+                        class="text-grey"
+                      >
+                        <v-icon>mdi-help-circle</v-icon>
+                      </v-btn>
+                    </template>
+                    <div class="pa-2">
+                      <div class="text-body-2 font-weight-bold mb-2">
+                        Coordinate Input Examples
+                      </div>
+                      <div class="text-caption">
+                        <div class="mb-1">
+                          <strong>Point:</strong><br>40.7128, -74.0060
+                        </div>
+                        <div class="mb-1">
+                          <strong>Rectangle:</strong><br>40.73, -73.94<br>40.71, -73.92
+                        </div>
+                        <div class="mb-1">
+                          <strong>Polygon:</strong><br>40.73, -73.94<br>40.71, -73.94<br>40.71, -73.92
+                        </div>
+                        <div class="mt-2 pt-2 border-t">
+                          <strong>Tips:</strong><br>
+                          • Use new lines to separate multiple coordinates<br>
+                          • Rectangle mode creates a box from NW and SE corners<br>
+                          • Polygon mode automatically closes the shape
+                        </div>
+                      </div>
+                    </div>
+                  </v-tooltip>
+                </div>
+
+                <v-textarea
+                  v-model="coordinateInput"
+                  placeholder="40.7128, -74.0060"
+                  variant="outlined"
+                  :disabled="!formData.collectionId"
+                  rows="4"
+                  class="mb-3"
+                />
+
+                <div class="mb-3">
+                  <v-checkbox
+                    v-model="latLongOrder"
+                    label="Lat/Lng order (uncheck for Lng/Lat)"
+                    density="compact"
+                    :disabled="!formData.collectionId"
+                    hide-details
+                  />
+                </div>
+
+                <div
+                  v-if="geometryValidationMessage"
+                  class="text-caption pa-2 rounded mb-3"
+                  :class="geometryInputValid ? 'bg-green-lighten-5 text-green-darken-2' : 'bg-red-lighten-5 text-red-darken-2'"
+                >
+                  {{ geometryValidationMessage }}
+                </div>
+
+                <div class="d-flex ga-2">
+                  <v-btn
+                    variant="outlined"
+                    :disabled="!formData.collectionId || !geometryInputValid"
+                    @click="createGeometryFromCoordinates"
+                  >
+                    Create Geometry
+                  </v-btn>
+                  <v-btn
+                    variant="outlined"
+                    :disabled="!formData.collectionId"
+                    @click="clearCoordinateInput"
+                  >
+                    Clear
+                  </v-btn>
+                </div>
+              </div>
             </v-card-text>
           </v-card>
 
@@ -494,11 +590,15 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { nanoid } from 'nanoid'
   import { useNuxtApp, useRequestHeaders, useRouter } from '#app'
   import { bbox } from '@turf/turf'
   import dateFormat from 'dateformat'
+  import { languageOptions } from '~/configuration/languageOptions'
+  import { legalRestrictionsOptions } from '~/configuration/legalRestrictionsOptions'
+  import { spatialReferenceSystemOptions } from '~/configuration/spatialReferenceSystemOptions'
+  import { facilityTypeOptions } from '~/configuration/facilityTypeOptions'
 
   defineOptions({
     name: 'RegisterCreatePage'
@@ -521,6 +621,12 @@
   const endDateMenu = ref(false)
   const tempStartDate = ref(null)
   const tempEndDate = ref(null)
+
+  // Geometry coordinate input state
+  const coordinateInput = ref('')
+  const latLongOrder = ref(true)
+  const geometryInputValid = ref(false)
+  const geometryValidationMessage = ref('')
 
   // Form data
   const formData = ref({
@@ -549,43 +655,7 @@
     geometry: null,
   })
 
-  // Options
-  const languageOptions = [
-    { value: 'eng', title: 'English' },
-    { value: 'dut', title: 'Dutch' },
-    { value: 'ger', title: 'German' },
-    { value: 'fre', title: 'French' },
-  ]
-
-  const legalRestrictionsOptions = [
-    { value: 'copyright', title: 'copyright' },
-    { value: 'patent', title: 'patent' },
-    { value: 'patentPending', title: 'patent pending' },
-    { value: 'trademark', title: 'trademark' },
-    { value: 'license', title: 'license' },
-    { value: 'intellectualPropertyRights', title: 'intellectual property rights' },
-    { value: 'restricted', title: 'Prohibition of distribution and use' },
-  ]
-
-  const spatialReferenceSystemOptions = [
-    { value: 'not applicable', title: 'not applicable' },
-    { value: 'EPSG:28992 (Amersfoort / RD New)', title: 'EPSG:28992 (Amersfoort / RD New)' },
-    { value: 'EPSG:4326 (WGS 84)', title: 'EPSG:4326 (WGS 84)' },
-    { value: 'EPSG:3857 (WGS 84 / Pseudo-Mercator)', title: 'EPSG:3857 (WGS 84 / Pseudo-Mercator)' },
-    { value: 'EPSG:25831 (ETRS89 / UTM zone 31N)', title: 'EPSG:25831 (ETRS89 / UTM zone 31N)' },
-    { value: 'EPSG:25832 (ETRS89 / UTM zone 32N)', title: 'EPSG:25832 (ETRS89 / UTM zone 32N)' },
-    { value: 'EPSG:3035 (ETRS89 / UTM zone 32N)', title: 'EPSG:3035 (ETRS89 / UTM zone 32N)' },
-    { value: 'EPSG:3812 (ETRS89 / UTM zone 12N)', title: 'EPSG:3812 (ETRS89 / UTM zone 12N)' },
-    { value: 'EPSG:5243 (ETRS89 / UTM zone 33N)', title: 'EPSG:5243 (ETRS89 / UTM zone 33N)' },
-    { value: 'EPSG:4839 (ETRS89 / UTM zone 39N)', title: 'EPSG:4839 (ETRS89 / UTM zone 39N)' },
-  ]
-
-  const facilityTypeOptions = [
-    { value: '', title: 'Type of Origin' },
-    { value: 'experimentalFacility', title: 'Experimental Facilities' },
-    { value: 'numericalModel', title: 'Numerical Models' },
-    { value: 'Field', title: 'Field' },
-  ]
+  // Options are imported from configuration files
 
   // Computed
   const collectionOptions = computed(() => {
@@ -757,6 +827,114 @@
   function removeAsset(assetId) {
     delete formData.value.assets[assetId]
   }
+
+  function clearCoordinateInput() {
+    coordinateInput.value = ''
+    geometryInputValid.value = false
+    geometryValidationMessage.value = ''
+    formData.value.geometry = null
+  }
+
+  function parseAndValidateCoordinates(input) {
+    if (!input.trim()) {
+      geometryInputValid.value = false
+      geometryValidationMessage.value = ''
+      return null
+    }
+
+    try {
+      const cleaned = input.trim()
+      const lines = cleaned.split(/\n/).filter(line => line.trim())
+      const coordinates = []
+
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim())
+        if (parts.length !== 2) {
+          throw new Error(`Invalid coordinate format: "${line}"`)
+        }
+
+        const coord1 = parseFloat(parts[0])
+        const coord2 = parseFloat(parts[1])
+
+        if (isNaN(coord1) || isNaN(coord2)) {
+          throw new Error(`Invalid numbers in: "${line}"`)
+        }
+
+        if (latLongOrder.value) {
+          coordinates.push([coord2, coord1]) // [lng, lat] for GeoJSON
+        } else {
+          coordinates.push([coord1, coord2]) // [lng, lat] for GeoJSON
+        }
+      }
+
+      if (coordinates.length === 0) {
+        throw new Error('No valid coordinates found')
+      }
+
+      let detectedType = 'Point'
+      if (coordinates.length === 2) {
+        detectedType = 'Rectangle'
+      } else if (coordinates.length > 2) {
+        detectedType = 'Polygon'
+      }
+
+      geometryInputValid.value = true
+      geometryValidationMessage.value = `Detected: ${detectedType} with ${coordinates.length} point${coordinates.length > 1 ? 's' : ''}`
+      return coordinates
+    } catch (error) {
+      geometryInputValid.value = false
+      geometryValidationMessage.value = error.message || 'Invalid coordinate format'
+      return null
+    }
+  }
+
+  function createGeometryFromCoordinates() {
+    const coordinates = parseAndValidateCoordinates(coordinateInput.value)
+    if (!coordinates || !geometryInputValid.value) return
+
+    let geometry
+
+    if (coordinates.length === 1) {
+      // Point
+      geometry = {
+        type: 'Point',
+        coordinates: coordinates[0],
+      }
+    } else if (coordinates.length === 2) {
+      // Rectangle
+      const [nw, se] = coordinates
+      geometry = {
+        type: 'Polygon',
+        coordinates: [[
+          [nw[0], nw[1]], // NW
+          [se[0], nw[1]], // NE
+          [se[0], se[1]], // SE
+          [nw[0], se[1]], // SW
+          [nw[0], nw[1]], // Close
+        ]],
+      }
+    } else {
+      // Polygon
+      const coords = [...coordinates]
+      coords.push(coords[0]) // Close the polygon
+      geometry = {
+        type: 'Polygon',
+        coordinates: [coords],
+      }
+    }
+
+    formData.value.geometry = geometry
+  }
+
+  // Watch coordinate input for validation
+  watch(coordinateInput, (newValue) => {
+    if (newValue) {
+      parseAndValidateCoordinates(newValue)
+    } else {
+      geometryInputValid.value = false
+      geometryValidationMessage.value = ''
+    }
+  })
 
   async function handleSubmit() {
     if (!formData.value.collectionId || !formData.value.properties.title) {
