@@ -12,8 +12,23 @@
         </h1>
 
         <form @submit.prevent="handleSubmit">
-          <!-- Empty state when no collections are available -->
-          <v-card v-if="collections.length === 0" class="mb-4">
+          <!-- Loading state -->
+          <v-card v-if="isLoadingCollections" class="mb-4">
+            <v-card-text class="d-flex flex-column align-center justify-center py-12">
+              <v-progress-circular
+                indeterminate
+                color="primary"
+                size="64"
+                class="mb-4"
+              />
+              <p class="text-body-2 text-grey-darken-1">
+                Loading collections...
+              </p>
+            </v-card-text>
+          </v-card>
+
+          <!-- Empty state when no collections are available (only after loading completes) -->
+          <v-card v-else-if="!isLoadingCollections && collections.length === 0" class="mb-4">
             <v-card-text class="d-flex flex-column align-center justify-center py-12 text-center">
               <v-icon
                 size="64"
@@ -36,9 +51,9 @@
           </v-card>
 
           <!-- Domain Selection -->
-          <v-card v-if="collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
-              Data set domain
+              Select a domain to register your data set in
             </v-card-title>
             <v-card-text>
               <v-select
@@ -46,14 +61,13 @@
                 :items="collectionOptions"
                 label="Domain"
                 variant="outlined"
-                :loading="isLoadingCollections"
                 @update:model-value="handleCollectionChange"
               />
             </v-card-text>
           </v-card>
 
           <!-- General Information - Always visible but disabled until domain selected -->
-          <v-card v-if="collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               General information
             </v-card-title>
@@ -151,29 +165,35 @@
                   />
                 </v-col>
                 <v-col cols="12">
-                  <v-select
-                    v-model="formData.properties.spatialReferenceSystem"
-                    :items="spatialReferenceSystemOptions"
-                    label="Spatial reference system"
-                    variant="outlined"
-                    :disabled="!formData.collectionId"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field
-                    v-model="formData.properties.spatialReferenceSystemCustom"
-                    label="Or define a custom spatial reference system"
-                    variant="outlined"
-                    :disabled="!formData.collectionId"
-                    placeholder="e.g., EPSG:4326"
-                  />
+                  <div class="text-body-2 text-grey-darken-1 mb-2">
+                    Spatial reference system (choose one from the list or define a custom one)
+                  </div>
+                  <div class="d-flex ga-2">
+                    <v-select
+                      v-model="formData.properties.spatialReferenceSystem"
+                      :items="spatialReferenceSystemOptions"
+                      label="Select..."
+                      variant="outlined"
+                      :disabled="!formData.collectionId"
+                      class="flex-grow-0"
+                      style="min-width: 300px;"
+                    />
+                    <v-text-field
+                      v-model="formData.properties.spatialReferenceSystemCustom"
+                      label="Or define a custom spatial reference system"
+                      variant="outlined"
+                      :disabled="!formData.collectionId"
+                      placeholder="e.g., EPSG:4326"
+                      class="flex-grow-1"
+                    />
+                  </div>
                 </v-col>
               </v-row>
             </v-card-text>
           </v-card>
 
           <!-- Data Quality -->
-          <v-card v-if="formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
             <v-card-title class="text-h6">
               Data quality
             </v-card-title>
@@ -188,7 +208,7 @@
           </v-card>
 
           <!-- Originator Data Set -->
-          <v-card v-if="formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
             <v-card-title class="text-h6">
               Originator data set
             </v-card-title>
@@ -214,7 +234,7 @@
           </v-card>
 
           <!-- Originator Meta Data -->
-          <v-card v-if="formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
             <v-card-title class="text-h6">
               Originator meta data
             </v-card-title>
@@ -240,7 +260,7 @@
           </v-card>
 
           <!-- Date Range -->
-          <v-card v-if="formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
             <v-card-title class="text-h6">
               Date Range
             </v-card-title>
@@ -326,7 +346,7 @@
           </v-card>
 
           <!-- Type of Origin -->
-          <v-card v-if="formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
             <v-card-title class="text-h6">
               Type of Origin
             </v-card-title>
@@ -342,7 +362,7 @@
           </v-card>
 
           <!-- Keywords -->
-          <v-card v-if="formData.collectionId && filteredKeywordsGroups.length > 0" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId && filteredKeywordsGroups.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Keywords
             </v-card-title>
@@ -377,7 +397,7 @@
           </v-card>
 
           <!-- Storage Location Data Set -->
-          <v-card v-if="formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
             <v-card-title class="text-h6">
               Storage location data set
             </v-card-title>
@@ -439,7 +459,7 @@
           </v-card>
 
           <!-- Geometry - Placeholder for now -->
-          <v-card v-if="formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
             <v-card-title class="text-h6">
               Geometry
             </v-card-title>
