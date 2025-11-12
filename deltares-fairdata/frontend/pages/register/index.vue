@@ -17,6 +17,7 @@
             variant="flat"
             prepend-icon="mdi-plus"
             class="text-white"
+            to="/register/create"
           >
             Register new dataset
           </v-btn>
