@@ -476,8 +476,13 @@
               Geometry
             </v-card-title>
             <v-card-text>
-              <p class="text-body-2 text-grey-darken-1 mb-4">
-                Map is coming
+              <div v-if="formData.geometry" class="mb-4">
+                <item-map-component
+                  height="300px"
+                />
+              </div>
+              <p v-else class="text-body-2 text-grey-darken-1 mb-4">
+                No geometry set. Use the coordinate input below or draw on the map.
               </p>
               
               <div class="pa-4 border rounded-lg bg-grey-lighten-5">

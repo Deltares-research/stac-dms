@@ -87,7 +87,7 @@
       ['get', 'point_count'],
       20,  // radius for clusters with < 100 points
       30,  // radius for clusters with < 750 points
-      40   // radius for clusters with >= 750 points
+      40   // radius for clusters >= 750 points
     ],
   }))
   
@@ -128,22 +128,22 @@
     mapInstance.value = map
   }
   
-  function onFeatureClicked(feature, event) {
+  function onFeatureClicked(feature) {
     // Handle individual feature click
     console.log('Feature clicked:', feature)
   }
   
-  function onClusterClicked(clusterId, event) {
+  function onClusterClicked(clusterId) {
     // Handle cluster click - MapboxCluster will auto-zoom by default
     // but you can prevent default and handle it yourself if needed
     console.log('Cluster clicked:', clusterId)
   }
   
-  function onMouseenter(feature, event) {
+  function onMouseenter() {
     // Handle mouse enter on feature
   }
   
-  function onMouseleave(event) {
+  function onMouseleave() {
     // Handle mouse leave
   }
 </script>
@@ -151,3 +151,4 @@
 <style>
 .map-wrapper, .map-wrapper .mapboxgl-map { width: 100%; height: 100%; }
 </style>
+

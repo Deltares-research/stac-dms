@@ -115,7 +115,7 @@
         class="right-col"
       >
         <v-sheet class="right-map">
-          <map-component />
+          <search-map-component />
         </v-sheet>
       </v-col>
     </v-row>
