@@ -64,6 +64,7 @@ class DMSAPISettings(OpensearchSettings):
     app_secret_key: str = ""
     db_connection_url: str = ""
     environment: str = "local"
+    frontend_url: str = ""
     es_use_ssl: str = "true"
     es_host: str = "0.0.0.0"
     es_port: str = "9200"
@@ -93,6 +94,7 @@ class AsyncDMSAPISettings(OpensearchSettings):
     app_secret_key: str = ""
     db_connection_url: str = ""
     environment: str = "local"
+    frontend_url: str = ""
     es_use_ssl: str = "true"
     es_host: str
     es_port: str
