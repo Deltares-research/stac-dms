@@ -192,8 +192,8 @@
             </v-card-text>
           </v-card>
 
-          <!-- Data Quality -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
+          <!-- Data Quality - Always visible but disabled until domain selected -->
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Data quality
             </v-card-title>
@@ -202,13 +202,14 @@
                 v-model="formData.properties.dataQualityInfoStatement"
                 label="Description of the origin of this data set"
                 variant="outlined"
+                :disabled="!formData.collectionId"
                 rows="3"
               />
             </v-card-text>
           </v-card>
 
-          <!-- Originator Data Set -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
+          <!-- Originator Data Set - Always visible but disabled until domain selected -->
+          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Originator data set
             </v-card-title>
@@ -219,6 +220,7 @@
                     v-model="formData.properties.originatorDataOrganisation"
                     label="Organisation"
                     variant="outlined"
+                    :disabled="!formData.collectionId"
                   />
                 </v-col>
                 <v-col cols="12">
@@ -227,6 +229,7 @@
                     label="E-mail"
                     variant="outlined"
                     type="email"
+                    :disabled="!formData.collectionId"
                   />
                 </v-col>
               </v-row>
