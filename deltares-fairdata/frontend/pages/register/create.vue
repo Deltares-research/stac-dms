@@ -592,19 +592,19 @@
 <script setup>
   import { ref, computed, onMounted, watch } from 'vue'
   import { nanoid } from 'nanoid'
-  import { useNuxtApp, useRequestHeaders, useRouter } from '#app'
+  import { useRouter } from '#app'
   import { bbox } from '@turf/turf'
   import dateFormat from 'dateformat'
-  import { languageOptions } from '~/configuration/languageOptions'
-  import { legalRestrictionsOptions } from '~/configuration/legalRestrictionsOptions'
-  import { spatialReferenceSystemOptions } from '~/configuration/spatialReferenceSystemOptions'
-  import { facilityTypeOptions } from '~/configuration/facilityTypeOptions'
+  import languageOptions from '~/configuration/languageOptions.json'
+  import legalRestrictionsOptions from '~/configuration/legalRestrictionsOptions.json'
+  import spatialReferenceSystemOptions from '~/configuration/spatialReferenceSystemOptions.json'
+  import facilityTypeOptions from '~/configuration/facilityTypeOptions.json'
+  import { fetchCollectionsWithCreatePermission, fetchCollectionById, fetchKeywordsByFacilityId } from '~/requests'
+  import { createItem } from '~/requests/items'
 
   defineOptions({
     name: 'RegisterCreatePage'
   })
-
-  const { $api } = useNuxtApp()
 
   // State
   const collections = ref([])
@@ -700,40 +700,9 @@
   async function fetchCollections() {
     isLoadingCollections.value = true
     try {
-      const headers = process.server ? useRequestHeaders() : {}
-      
-      const [collectionsData, permissionsData] = await Promise.all([
-        $api('/collections', {
-          query: { limit: 1000 },
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-        }),
-        $api('/collection-permissions', {
-          credentials: 'include',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-        }),
-      ])
-
-      const allCollections = collectionsData?.collections || []
-      const permissions = permissionsData || []
-
-      // Filter collections by item:create permission
-      collections.value = allCollections.filter(collection => {
-        return permissions.some(permission =>
-          permission.collection_id === collection.id &&
-          permission.permissions?.includes('item:create')
-        )
-      })
-
-      collectionPermissions.value = permissions
+      const result = await fetchCollectionsWithCreatePermission({ includeHeaders: true })
+      collections.value = result.collections
+      collectionPermissions.value = result.permissions
     } catch (error) {
       console.error('Failed to fetch collections:', error)
       collections.value = []
@@ -749,12 +718,7 @@
     }
 
     try {
-      const collection = await $api('/collections/{collection_id}', {
-        path: {
-          collection_id: formData.value.collectionId,
-        },
-        credentials: 'include',
-      })
+      const collection = await fetchCollectionById(formData.value.collectionId)
 
       const keywordsLink = collection.links?.find(
         item => item.rel === 'keywords' && item.id
@@ -765,14 +729,7 @@
         return
       }
 
-      const keywordsResult = await $api('/keywords', {
-        query: {
-          facility_id: keywordsLink.id,
-        },
-        credentials: 'include',
-      })
-
-      keywordsGroups.value = keywordsResult || []
+      keywordsGroups.value = await fetchKeywordsByFacilityId(keywordsLink.id)
     } catch (error) {
       console.error('Error loading keywords:', error)
       keywordsGroups.value = []
@@ -991,19 +948,7 @@
       }
 
       // Submit to API
-      const headers = process.server ? useRequestHeaders() : {}
-      await $api('/collections/{collection_id}/items', {
-        method: 'POST',
-        body: newItem,
-        path: {
-          collection_id: formData.value.collectionId,
-        },
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-      })
+      await createItem(formData.value.collectionId, newItem)
 
       // Success - navigate to register page
       const router = useRouter()

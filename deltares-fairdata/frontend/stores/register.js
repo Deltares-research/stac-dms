@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useNuxtApp, useRequestHeaders } from '#app'
-import searchBody from '@/utils/search/searchBody.js'
+import { searchItems } from '~/requests/search'
 
 export const useRegisterStore = defineStore('register', () => {
   // State
@@ -35,41 +34,9 @@ export const useRegisterStore = defineStore('register', () => {
     error.value = null
 
     try {
-      const { $api } = useNuxtApp()
-      
-      // For SSR, we need to forward request headers to include cookies
-      const headers = process.server ? useRequestHeaders() : {}
-
-      // Build request body - use searchBody with empty filters to get all items
-      const body = {
-        ...searchBody({}), // Empty filters to get all items
+      const data = await searchItems({
         limit: itemsPerPage.value,
-      }
-
-      // Add token if provided (for pagination)
-      if (token) {
-        body.token = token
-      }
-
-      const data = await $api('/search', {
-        method: 'POST',
-        body,
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        onRequest({ options }) {
-          console.log('[register:onRequest]', options)
-        },
-        onResponse({ response }) {
-          console.log('[register:onResponse]', response.status, response.statusText)
-          console.log('[register:data]', response?._data)
-        },
-        onResponseError({ response }) {
-          console.warn('[register:onResponseError]', response?.status, response?._data)
-        },
+        token,
       })
 
       // Handle response structure
