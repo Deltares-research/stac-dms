@@ -43,6 +43,7 @@
         :key="`popup-${selectedFeature?.id || 'unknown'}`"
         :lng-lat="popupCoordinates"
         anchor="bottom"
+        :offset="[0, -30]"
         :close-button="true"
         :close-on-click="true"
         :close-on-move="false"
