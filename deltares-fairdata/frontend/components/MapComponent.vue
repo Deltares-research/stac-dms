@@ -49,8 +49,9 @@
         :close-on-move="false"
         max-width="420px"
         @mb-close="onPopupClose"
+        :closeButton="false"
       >
-        <v-card class="pa-2" style="min-width: 300px; max-width: 420px;">
+        <v-card style="min-width: 300px; max-width: 420px; box-shadow: none;">
           <v-card-title class="text-h6 text-wrap">
             {{ selectedFeature.properties?.title || selectedFeature.id }}
           </v-card-title>
