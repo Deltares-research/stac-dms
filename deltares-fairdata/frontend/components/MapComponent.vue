@@ -39,7 +39,8 @@
       
       <!-- Popup for selected feature -->
       <MapboxPopup
-        v-if="selectedFeature && popupCoordinates"
+        v-if="selectedFeature && popupCoordinates && Array.isArray(popupCoordinates) && popupCoordinates.length === 2"
+        :key="`popup-${selectedFeature?.id || 'unknown'}`"
         :lng-lat="popupCoordinates"
         anchor="bottom"
         :close-button="true"
@@ -93,7 +94,7 @@
 </template>
 
 <script setup>
-  import { ref, computed, watch } from 'vue'
+  import { ref, computed, watch, nextTick } from 'vue'
   import { MapboxMap, MapboxCluster, MapboxNavigationControl, MapboxPopup } from '@studiometa/vue-mapbox-gl'
   import { center } from '@turf/turf'
   import { useSearchPageStore } from '~/stores/searchPage'
@@ -106,6 +107,8 @@
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
   const imageLoaded = ref(false)
   const selectedFeature = ref(null)
+  const justClickedFeature = ref(false)
+  let mapClickTimeout = null
   
   const store = useSearchPageStore()
   
@@ -161,7 +164,7 @@
   
   // Popup coordinates computed property
   const popupCoordinates = computed(() => {
-    if (!selectedFeature.value || !selectedFeature.value.geometry) {
+    if (!selectedFeature.value?.geometry) {
       return null
     }
     
@@ -169,15 +172,22 @@
     
     // For Point geometry, coordinates are directly [lng, lat]
     if (geometry.type === 'Point') {
-      return geometry.coordinates
+      const coords = geometry.coordinates
+      if (Array.isArray(coords) && coords.length >= 2) {
+        return [coords[0], coords[1]]
+      }
+      return null
     }
     
     // For other geometries, calculate center using @turf/center
     try {
       const centerPoint = center(selectedFeature.value)
-      return centerPoint.geometry.coordinates
+      const coords = centerPoint.geometry.coordinates
+      if (Array.isArray(coords) && coords.length >= 2) {
+        return [coords[0], coords[1]]
+      }
+      return null
     } catch (error) {
-      console.error('Error calculating center for popup:', error)
       return null
     }
   })
@@ -189,6 +199,7 @@
     const firstKey = Object.keys(assets)[0]
     return firstKey ? assets[firstKey]?.href : null
   }
+  
   
   // Calculate bounds from featureCollection using geojson-bounds
   const bounds = computed(() => {
@@ -260,10 +271,95 @@
     })
   }
   
-  function onFeatureClicked(feature, event) {
-    // Handle individual feature click
-    selectedFeature.value = feature
-    store.setSelectedFeature(feature.id)
+  async function onFeatureClicked(feature, event) {
+    // Cancel any pending map click handlers
+    if (mapClickTimeout) {
+      clearTimeout(mapClickTimeout)
+      mapClickTimeout = null
+    }
+    
+    // Set flag immediately to prevent map click from clearing
+    justClickedFeature.value = true
+    
+    // Stop event propagation to prevent map click from firing
+    if (event) {
+      if (event.originalEvent) {
+        event.originalEvent.stopPropagation()
+        event.originalEvent.preventDefault()
+      }
+      if (event.stopPropagation) {
+        event.stopPropagation()
+      }
+    }
+    
+    // Extract geometry from Mapbox feature object
+    // Mapbox vector tile features have geometry in _geometry or geometry property
+    let geometry = feature.geometry || feature._geometry
+    
+    if (!geometry) {
+      justClickedFeature.value = false
+      return
+    }
+    
+    // Get coordinates from geometry
+    const coords = geometry.coordinates
+    if (!coords || !Array.isArray(coords) || coords.length < 2) {
+      justClickedFeature.value = false
+      return
+    }
+    
+    // Find the matching feature from the original featureCollection by matching coordinates
+    // This gives us the full feature with id, assets, etc.
+    let matchedFeature = null
+    if (store.featureCollection && store.featureCollection.features) {
+      matchedFeature = store.featureCollection.features.find(f => {
+        if (!f.geometry || f.geometry.type !== 'Point') return false
+        const fCoords = f.geometry.coordinates
+        if (!fCoords || fCoords.length < 2) return false
+        // Compare coordinates with small tolerance for floating point precision
+        return Math.abs(fCoords[0] - coords[0]) < 0.0001 && 
+               Math.abs(fCoords[1] - coords[1]) < 0.0001
+      })
+    }
+    
+    // Use matched feature if found, otherwise create normalized feature from Mapbox feature
+    const featureToUse = matchedFeature || {
+      id: feature.properties?.id || feature.id || `point-${coords[0]}-${coords[1]}`,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: coords
+      },
+      properties: feature.properties || {}
+    }
+    
+    // Check if clicking the same feature
+    const currentId = selectedFeature.value?.id
+    const newId = featureToUse.id
+    const currentCoords = selectedFeature.value?.geometry?.coordinates
+    const newCoords = featureToUse.geometry?.coordinates
+    
+    const isSameFeature = (currentId && newId && currentId === newId) ||
+      (currentCoords && newCoords &&
+       Math.abs(currentCoords[0] - newCoords[0]) < 0.0001 &&
+       Math.abs(currentCoords[1] - newCoords[1]) < 0.0001)
+    
+    if (isSameFeature) {
+      setTimeout(() => { justClickedFeature.value = false }, 100)
+      return
+    }
+    
+    // Set the feature - Vue reactivity and the :key prop will handle remounting
+    selectedFeature.value = featureToUse
+    store.setSelectedFeature(featureToUse.id)
+    
+    // Ensure reactivity has processed
+    await nextTick()
+    
+    // Reset flag after popup has had time to mount
+    setTimeout(() => { 
+      justClickedFeature.value = false 
+    }, 400)
   }
   
   function onClusterClicked(clusterId, event) {
@@ -273,15 +369,31 @@
   }
   
   function onMapClick(event) {
-    // Clear selection when clicking empty map area
-    selectedFeature.value = null
-    store.clearSelectedFeature()
+    // Only clear selection if clicking empty map area (not on a feature)
+    // Cancel any previous pending map click handler
+    if (mapClickTimeout) {
+      clearTimeout(mapClickTimeout)
+    }
+    
+    // Check the flag with a small delay to account for async feature click handler
+    mapClickTimeout = setTimeout(() => {
+      mapClickTimeout = null
+      if (justClickedFeature.value) {
+        return
+      }
+      
+      selectedFeature.value = null
+      store.clearSelectedFeature()
+    }, 150)
   }
   
   function onPopupClose() {
-    // Clear selection when popup is closed
-    selectedFeature.value = null
-    store.clearSelectedFeature()
+    // Only clear if we're not in the middle of switching features
+    // The flag check ensures we don't clear when clicking a new feature
+    if (!justClickedFeature.value) {
+      selectedFeature.value = null
+      store.clearSelectedFeature()
+    }
   }
   
   function onMouseenter(feature, event) {
