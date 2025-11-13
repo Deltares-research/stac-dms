@@ -112,6 +112,50 @@
   
   const store = useSearchPageStore()
   
+  // Watch for changes to selectedFeatureId from store (e.g., when clicking a card in the list)
+  watch(
+    () => store.selectedFeatureId,
+    (newFeatureId, oldFeatureId) => {
+      // If selection was cleared, clear local state
+      if (!newFeatureId) {
+        selectedFeature.value = null
+        justClickedFeature.value = false
+        return
+      }
+      
+      // If clicking the same feature that's already selected, do nothing
+      if (selectedFeature.value?.id === newFeatureId) {
+        return
+      }
+      
+      // If the change is from a map click (same feature ID maintained), don't override
+      // This prevents circular updates when clicking on the map
+      const isMapClickUpdate = justClickedFeature.value && 
+                                selectedFeature.value?.id === newFeatureId
+      
+      if (isMapClickUpdate) {
+        return
+      }
+      
+      // Reset the flag since we're updating from store (card click or external change)
+      justClickedFeature.value = false
+      
+      // Cancel any pending map click handlers
+      if (mapClickTimeout) {
+        clearTimeout(mapClickTimeout)
+        mapClickTimeout = null
+      }
+      
+      // Find the feature in featureCollection by ID
+      if (store.featureCollection && store.featureCollection.features) {
+        const feature = store.featureCollection.features.find(f => f.id === newFeatureId)
+        if (feature) {
+          selectedFeature.value = feature
+        }
+      }
+    }
+  )
+  
   // Timestamp that updates when featureCollection changes
   const layerTimestamp = ref(Date.now())
   
@@ -389,8 +433,9 @@
   
   function onPopupClose() {
     // Only clear if we're not in the middle of switching features
-    // The flag check ensures we don't clear when clicking a new feature
-    if (!justClickedFeature.value) {
+    // Check both the flag (for map clicks) and if store still has a selection (for card clicks)
+    // If store.selectedFeatureId is set, it means a card was clicked and we shouldn't clear
+    if (!justClickedFeature.value && !store.selectedFeatureId) {
       selectedFeature.value = null
       store.clearSelectedFeature()
     }
