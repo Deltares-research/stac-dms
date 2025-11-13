@@ -7,9 +7,10 @@
       :center="[5.1, 52.07]"
       :zoom="10.5"
       @mb-created="onMapCreated"
+      @mb-click="onMapClick"
     >
       <MapboxCluster
-        v-if="store.featureCollection"
+        v-if="store.featureCollection && imageLoaded"
         :key="layerKey"
         :data="store.featureCollection"
         :cluster-max-zoom="14"
@@ -35,20 +36,76 @@
         image-name="custom-marker"
       />
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
+      
+      <!-- Popup for selected feature -->
+      <MapboxPopup
+        v-if="selectedFeature && popupCoordinates"
+        :lng-lat="popupCoordinates"
+        anchor="bottom"
+        :close-button="true"
+        :close-on-click="true"
+        :close-on-move="false"
+        max-width="420px"
+        @mb-close="onPopupClose"
+      >
+        <v-card class="pa-2" style="min-width: 300px; max-width: 420px;">
+          <v-card-title class="text-h6 text-wrap">
+            {{ selectedFeature.properties?.title || selectedFeature.id }}
+          </v-card-title>
+          <v-card-text>
+            <p class="text-body-2 mb-3">
+              {{ selectedFeature.properties?.description || 'No description.' }}
+            </p>
+            
+            <!-- View details section (same as index.vue) -->
+            <div class="d-flex align-center mb-3">
+              <v-icon class="mr-2" size="small">
+                mdi-link-variant
+              </v-icon>
+              <span v-if="firstAssetHref(selectedFeature)">
+                {{ firstAssetHref(selectedFeature) }}
+              </span>
+              <span v-else>—</span>
+            </div>
+            
+            <div class="mb-3">
+              <v-btn
+                v-if="firstAssetHref(selectedFeature)"
+                :href="firstAssetHref(selectedFeature)"
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="tonal"
+                density="comfortable"
+                prepend-icon="mdi-open-in-new"
+              >
+                View details
+              </v-btn>
+            </div>
+            
+            <div class="text-body-2">
+              {{ formatDate(selectedFeature) }}
+            </div>
+          </v-card-text>
+        </v-card>
+      </MapboxPopup>
     </mapbox-map>
   </div>
 </template>
 
 <script setup>
   import { ref, computed, watch } from 'vue'
-  import { MapboxMap, MapboxCluster, MapboxNavigationControl } from '@studiometa/vue-mapbox-gl'
+  import { MapboxMap, MapboxCluster, MapboxNavigationControl, MapboxPopup } from '@studiometa/vue-mapbox-gl'
+  import { center } from '@turf/turf'
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
+  import { formatDate } from '~/utils/helpers'
   import * as geojsonBounds from 'geojson-bounds'
 
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
+  const imageLoaded = ref(false)
+  const selectedFeature = ref(null)
   
   const store = useSearchPageStore()
   
@@ -102,6 +159,37 @@
     'text-color': '#fff',
   }))
   
+  // Popup coordinates computed property
+  const popupCoordinates = computed(() => {
+    if (!selectedFeature.value || !selectedFeature.value.geometry) {
+      return null
+    }
+    
+    const geometry = selectedFeature.value.geometry
+    
+    // For Point geometry, coordinates are directly [lng, lat]
+    if (geometry.type === 'Point') {
+      return geometry.coordinates
+    }
+    
+    // For other geometries, calculate center using @turf/center
+    try {
+      const centerPoint = center(selectedFeature.value)
+      return centerPoint.geometry.coordinates
+    } catch (error) {
+      console.error('Error calculating center for popup:', error)
+      return null
+    }
+  })
+  
+  // Helper function to get first asset href (same as index.vue)
+  function firstAssetHref(feature) {
+    const assets = feature?.assets
+    if (!assets) return null
+    const firstKey = Object.keys(assets)[0]
+    return firstKey ? assets[firstKey]?.href : null
+  }
+  
   // Calculate bounds from featureCollection using geojson-bounds
   const bounds = computed(() => {
     if (!store.featureCollection) {
@@ -126,17 +214,74 @@
   
   function onMapCreated(map) {
     mapInstance.value = map
+    
+    // Handle missing image event to provide custom marker when requested
+    map.on('styleimagemissing', (e) => {
+      if (e.id === 'custom-marker') {
+        // Load the image if it's missing
+        map.loadImage('/custom-marker.png', (error, image) => {
+          if (error) {
+            console.error('Failed to load custom marker image:', error)
+            return
+          }
+          if (!map.hasImage('custom-marker')) {
+            map.addImage('custom-marker', image)
+            imageLoaded.value = true
+          }
+        })
+      }
+    })
+    
+    // Also try to load the image immediately if map is already loaded
+    if (map.loaded()) {
+      loadCustomImage(map)
+    } else {
+      map.once('load', () => {
+        loadCustomImage(map)
+      })
+    }
+  }
+  
+  function loadCustomImage(map) {
+    if (!map || map.hasImage('custom-marker')) {
+      imageLoaded.value = true
+      return
+    }
+    
+    map.loadImage('/custom-marker.png', (error, image) => {
+      if (error) {
+        console.error('Failed to load custom marker image:', error)
+        return
+      }
+      if (!map.hasImage('custom-marker')) {
+        map.addImage('custom-marker', image)
+        imageLoaded.value = true
+      }
+    })
   }
   
   function onFeatureClicked(feature, event) {
     // Handle individual feature click
-    console.log('Feature clicked:', feature)
+    selectedFeature.value = feature
+    store.setSelectedFeature(feature.id)
   }
   
   function onClusterClicked(clusterId, event) {
-    // Handle cluster click - MapboxCluster will auto-zoom by default
-    // but you can prevent default and handle it yourself if needed
-    console.log('Cluster clicked:', clusterId)
+    // Handle cluster click - clear selection and let default zoom behavior happen
+    selectedFeature.value = null
+    store.clearSelectedFeature()
+  }
+  
+  function onMapClick(event) {
+    // Clear selection when clicking empty map area
+    selectedFeature.value = null
+    store.clearSelectedFeature()
+  }
+  
+  function onPopupClose() {
+    // Clear selection when popup is closed
+    selectedFeature.value = null
+    store.clearSelectedFeature()
   }
   
   function onMouseenter(feature, event) {

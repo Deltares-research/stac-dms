@@ -64,7 +64,12 @@
                 :key="f.id"
                 cols="12"
               >
-                <v-card class="mb-4" variant="elevated">
+                <v-card 
+                  class="mb-4" 
+                  variant="elevated"
+                  :class="{ 'selected-feature': f.id === store.selectedFeatureId }"
+                  @click="store.setSelectedFeature(f.id)"
+                >
                   <v-card-title class="text-wrap">
                     {{ f.properties?.title || 'Untitled' }}
                   </v-card-title>
@@ -256,8 +261,15 @@
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Selected feature highlighting */
+.selected-feature {
+  border: 2px solid rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.05);
 }
 </style>
 
