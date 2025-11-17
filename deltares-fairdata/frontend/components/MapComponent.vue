@@ -37,6 +37,15 @@
       />
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
       
+      <!-- Draw control for area selection -->
+      <MapboxDrawControl
+        v-if="mapInstance"
+        ref="drawControlRef"
+        :map="mapInstance"
+        :draw-mode="drawMode"
+        @change="onDrawChange"
+      />
+      
       <!-- Popup for selected feature -->
       <MapboxPopup
         v-if="selectedFeature && popupCoordinates && Array.isArray(popupCoordinates) && popupCoordinates.length === 2"
@@ -102,6 +111,7 @@
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
+  import MapboxDrawControl from '@/components/MapboxDrawControl.vue'
   import { formatDate } from '~/utils/helpers'
   import * as geojsonBounds from 'geojson-bounds'
 
@@ -113,6 +123,30 @@
   let mapClickTimeout = null
   
   const store = useSearchPageStore()
+  
+  // Draw control reference
+  const drawControlRef = ref(null)
+  
+  // Default bbox (whole world)
+  const DEFAULT_BBOX = [180, 90, -180, -90]
+  
+  // Draw mode for area selection
+  const drawMode = computed(() => {
+    return store.areaDrawMode ? 'rectangle' : null
+  })
+  
+  // Watch for areaDrawMode changes to clear draw when disabled
+  watch(
+    () => store.areaDrawMode,
+    (isActive) => {
+      if (!isActive && drawControlRef.value) {
+        // Clear the drawn rectangle when draw mode is disabled
+        drawControlRef.value.clear()
+        // Reset bbox filter to default
+        store.bboxFilter = [...DEFAULT_BBOX]
+      }
+    }
+  )
   
   // Watch for changes to selectedFeatureId from store (e.g., when clicking a card in the list)
   watch(
@@ -449,6 +483,42 @@
   
   function onMouseleave(event) {
     // Handle mouse leave
+  }
+  
+  // Handle draw control changes (when user draws a rectangle)
+  function onDrawChange(feature) {
+    if (!feature || !feature.geometry) {
+      // Draw was cleared - reset bbox filter to default
+      console.log('Draw cleared - resetting bbox filter')
+      store.bboxFilter = [...DEFAULT_BBOX]
+      return
+    }
+    
+    // Extract bbox from polygon
+    if (feature.geometry.type === 'Polygon' && feature.geometry.coordinates && feature.geometry.coordinates.length > 0) {
+      const coordinates = feature.geometry.coordinates[0] // First ring of polygon
+      
+      // Find min/max lng and lat
+      let minLng = Infinity
+      let minLat = Infinity
+      let maxLng = -Infinity
+      let maxLat = -Infinity
+      
+      coordinates.forEach(coord => {
+        const [lng, lat] = coord
+        minLng = Math.min(minLng, lng)
+        minLat = Math.min(minLat, lat)
+        maxLng = Math.max(maxLng, lng)
+        maxLat = Math.max(maxLat, lat)
+      })
+      
+      const bbox = [minLng, minLat, maxLng, maxLat]
+      console.log('Area selected - BBox:', bbox)
+      
+      // Update the bbox filter in the store
+      // This will trigger the watcher in index.vue which will call store.search()
+      store.bboxFilter = bbox
+    }
   }
 </script>
 

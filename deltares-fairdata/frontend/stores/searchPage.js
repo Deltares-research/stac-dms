@@ -19,6 +19,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const searchStatus = ref('idle')
   const searchError = ref(null)
   const selectedFeatureId = ref(null)
+  const areaDrawMode = ref(false)
 
 
   //Functions
@@ -101,7 +102,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     selectedFeatureId.value = null
   }
 
-  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, searchStatus, searchError, selectedFeatureId, search, fetchCollections, setSelectedFeature, clearSelectedFeature }
+  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, searchStatus, searchError, selectedFeatureId, areaDrawMode, search, fetchCollections, setSelectedFeature, clearSelectedFeature }
 
 
 })
