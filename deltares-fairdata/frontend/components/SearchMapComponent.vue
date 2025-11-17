@@ -34,6 +34,7 @@
       <MapCustomImage
         image-path="/custom-marker.png"
         image-name="custom-marker"
+        @image-loaded="imageLoaded = true"
       />
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
       
@@ -304,50 +305,7 @@
   
   function onMapCreated(map) {
     mapInstance.value = map
-    
-    // Handle missing image event to provide custom marker when requested
-    map.on('styleimagemissing', (e) => {
-      if (e.id === 'custom-marker') {
-        // Load the image if it's missing
-        map.loadImage('/custom-marker.png', (error, image) => {
-          if (error) {
-            console.error('Failed to load custom marker image:', error)
-            return
-          }
-          if (!map.hasImage('custom-marker')) {
-            map.addImage('custom-marker', image)
-            imageLoaded.value = true
-          }
-        })
-      }
-    })
-    
-    // Also try to load the image immediately if map is already loaded
-    if (map.loaded()) {
-      loadCustomImage(map)
-    } else {
-      map.once('load', () => {
-        loadCustomImage(map)
-      })
-    }
-  }
-  
-  function loadCustomImage(map) {
-    if (!map || map.hasImage('custom-marker')) {
-      imageLoaded.value = true
-      return
-    }
-    
-    map.loadImage('/custom-marker.png', (error, image) => {
-      if (error) {
-        console.error('Failed to load custom marker image:', error)
-        return
-      }
-      if (!map.hasImage('custom-marker')) {
-        map.addImage('custom-marker', image)
-        imageLoaded.value = true
-      }
-    })
+
   }
   
   async function onFeatureClicked(feature, event) {
