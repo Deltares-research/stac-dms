@@ -74,6 +74,7 @@ class DMSAPISettings(OpensearchSettings):
     es_pass: Optional[str] = None
     es_api_key: Optional[str] = None
     admin_users: Optional[str] = None
+    auth_enabled: str = ""
 
     @property
     def create_client(self):
@@ -104,6 +105,7 @@ class AsyncDMSAPISettings(OpensearchSettings):
     es_pass: Optional[str] = None
     es_api_key: Optional[str] = None
     admin_users: Optional[str] = None
+    auth_enabled: str = ""
 
     @property
     def create_client(self):

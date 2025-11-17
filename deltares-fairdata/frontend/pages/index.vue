@@ -10,7 +10,7 @@
         <v-sheet class="left-scroll pa-4">
           <!-- Not authenticated state -->
           <div
-            v-if="!isAuthenticated && !authLoading"
+            v-if="!canAccess && configStore.authEnabled && !authLoading"
             class="d-flex flex-column justify-center align-center text-center"
             style="height: 200px;"
           >
@@ -30,7 +30,7 @@
           </div>
 
           <!-- Authenticated state with features -->
-          <div v-else-if="isAuthenticated">
+          <div v-else-if="canAccess">
             <feature-filters
               :options="filterOptions"
               class="mb-4"
@@ -127,11 +127,18 @@
   import { useSearchPageStore } from '~/stores/searchPage'
   import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
+  import { useConfigStore } from '~/stores/config'
   import FeatureFilters from '@/components/FeatureFilters.vue'
   import { formatDate } from '~/utils/helpers'
 
 
   const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const configStore = useConfigStore()
+  
+  // When auth is disabled, allow access without authentication
+  const canAccess = computed(() => {
+    return !configStore.authEnabled || isAuthenticated.value
+  })
   
  
   const store = useSearchPageStore()
@@ -164,9 +171,9 @@
   
 
   watch(
-    () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, isAuthenticated.value],
+    () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
     () => {
-      if (isAuthenticated.value) {
+      if (canAccess.value) {
         store.search()
       }
     },
@@ -175,7 +182,7 @@
 
 
   const features = computed(() => {
-    if (!isAuthenticated.value) {
+    if (!canAccess.value) {
       return []
     }
     const collection = store.featureCollection
