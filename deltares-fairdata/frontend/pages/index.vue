@@ -154,7 +154,7 @@
   store.startDate = q.start || undefined
   store.endDate = q.end || undefined
   store.keywords = toArr(q.keywords)
-  // If URL has includeEmptyGeometry parameter, use it; otherwise keep default (true)
+  // If URL has includeEmptyGeometry parameter, use it; otherwise keep default (false)
   if (q.includeEmptyGeometry !== undefined) {
     store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
   }

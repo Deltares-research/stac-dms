@@ -10,7 +10,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const endDate = ref(undefined)
   const keywords = ref([])
   const collections = ref([]) // Stores all available collection objects, selected ones are filtered from this
-  const includeEmptyGeometry = ref(true) // Changed from false to true
+  const includeEmptyGeometry = ref(false)
   const bbox = ref([ 180, 90, -180, -90 ]) //live TODO: check if both are needed.
   const bboxFilter = ref([ 180, 90, -180, -90 ]) // send in the request. 
 

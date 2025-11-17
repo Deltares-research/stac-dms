@@ -344,7 +344,7 @@
     store.keywords = []
     store.startDate = undefined
     store.endDate = undefined
-    store.includeEmptyGeometry = true  // Changed from false to true
+    store.includeEmptyGeometry = false
   }
   function clearOne (key) {
     if (key === 'startDate') {
@@ -358,7 +358,7 @@
     } else if (key === 'keyword') {
       store.keywords = []
     } else if (key === 'includeEmptyGeometry') {
-      store.includeEmptyGeometry = true  // Changed from false to true
+      store.includeEmptyGeometry = false
     }
   }
 
