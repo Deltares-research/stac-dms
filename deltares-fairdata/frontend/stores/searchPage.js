@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { fetchCollections as fetchCollectionsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
 
@@ -10,7 +10,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const endDate = ref(undefined)
   const keywords = ref([])
   const collections = ref([]) // Stores all available collection objects, selected ones are filtered from this
-  const includeEmptyGeometry = ref(false)
+  const includeEmptyGeometry = ref(true) // Changed from false to true
   const bbox = ref([ 180, 90, -180, -90 ]) //live TODO: check if both are needed.
   const bboxFilter = ref([ 180, 90, -180, -90 ]) // send in the request. 
 
@@ -18,6 +18,28 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const featureCollection = ref(null)
   const searchStatus = ref('idle')
   const searchError = ref(null)
+
+  // Getter: Feature collection with only features that have valid geometry
+  const featureCollectionWithGeometry = computed(() => {
+    if (!featureCollection.value || !featureCollection.value.features) {
+      return null
+    }
+    
+    // Filter out features with null or missing geometry
+    const validFeatures = featureCollection.value.features.filter(
+      feature => feature.geometry && feature.geometry.type,
+    )
+    
+    // Return null if no valid features, otherwise return filtered collection
+    if (validFeatures.length === 0) {
+      return null
+    }
+    
+    return {
+      ...featureCollection.value,
+      features: validFeatures,
+    }
+  })
 
 
   //Functions
@@ -60,7 +82,22 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     }
   }
 
-  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, searchStatus, searchError, search, fetchCollections }
+  return { 
+    q, 
+    startDate, 
+    endDate, 
+    keywords, 
+    collections, 
+    includeEmptyGeometry, 
+    bbox, 
+    bboxFilter, 
+    featureCollection, 
+    featureCollectionWithGeometry,
+    searchStatus, 
+    searchError, 
+    search, 
+    fetchCollections, 
+  }
 
 
 })

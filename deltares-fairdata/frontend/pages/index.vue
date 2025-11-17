@@ -123,24 +123,28 @@
 </template>
 
 <script setup>
-  import { computed, watch, onMounted, ref } from 'vue'
+  import { computed, watch, ref } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
   import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
   import { useConfigStore } from '~/stores/config'
+  import { useNuxtApp } from '#app'
   import FeatureFilters from '@/components/FeatureFilters.vue'
   import { formatDate } from '~/utils/helpers'
 
-
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const configStore = useConfigStore()
+  const nuxtApp = useNuxtApp()
   
   // When auth is disabled, allow access without authentication
   const canAccess = computed(() => {
+    // Wait for config to be loaded
+    if (configStore.authEnabled === null) {
+      return false
+    }
     return !configStore.authEnabled || isAuthenticated.value
   })
-  
- 
+
   const store = useSearchPageStore()
   const route = useRoute() 
   
@@ -150,25 +154,31 @@
   store.startDate = q.start || undefined
   store.endDate = q.end || undefined
   store.keywords = toArr(q.keywords)
-  store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
+  // If URL has includeEmptyGeometry parameter, use it; otherwise keep default (true)
+  if (q.includeEmptyGeometry !== undefined) {
+    store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
+  }
 
- 
+  // Fetch collections during SSR
+  await store.fetchCollections()
+  const ids = toArr(q.collections)
+  if (ids.length > 0) {
+    store.collections = store.collections.map(c => ({
+      ...c,
+      selected: ids.includes(c.id)
+    }))
+  }
+
+  // Perform initial search during SSR if access is allowed
+  // This runs on both server and client, preserving SSR benefits
+  if (canAccess.value) {
+    await store.search()
+  }
+
   const queryInput = ref(store.q || '')
   function applyQuery() {
     store.q = (queryInput.value || '').trim()
   }
-  
-  onMounted(async () => {
-    await store.fetchCollections()
-    const ids = toArr(q.collections)
-    if (ids.length > 0) {
-      store.collections = store.collections.map(c => ({
-        ...c,
-        selected: ids.includes(c.id)
-      }))
-    }
-  })
-  
 
   watch(
     () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
@@ -177,9 +187,8 @@
         store.search()
       }
     },
-    { deep: true, immediate: true }
+    { deep: true }
   )
-
 
   const features = computed(() => {
     if (!canAccess.value) {

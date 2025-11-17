@@ -9,9 +9,9 @@
       @mb-created="onMapCreated"
     >
       <MapboxCluster
-        v-if="store.featureCollection"
+        v-if="store.featureCollectionWithGeometry"
         :key="layerKey"
-        :data="store.featureCollection"
+        :data="store.featureCollectionWithGeometry"
         :cluster-max-zoom="14"
         :cluster-radius="50"
         :cluster-min-points="2"
@@ -65,7 +65,7 @@
   
   // Generate a key using timestamp - this will force refresh when data changes
   const layerKey = computed(() => {
-    if (!store.featureCollection) return null
+    if (!store.featureCollectionWithGeometry) return null
     return `cluster-${layerTimestamp.value}`
   })
   
@@ -102,12 +102,12 @@
     'text-color': '#fff',
   }))
   
-  // Calculate bounds from featureCollection using geojson-bounds
+  // Calculate bounds from featureCollectionWithGeometry using geojson-bounds
   const bounds = computed(() => {
-    if (!store.featureCollection) {
+    if (!store.featureCollectionWithGeometry) {
       return []
     }
-    const extent = geojsonBounds.extent(store.featureCollection)
+    const extent = geojsonBounds.extent(store.featureCollectionWithGeometry)
     if (!extent || extent.length < 4) {
       return []
     }
