@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { fetchCollections as fetchCollectionsApi } from '~/requests'
+import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
 
 export const useSearchPageStore = defineStore('searchPage', () => {
@@ -13,7 +13,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const includeEmptyGeometry = ref(false)
   const bbox = ref([ 180, 90, -180, -90 ]) //live TODO: check if both are needed.
   const bboxFilter = ref([ 180, 90, -180, -90 ]) // send in the request. 
-
+  const topics = ref([])
   
   const featureCollection = ref(null)
   const searchStatus = ref('idle')
@@ -64,3 +64,13 @@ export const useSearchPageStore = defineStore('searchPage', () => {
 
 
 })
+
+async function fetchTopics() {
+  try {
+    const data = await fetchTopicsApi()
+    topics.value = data.topics || []
+  } catch (e) {
+    console.error('Failed to fetch topics:', e?.message || e?.toString() || 'Unknown error')
+    return []
+  }
+}
