@@ -8,7 +8,7 @@
   import { watch, onBeforeUnmount } from 'vue'
   import MapboxDraw from '@mapbox/mapbox-gl-draw'
   import DrawRectangle from 'mapbox-gl-draw-rectangle-mode'
-  import styles from '@mapbox/mapbox-gl-draw/src/lib/theme'
+  import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css'
 
   const props = defineProps({
     map: {
@@ -24,6 +24,89 @@
   const emit = defineEmits(['change'])
 
   let mbDraw = null
+
+  // Define custom styles manually (since we can't import from src/lib/theme)
+  const customStyles = [
+    // Inactive polygon fill
+    {
+      id: 'gl-draw-polygon-fill-inactive',
+      type: 'fill',
+      filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+      paint: {
+        'fill-color': '#008fc5',
+        'fill-opacity': 0.5,
+      },
+    },
+    // Active polygon fill
+    {
+      id: 'gl-draw-polygon-fill-active',
+      type: 'fill',
+      filter: ['all', ['==', 'active', 'true'], ['==', '$type', 'Polygon']],
+      paint: {
+        'fill-color': '#008fc5',
+        'fill-opacity': 0.5,
+      },
+    },
+    // Static polygon fill
+    {
+      id: 'gl-draw-polygon-fill-static',
+      type: 'fill',
+      filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Polygon']],
+      paint: {
+        'fill-color': '#008fc5',
+        'fill-opacity': 0.5,
+      },
+    },
+    // Inactive polygon stroke
+    {
+      id: 'gl-draw-polygon-stroke-inactive',
+      type: 'line',
+      filter: ['all', ['==', 'active', 'false'], ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+      paint: {
+        'line-color': '#008fc5',
+        'line-width': 5,
+      },
+    },
+    // Active polygon stroke
+    {
+      id: 'gl-draw-polygon-stroke-active',
+      type: 'line',
+      filter: ['all', ['==', 'active', 'true'], ['==', '$type', 'Polygon']],
+      paint: {
+        'line-color': '#008fc5',
+        'line-width': 5,
+      },
+    },
+    // Static polygon stroke
+    {
+      id: 'gl-draw-polygon-stroke-static',
+      type: 'line',
+      filter: ['all', ['==', 'mode', 'static'], ['==', '$type', 'Polygon']],
+      paint: {
+        'line-color': '#008fc5',
+        'line-width': 5,
+      },
+    },
+    // Vertex points
+    {
+      id: 'gl-draw-polygon-and-line-vertex-stroke-inactive',
+      type: 'circle',
+      filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
+      paint: {
+        'circle-radius': 5,
+        'circle-color': '#fff',
+      },
+    },
+    {
+      id: 'gl-draw-polygon-and-line-vertex-inactive',
+      type: 'circle',
+      filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point'], ['!=', 'mode', 'static']],
+      paint: {
+        'circle-radius': 3,
+        'circle-color': '#008fc5',
+      },
+    },
+  ]
 
   // Watch for drawMode changes
   watch(
@@ -62,40 +145,7 @@
         trash: true,
       },
       modes,
-      styles: styles.map(style => {
-        // Customize fill color
-        if ([
-          'gl-draw-polygon-fill-active',
-          'gl-draw-polygon-fill-inactive',
-          'gl-draw-polygon-fill-static',
-        ].includes(style.id)) {
-          return {
-            ...style,
-            paint: {
-              ...style.paint,
-              'fill-color': '#008fc5',
-              'fill-opacity': 0.5,
-            },
-          }
-        }
-
-        // Customize stroke color
-        if ([
-          'gl-draw-polygon-stroke-active',
-          'gl-draw-polygon-stroke-inactive',
-          'gl-draw-polygon-stroke-static',
-        ].includes(style.id)) {
-          return {
-            ...style,
-            paint: {
-              ...style.paint,
-              'line-color': '#008fc5',
-              'line-width': 5,
-            },
-          }
-        }
-        return style
-      }),
+      styles: customStyles, // Use the manually defined styles
     })
 
     map.addControl(mbDraw)

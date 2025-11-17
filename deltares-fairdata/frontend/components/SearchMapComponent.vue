@@ -10,9 +10,9 @@
       @mb-click="onMapClick"
     >
       <MapboxCluster
-        v-if="store.featureCollection && imageLoaded"
+        v-if="store.featureCollectionWithGeometry && imageLoaded"
         :key="layerKey"
-        :data="store.featureCollection"
+        :data="store.featureCollectionWithGeometry"
         :cluster-max-zoom="14"
         :cluster-radius="50"
         :cluster-min-points="2"
@@ -58,7 +58,6 @@
         :close-on-move="false"
         max-width="420px"
         @mb-close="onPopupClose"
-        :closeButton="false"
       >
         <v-card style="min-width: 300px; max-width: 420px; box-shadow: none;">
           <v-card-title class="text-h6 text-wrap">
@@ -167,7 +166,7 @@
       // If the change is from a map click (same feature ID maintained), don't override
       // This prevents circular updates when clicking on the map
       const isMapClickUpdate = justClickedFeature.value && 
-                                selectedFeature.value?.id === newFeatureId
+        selectedFeature.value?.id === newFeatureId
       
       if (isMapClickUpdate) {
         return
@@ -183,8 +182,8 @@
       }
       
       // Find the feature in featureCollection by ID
-      if (store.featureCollection && store.featureCollection.features) {
-        const feature = store.featureCollection.features.find(f => f.id === newFeatureId)
+      if (store.featureCollectionWithGeometry && store.featureCollectionWithGeometry.features) {
+        const feature = store.featureCollectionWithGeometry.features.find(f => f.id === newFeatureId)
         if (feature) {
           selectedFeature.value = feature
         }
@@ -192,11 +191,11 @@
     }
   )
   
-  // Timestamp that updates when featureCollection changes
+  // Timestamp that updates when featureCollectionWithGeometry changes
   const layerTimestamp = ref(Date.now())
   
   watch(
-    () => store.featureCollection,
+    () => store.featureCollectionWithGeometry,
     () => {
       layerTimestamp.value = Date.now()
     },
@@ -205,7 +204,7 @@
   
   // Generate a key using timestamp - this will force refresh when data changes
   const layerKey = computed(() => {
-    if (!store.featureCollection) return null
+    if (!store.featureCollectionWithGeometry) return null
     return `cluster-${layerTimestamp.value}`
   })
   
@@ -227,7 +226,7 @@
       ['get', 'point_count'],
       20,  // radius for clusters with < 100 points
       30,  // radius for clusters with < 750 points
-      40   // radius for clusters with >= 750 points
+      40   // radius for clusters >= 750 points
     ],
   }))
   
@@ -281,12 +280,12 @@
   }
   
   
-  // Calculate bounds from featureCollection using geojson-bounds
+  // Calculate bounds from featureCollectionWithGeometry using geojson-bounds
   const bounds = computed(() => {
-    if (!store.featureCollection) {
+    if (!store.featureCollectionWithGeometry) {
       return []
     }
-    const extent = geojsonBounds.extent(store.featureCollection)
+    const extent = geojsonBounds.extent(store.featureCollectionWithGeometry)
     if (!extent || extent.length < 4) {
       return []
     }
@@ -388,17 +387,17 @@
       return
     }
     
-    // Find the matching feature from the original featureCollection by matching coordinates
+    // Find the matching feature from the original featu  reCollection by matching coordinates
     // This gives us the full feature with id, assets, etc.
     let matchedFeature = null
-    if (store.featureCollection && store.featureCollection.features) {
-      matchedFeature = store.featureCollection.features.find(f => {
+    if (store.featureCollectionWithGeometry && store.featureCollectionWithGeometry.features) {
+      matchedFeature = store.featureCollectionWithGeometry.features.find(f => {
         if (!f.geometry || f.geometry.type !== 'Point') return false
         const fCoords = f.geometry.coordinates
         if (!fCoords || fCoords.length < 2) return false
         // Compare coordinates with small tolerance for floating point precision
         return Math.abs(fCoords[0] - coords[0]) < 0.0001 && 
-               Math.abs(fCoords[1] - coords[1]) < 0.0001
+          Math.abs(fCoords[1] - coords[1]) < 0.0001
       })
     }
     
@@ -421,8 +420,8 @@
     
     const isSameFeature = (currentId && newId && currentId === newId) ||
       (currentCoords && newCoords &&
-       Math.abs(currentCoords[0] - newCoords[0]) < 0.0001 &&
-       Math.abs(currentCoords[1] - newCoords[1]) < 0.0001)
+        Math.abs(currentCoords[0] - newCoords[0]) < 0.0001 &&
+        Math.abs(currentCoords[1] - newCoords[1]) < 0.0001)
     
     if (isSameFeature) {
       setTimeout(() => { justClickedFeature.value = false }, 100)
@@ -468,20 +467,19 @@
   }
   
   function onPopupClose() {
-    // Only clear if we're not in the middle of switching features
-    // Check both the flag (for map clicks) and if store still has a selection (for card clicks)
-    // If store.selectedFeatureId is set, it means a card was clicked and we shouldn't clear
-    if (!justClickedFeature.value && !store.selectedFeatureId) {
-      selectedFeature.value = null
-      store.clearSelectedFeature()
-    }
+    // When popup is closed (via X button or click outside), always clear selection
+    // The map click handler has its own logic for handling map clicks separately
+    selectedFeature.value = null
+    store.clearSelectedFeature()
+    // Reset the flag since popup is closing
+    justClickedFeature.value = false
   }
   
-  function onMouseenter(feature, event) {
+  function onMouseenter() {
     // Handle mouse enter on feature
   }
   
-  function onMouseleave(event) {
+  function onMouseleave() {
     // Handle mouse leave
   }
   
@@ -525,3 +523,4 @@
 <style>
 .map-wrapper, .map-wrapper .mapboxgl-map { width: 100%; height: 100%; }
 </style>
+

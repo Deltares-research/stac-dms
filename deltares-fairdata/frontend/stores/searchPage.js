@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import searchBody from '@/utils/search/searchBody.js' // the modular builder you made
-import { useNuxtApp } from '#app'
+import { ref, computed } from 'vue'
+import { fetchCollections as fetchCollectionsApi } from '~/requests'
+import { searchItems } from '~/requests/search'
 
 export const useSearchPageStore = defineStore('searchPage', () => {
   //State
@@ -21,6 +21,28 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const selectedFeatureId = ref(null)
   const areaDrawMode = ref(false)
 
+  // Getter: Feature collection with only features that have valid geometry
+  const featureCollectionWithGeometry = computed(() => {
+    if (!featureCollection.value || !featureCollection.value.features) {
+      return null
+    }
+    
+    // Filter out features with null or missing geometry
+    const validFeatures = featureCollection.value.features.filter(
+      feature => feature.geometry && feature.geometry.type,
+    )
+    
+    // Return null if no valid features, otherwise return filtered collection
+    if (validFeatures.length === 0) {
+      return null
+    }
+    
+    return {
+      ...featureCollection.value,
+      features: validFeatures,
+    }
+  })
+
 
   //Functions
   async function search() {
@@ -28,65 +50,33 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     const selected = (collections.value || []).filter(c => c.selected)
     const selectedIds = selected.map(c => c.id)
     
-   
-    searchStatus.value = 'pending'; searchError.value = null
-    const { $api } = useNuxtApp()
+    searchStatus.value = 'pending'
+    searchError.value = null
   
     try {
-
-      const data = await $api('/search', {
-        method: 'POST',
-        body: {
-          ...searchBody({
-            q: q.value,
-            startDate: startDate.value,
-            endDate: endDate.value,
-            keywords: keywords.value,
-            collections: selectedIds,
-            includeEmptyGeometry: includeEmptyGeometry.value,
-            bbox: bboxFilter.value, 
-          }),
-          limit: 1000,
-        },
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        onRequest ({ options }) {
-          console.log('[search:onRequest]', options)
-        },
-        onResponse ({ response }) {
-          console.log('[search:onResponse]', response.status, response.statusText)
-          // _data is the parsed JSON response
-          console.log('[search:data]', response?._data)
-        },
-        onResponseError ({ response }) {
-          console.warn('[search:onResponseError]', response?.status, response?._data)
-        },
+      const data = await searchItems({
+        q: q.value,
+        startDate: startDate.value,
+        endDate: endDate.value,
+        keywords: keywords.value,
+        collections: selectedIds,
+        includeEmptyGeometry: includeEmptyGeometry.value,
+        bbox: bboxFilter.value,
+        limit: 1000,
       })
   
       featureCollection.value = data
       searchStatus.value = 'success'
       
-    }catch (e) {
+    } catch (e) {
       searchError.value = e?.message || e?.toString() || 'Unknown error'
       searchStatus.value = 'error'
     }
   }
 
   async function fetchCollections() {
-    const { $api } = useNuxtApp()
-    
     try {
-      const data = await $api('/collections', {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      })
-      
+      const data = await fetchCollectionsApi({ includeHeaders: false })
       collections.value = (data?.collections || []).map(c => ({ ...c, selected: false }))
     } catch (e) {
       console.error('Failed to fetch collections:', e?.message || e?.toString() || 'Unknown error')
@@ -102,7 +92,6 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     selectedFeatureId.value = null
   }
 
-  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, searchStatus, searchError, selectedFeatureId, areaDrawMode, search, fetchCollections, setSelectedFeature, clearSelectedFeature }
-
+  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, areaDrawMode, search, fetchCollections, setSelectedFeature, clearSelectedFeature }
 
 })
