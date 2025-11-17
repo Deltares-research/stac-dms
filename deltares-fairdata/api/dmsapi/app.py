@@ -88,7 +88,11 @@ extensions = [
     )
 ]
 
-if settings.auth_enabled.lower() != "false":
+auth_enabled_value = getattr(settings, 'auth_enabled', None) or ""
+_LOGGER.info(f"Checking auth_enabled: value='{auth_enabled_value}', lower='{auth_enabled_value.lower()}', condition result={auth_enabled_value.lower() != 'false'}")
+
+if auth_enabled_value.lower() != "false":
+    _LOGGER.info("Auth is enabled - adding RBACExtension and SSOAuthExtension")
     extensions.append(RBACExtension())
     extensions.append(
         SSOAuthExtension(
@@ -97,6 +101,8 @@ if settings.auth_enabled.lower() != "false":
             public_endpoints=[]
         )
     )
+else:
+    _LOGGER.info("Auth is disabled - NOT adding authentication extensions")
 
 middlewares = []
 
