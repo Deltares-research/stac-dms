@@ -56,6 +56,7 @@
         <v-container fluid class="py-4">
           <v-row>
             <!-- Domain (collection) -->
+            
             <v-col
               cols="12"
               md="4"
@@ -72,6 +73,57 @@
                 return-object
                 prepend-inner-icon="mdi-magnify"
                 placeholder="Search domain..."
+                variant="outlined"
+                density="compact"
+                clearable
+                hide-details
+                @update:model-value="handleCollectionChange"
+              >
+                <template #item="{ props: itemProps, item }">
+                  <v-list-item v-bind="itemProps">
+                    <template #prepend>
+                      <v-list-item-action>
+                        <v-icon v-if="item.raw.selected" color="primary">
+                          mdi-check
+                        </v-icon>
+                      </v-list-item-action>
+                    </template>
+                    <v-list-item-title>
+                      <div class="d-flex flex-column">
+                        <div class="text-caption text-grey-darken-1">
+                          {{ item.raw.description || '' }}
+                        </div>
+                        <div class="text-body-2 font-weight-medium">
+                          {{ item.raw.title }}
+                        </div>
+                      </div>
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+                <template #selection="{ item }">
+                  {{ item.raw.title }}
+                </template>
+              </v-autocomplete>
+            </v-col>
+
+            <!-- Topic -->
+
+            <v-col
+              cols="12"
+              md="4"
+              class="filter-col"
+            >
+              <div class="text-subtitle-2 mb-2">
+                Topic
+              </div>
+              <v-autocomplete
+                v-model="selectedCollection"
+                :items="store.collections"
+                item-title="title"
+                item-value="id"
+                return-object
+                prepend-inner-icon="mdi-magnify"
+                placeholder="Search topic..."
                 variant="outlined"
                 density="compact"
                 clearable
