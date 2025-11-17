@@ -117,43 +117,15 @@
                 Topic
               </div>
               <v-autocomplete
-                v-model="selectedCollection"
-                :items="store.collections"
-                item-title="title"
-                item-value="id"
-                return-object
+                v-model="selectedTopic"
+                :items="store.topics"
                 prepend-inner-icon="mdi-magnify"
                 placeholder="Search topic..."
                 variant="outlined"
                 density="compact"
                 clearable
                 hide-details
-                @update:model-value="handleCollectionChange"
               >
-                <template #item="{ props: itemProps, item }">
-                  <v-list-item v-bind="itemProps">
-                    <template #prepend>
-                      <v-list-item-action>
-                        <v-icon v-if="item.raw.selected" color="primary">
-                          mdi-check
-                        </v-icon>
-                      </v-list-item-action>
-                    </template>
-                    <v-list-item-title>
-                      <div class="d-flex flex-column">
-                        <div class="text-caption text-grey-darken-1">
-                          {{ item.raw.description || '' }}
-                        </div>
-                        <div class="text-body-2 font-weight-medium">
-                          {{ item.raw.title }}
-                        </div>
-                      </div>
-                    </v-list-item-title>
-                  </v-list-item>
-                </template>
-                <template #selection="{ item }">
-                  {{ item.raw.title }}
-                </template>
               </v-autocomplete>
             </v-col>
 
@@ -372,6 +344,17 @@
     },
   })
 
+  const selectedTopic = computed({
+    get: () => store.topics?.length ? store.topics[0] : null,
+    set: (value) => {
+      if (!value || value === 'any') {
+        store.topics = []
+      } else {
+        store.topics = [value]
+      }
+    },
+  })
+
   /* --- Date menus state --- */
   const startMenu = ref(false)
   const endMenu = ref(false)
@@ -397,6 +380,7 @@
     store.startDate = undefined
     store.endDate = undefined
     store.includeEmptyGeometry = false
+    store.topics = []
   }
   function clearOne (key) {
     if (key === 'startDate') {
@@ -411,12 +395,16 @@
       store.keywords = []
     } else if (key === 'includeEmptyGeometry') {
       store.includeEmptyGeometry = false
+    } else if (key === 'topic') {
+      store.topics = []
+
     }
   }
 
   const FIELD_LABEL = {
     query: 'Search',
     collection: 'Domain',
+    topic: 'Topic',
     keyword: 'Keyword',
     startDate: 'Start date',
     endDate: 'End date',
@@ -460,6 +448,10 @@
     if (store.keywords && store.keywords.length > 0) {
       chips.push({ key: 'keyword', label: FIELD_LABEL.keyword, value: store.keywords[0] })
     }
+
+    if (store.topics && store.topics.length > 0) {
+      chips.push({ key: 'topic', label: FIELD_LABEL.topic, value: store.topics[0].id })
+    } 
     
     if (store.includeEmptyGeometry) {
       chips.push({ key: 'includeEmptyGeometry', label: FIELD_LABEL.includeEmptyGeometry, value: 'Yes' })
