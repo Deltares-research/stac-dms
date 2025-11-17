@@ -6,4 +6,5 @@ export * from './collections'
 export * from './keywords'
 export * from './items'
 export * from './search'
+export * from './topics'
 
