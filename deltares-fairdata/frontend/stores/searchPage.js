@@ -18,6 +18,9 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const featureCollection = ref(null)
   const searchStatus = ref('idle')
   const searchError = ref(null)
+  const selectedFeatureId = ref(null)
+  const selectedFeatureBbox = ref(null)
+  const areaDrawMode = ref(false)
 
   // Getter: Feature collection with only features that have valid geometry
   const featureCollectionWithGeometry = computed(() => {
@@ -25,10 +28,22 @@ export const useSearchPageStore = defineStore('searchPage', () => {
       return null
     }
     
-    // Filter out features with null or missing geometry
-    const validFeatures = featureCollection.value.features.filter(
-      feature => feature.geometry && feature.geometry.type,
-    )
+    // Filter out features with null or missing geometry and normalize properties.id
+    const validFeatures = featureCollection.value.features
+      .filter(feature => feature.geometry && feature.geometry.type)
+      .map(feature => {
+        // Ensure properties.id is set to feature.id if it exists
+        if (feature.id) {
+          return {
+            ...feature,
+            properties: {
+              ...feature.properties,
+              id: feature.properties?.id || feature.id,
+            },
+          }
+        }
+        return feature
+      })
     
     // Return null if no valid features, otherwise return filtered collection
     if (validFeatures.length === 0) {
@@ -82,22 +97,19 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     }
   }
 
-  return { 
-    q, 
-    startDate, 
-    endDate, 
-    keywords, 
-    collections, 
-    includeEmptyGeometry, 
-    bbox, 
-    bboxFilter, 
-    featureCollection, 
-    featureCollectionWithGeometry,
-    searchStatus, 
-    searchError, 
-    search, 
-    fetchCollections, 
+  function setSelectedFeature(featureId) {
+    selectedFeatureId.value = featureId
   }
 
+  function setSelectedFeatureBbox(bbox) {
+    selectedFeatureBbox.value = bbox
+  }
+
+  function clearSelectedFeature() {
+    selectedFeatureId.value = null
+    selectedFeatureBbox.value = null
+  }
+
+  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature }
 
 })
