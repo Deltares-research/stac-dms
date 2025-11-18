@@ -82,6 +82,7 @@ class SSOAuthExtension(ApiExtension):
             {"path": "/auth/logout", "method": "GET"},
             {"path": "/auth/callback", "method": "GET"},
             {"path": "/auth/me", "method": "GET"},
+            {"path": "/config", "method": "GET"},
         ]
 
         all_public_endpoints = self.public_endpoints + extension_public_endpoints

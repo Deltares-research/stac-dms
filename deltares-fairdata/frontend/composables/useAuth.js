@@ -1,10 +1,12 @@
 import { useAuthStore } from '~/stores/auth'
 import { usePermissionsStore } from '~/stores/permissions'
+import { useConfigStore } from '~/stores/config'
 import { computed } from 'vue'
 
 export function useAuth() {
   const authStore = useAuthStore()
   const permissionsStore = usePermissionsStore()
+  const configStore = useConfigStore()
 
   // Combined authentication and permission checking
   const isAuthenticated = computed(() => authStore.isLoggedIn)
@@ -14,6 +16,10 @@ export function useAuth() {
 
   // Permission checking with authentication
   function hasPermission(permission) {
+    // If auth is disabled, grant all permissions
+    if (!configStore.authEnabled) {
+      return true
+    }
     if (!isAuthenticated.value) {
       return false
     }
@@ -21,6 +27,10 @@ export function useAuth() {
   }
 
   function requirePermission(permission) {
+    // If auth is disabled, grant all permissions
+    if (!configStore.authEnabled) {
+      return true
+    }
     if (!isAuthenticated.value) {
       authStore.login()
       return false
@@ -47,17 +57,12 @@ export function useAuth() {
   }
 
   return {
-    // Authentication state
     isAuthenticated,
     user,
     displayName,
     isLoading,
-    
-    // Permission checking
     hasPermission,
     requirePermission,
-    
-    // Actions
     login,
     logout,
     checkAuth,
