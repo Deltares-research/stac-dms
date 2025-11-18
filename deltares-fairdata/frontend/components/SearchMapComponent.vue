@@ -36,6 +36,15 @@
       />
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
       
+      <!-- Zoom to feature when bbox changes -->
+      <MapControlsZoom
+        v-if="mapInstance && store.selectedFeatureBbox"
+        :bounds="store.selectedFeatureBbox"
+        :padding="50"
+        :duration="1000"
+        :zoom-on-mount="false"
+      />
+      
       <!-- Draw control for area selection -->
       <MapboxDrawControl
         v-if="mapInstance"
@@ -52,7 +61,7 @@
         :lng-lat="popupCoordinates"
         anchor="bottom"
         :offset="[0, -30]"
-        :close-button="true"
+        :close-button="false"
         :close-on-click="true"
         :close-on-move="false"
         max-width="420px"
@@ -149,7 +158,7 @@
   // Watch for changes to selectedFeatureId from store (e.g., when clicking a card in the list)
   watch(
     () => store.selectedFeatureId,
-    (newFeatureId, oldFeatureId) => {
+    (newFeatureId) => {
       // If selection was cleared, clear local state
       if (!newFeatureId) {
         selectedFeature.value = null
@@ -163,7 +172,6 @@
       }
       
       // If the change is from a map click (same feature ID maintained), don't override
-      // This prevents circular updates when clicking on the map
       const isMapClickUpdate = justClickedFeature.value && 
         selectedFeature.value?.id === newFeatureId
       
@@ -185,6 +193,9 @@
         const feature = store.featureCollectionWithGeometry.features.find(f => f.id === newFeatureId)
         if (feature) {
           selectedFeature.value = feature
+          if (feature.bbox) {
+            store.setSelectedFeatureBbox(feature.bbox)
+          }
         }
       }
     }
@@ -195,7 +206,6 @@
   
   watch(
     () => store.featureCollectionWithGeometry,
-    () => console.log('featureCollectionWithGeometry changed', JSON.stringify(store.featureCollectionWithGeometry)),
     () => {
       layerTimestamp.value = Date.now()
     },
@@ -360,6 +370,9 @@
     // Set the feature - Vue reactivity and the :key prop will handle remounting
     selectedFeature.value = featureToUse
     store.setSelectedFeature(featureToUse.id)
+    if (featureToUse.bbox) {
+      store.setSelectedFeatureBbox(featureToUse.bbox)
+    }
     
     // Ensure reactivity has processed
     await nextTick()
@@ -406,7 +419,6 @@
   function onDrawChange(feature) {
     if (!feature || !feature.geometry) {
       // Draw was cleared - reset bbox filter to default
-      console.log('Draw cleared - resetting bbox filter')
       store.bboxFilter = [...DEFAULT_BBOX]
       return
     }
@@ -430,7 +442,6 @@
       })
       
       const bbox = [minLng, minLat, maxLng, maxLat]
-      console.log('Area selected - BBox:', bbox)
       
       // Update the bbox filter in the store
       // This will trigger the watcher in index.vue which will call store.search()

@@ -19,6 +19,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const searchStatus = ref('idle')
   const searchError = ref(null)
   const selectedFeatureId = ref(null)
+  const selectedFeatureBbox = ref(null)
   const areaDrawMode = ref(false)
 
   // Getter: Feature collection with only features that have valid geometry
@@ -100,10 +101,15 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     selectedFeatureId.value = featureId
   }
 
-  function clearSelectedFeature() {
-    selectedFeatureId.value = null
+  function setSelectedFeatureBbox(bbox) {
+    selectedFeatureBbox.value = bbox
   }
 
-  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, areaDrawMode, search, fetchCollections, setSelectedFeature, clearSelectedFeature }
+  function clearSelectedFeature() {
+    selectedFeatureId.value = null
+    selectedFeatureBbox.value = null
+  }
+
+  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature }
 
 })
