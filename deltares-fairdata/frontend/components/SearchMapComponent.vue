@@ -423,14 +423,11 @@
       store.clearSelectedFeature()
     }, 150)
   }
-  
   function onPopupClose() {
-    // When popup is closed (via X button or click outside), always clear selection
-    // The map click handler has its own logic for handling map clicks separately
-    selectedFeature.value = null
-    store.clearSelectedFeature()
-    // Reset the flag since popup is closing
-    justClickedFeature.value = false
+    if (!justClickedFeature.value && !store.selectedFeatureId) {
+      selectedFeature.value = null
+      store.clearSelectedFeature()
+    }
   }
   
   function onMouseenter() {
