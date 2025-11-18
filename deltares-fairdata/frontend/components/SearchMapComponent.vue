@@ -330,59 +330,29 @@
       }
     }
     
-    // Extract geometry from Mapbox feature object
-    // Mapbox vector tile features have geometry in _geometry or geometry property
-    let geometry = feature.geometry || feature._geometry
+    // Get the feature ID from properties (normalized in store)
+    const featureId = feature.properties?.id || feature.id
     
-    if (!geometry) {
+    if (!featureId) {
       justClickedFeature.value = false
       return
     }
     
-    // Get coordinates from geometry
-    const coords = geometry.coordinates
-    if (!coords || !Array.isArray(coords) || coords.length < 2) {
-      justClickedFeature.value = false
-      return
-    }
-    
-    // Find the matching feature from the original featu  reCollection by matching coordinates
+    // Find the matching feature from the original featureCollection by ID
     // This gives us the full feature with id, assets, etc.
     let matchedFeature = null
     if (store.featureCollectionWithGeometry && store.featureCollectionWithGeometry.features) {
-      matchedFeature = store.featureCollectionWithGeometry.features.find(f => {
-        if (!f.geometry || f.geometry.type !== 'Point') return false
-        const fCoords = f.geometry.coordinates
-        if (!fCoords || fCoords.length < 2) return false
-        // Compare coordinates with small tolerance for floating point precision
-        return Math.abs(fCoords[0] - coords[0]) < 0.0001 && 
-          Math.abs(fCoords[1] - coords[1]) < 0.0001
-      })
+      matchedFeature = store.featureCollectionWithGeometry.features.find(f => f.id === featureId)
     }
     
-    // Use matched feature if found, otherwise create normalized feature from Mapbox feature
-    const featureToUse = matchedFeature || {
-      id: feature.properties?.id || feature.id || `point-${coords[0]}-${coords[1]}`,
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: coords
-      },
-      properties: feature.properties || {}
-    }
+    // Use matched feature if found, otherwise use the clicked feature
+    const featureToUse = matchedFeature || feature
     
     // Check if clicking the same feature
     const currentId = selectedFeature.value?.id
     const newId = featureToUse.id
-    const currentCoords = selectedFeature.value?.geometry?.coordinates
-    const newCoords = featureToUse.geometry?.coordinates
     
-    const isSameFeature = (currentId && newId && currentId === newId) ||
-      (currentCoords && newCoords &&
-        Math.abs(currentCoords[0] - newCoords[0]) < 0.0001 &&
-        Math.abs(currentCoords[1] - newCoords[1]) < 0.0001)
-    
-    if (isSameFeature) {
+    if (currentId && newId && currentId === newId) {
       setTimeout(() => { justClickedFeature.value = false }, 100)
       return
     }
