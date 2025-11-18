@@ -24,8 +24,6 @@
         :cluster-count-paint="clusterCountPaint"
         @mb-feature-click="onFeatureClicked"
         @mb-cluster-click="onClusterClicked"
-        @mb-feature-mouseenter="onMouseenter"
-        @mb-feature-mouseleave="onMouseleave"
       />
       <MapControlsZoom
         v-if="bounds.length >= 4"
@@ -429,14 +427,7 @@
       store.clearSelectedFeature()
     }
   }
-  
-  function onMouseenter() {
-    // Handle mouse enter on feature
-  }
-  
-  function onMouseleave() {
-    // Handle mouse leave
-  }
+
   
   // Handle draw control changes (when user draws a rectangle)
   function onDrawChange(feature) {
