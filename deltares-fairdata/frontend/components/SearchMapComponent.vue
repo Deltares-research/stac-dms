@@ -11,7 +11,7 @@
     >
       <MapboxCluster
         v-if="store.featureCollectionWithGeometry && imageLoaded"
-        :key="layerKey"
+        :key="clusterKey"
         :data="store.featureCollectionWithGeometry"
         :cluster-max-zoom="14"
         :cluster-radius="50"
@@ -195,6 +195,7 @@
   
   watch(
     () => store.featureCollectionWithGeometry,
+    () => console.log('featureCollectionWithGeometry changed', JSON.stringify(store.featureCollectionWithGeometry)),
     () => {
       layerTimestamp.value = Date.now()
     },
@@ -202,7 +203,7 @@
   )
   
   // Generate a key using timestamp - this will force refresh when data changes
-  const layerKey = computed(() => {
+  const clusterKey = computed(() => {
     if (!store.featureCollectionWithGeometry) return null
     return `cluster-${layerTimestamp.value}`
   })
@@ -307,6 +308,8 @@
   }
   
   async function onFeatureClicked(feature, event) {
+    console.log('onFeatureClicked', JSON.stringify(feature))
+   
     // Cancel any pending map click handlers
     if (mapClickTimeout) {
       clearTimeout(mapClickTimeout)

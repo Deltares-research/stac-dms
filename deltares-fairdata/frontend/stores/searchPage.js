@@ -27,10 +27,22 @@ export const useSearchPageStore = defineStore('searchPage', () => {
       return null
     }
     
-    // Filter out features with null or missing geometry
-    const validFeatures = featureCollection.value.features.filter(
-      feature => feature.geometry && feature.geometry.type,
-    )
+    // Filter out features with null or missing geometry and normalize properties.id
+    const validFeatures = featureCollection.value.features
+      .filter(feature => feature.geometry && feature.geometry.type)
+      .map(feature => {
+        // Ensure properties.id is set to feature.id if it exists
+        if (feature.id) {
+          return {
+            ...feature,
+            properties: {
+              ...feature.properties,
+              id: feature.properties?.id || feature.id,
+            },
+          }
+        }
+        return feature
+      })
     
     // Return null if no valid features, otherwise return filtered collection
     if (validFeatures.length === 0) {
