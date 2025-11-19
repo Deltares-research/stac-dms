@@ -1,11 +1,6 @@
 import { defineStore } from 'pinia'
-<<<<<<< HEAD
-import { ref } from 'vue'
-import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
-=======
 import { ref, computed } from 'vue'
-import { fetchCollections as fetchCollectionsApi } from '~/requests'
->>>>>>> fair-data-finder-migration
+import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
 
 export const useSearchPageStore = defineStore('searchPage', () => {
@@ -68,16 +63,22 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     const selected = (collections.value || []).filter(c => c.selected)
     const selectedIds = selected.map(c => c.id)
     
+    // Get selected topics
+    const selectedTopics = (topics.value || []).filter(t => t.selected)
+    const selectedTopicIds = selectedTopics.map(t => t.id)
+    
     searchStatus.value = 'pending'
     searchError.value = null
   
     try {
+      console.log('topics', selectedTopicIds)
       const data = await searchItems({
         q: q.value,
         startDate: startDate.value,
         endDate: endDate.value,
         keywords: keywords.value,
         collections: selectedIds,
+        topics: selectedTopicIds,
         includeEmptyGeometry: includeEmptyGeometry.value,
         bbox: bboxFilter.value,
         limit: 1000,
@@ -114,17 +115,18 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     selectedFeatureId.value = null
     selectedFeatureBbox.value = null
   }
+  async function fetchTopics() {
+    try {
+      const data = await fetchTopicsApi()
+      topics.value = data.topics || []
+    } catch (e) {
+      console.error('Failed to fetch topics:', e?.message || e?.toString() || 'Unknown error')
+      return []
+    }
+  }
 
-  return { q, startDate, endDate, keywords, collections, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature }
+  return { q, startDate, endDate, keywords, collections, topics, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature, fetchTopics }
 
 })
 
-async function fetchTopics() {
-  try {
-    const data = await fetchTopicsApi()
-    topics.value = data.topics || []
-  } catch (e) {
-    console.error('Failed to fetch topics:', e?.message || e?.toString() || 'Unknown error')
-    return []
-  }
-}
+

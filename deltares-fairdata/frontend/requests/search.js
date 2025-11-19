@@ -12,6 +12,7 @@ import searchBody from '@/utils/search/searchBody.js'
  * @param {Date|string} searchParams.endDate - End date
  * @param {Array} searchParams.keywords - Keywords array
  * @param {Array} searchParams.collections - Collection IDs array
+ * @param {Array} searchParams.topics - Topic IDs array
  * @param {boolean} searchParams.includeEmptyGeometry - Include empty geometry
  * @param {Array} searchParams.bbox - Bounding box
  * @param {number} searchParams.limit - Result limit
@@ -30,6 +31,7 @@ export async function searchItems(searchParams = {}) {
         endDate: searchParams.endDate,
         keywords: searchParams.keywords || [],
         collections: searchParams.collections || [],
+        topics: searchParams.topics || [],
         includeEmptyGeometry: searchParams.includeEmptyGeometry || false,
         bbox: searchParams.bbox,
       }),

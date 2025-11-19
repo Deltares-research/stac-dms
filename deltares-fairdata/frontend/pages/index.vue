@@ -174,6 +174,15 @@
     }))
   }
 
+  // Fetch topics during SSR
+  await store.fetchTopics()
+  const topicId = q.topic
+  if (topicId) {
+    store.topics = store.topics.map(t => ({
+      ...t,
+      selected: t.id === topicId
+    }))}
+
   // Perform initial search during SSR if access is allowed
   // This runs on both server and client, preserving SSR benefits
   if (canAccess.value) {
@@ -186,7 +195,7 @@
   }
 
   watch(
-    () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
+    () => [store.q, store.startDate, store.endDate,store.topics, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
     () => {
       if (canAccess.value) {
         store.search()
