@@ -14,10 +14,14 @@
  * 
  * Environment variables:
  * - API_URL: Base URL for the API (default: http://localhost:8000/api)
- * - USER_EMAIL: Email of the user to grant access (default: ioanna.micha@deltares.nl)
- * - DMS_TOKEN: Authentication cookie value (required for API calls)
+ * - USER_EMAIL: Email of the user to grant access (optional, not used if DMS_TOKEN is provided)
+ * - DMS_TOKEN: Authentication cookie value (optional, required only for role assignment)
  * 
- * How to get the DMS_TOKEN cookie:
+ * Note: If DMS_TOKEN is not provided, the script will:
+ * - Create collections and items without authentication
+ * - Skip user group creation and role assignment
+ * 
+ * How to get the DMS_TOKEN cookie (if needed):
  * 1. Open your browser and navigate to the frontend (e.g., http://localhost:3000)
  * 2. Log in via SSO
  * 3. Open browser DevTools (F12) -> Application/Storage tab -> Cookies
@@ -338,46 +342,43 @@ async function main() {
   console.log('Create Dummy Collections Script');
   console.log('='.repeat(60));
   console.log(`API URL: ${API_URL}`);
-  console.log(`User Email: ${USER_EMAIL}`);
+  if (USER_EMAIL) {
+    console.log(`User Email: ${USER_EMAIL}`);
+  }
   console.log(`Items per collection: ${NUM_ITEMS_PER_COLLECTION}`);
   console.log('');
   
   // Check for authentication
-  if (!DMS_TOKEN) {
-    console.log('');
-    console.error('✗ Error: Authentication token (DMS_TOKEN) is required!');
-    console.log('');
-    console.log('To get your DMS_TOKEN cookie:');
-    console.log('1. Open your browser and navigate to the frontend (e.g., http://localhost:3000)');
-    console.log('2. Log in via SSO');
-    console.log('3. Open DevTools (F12) -> Application/Storage tab -> Cookies');
-    console.log('4. Find the cookie named "DMS_TOKEN" and copy its value');
-    console.log('');
-    console.log('Then run:');
-    console.log(`  DMS_TOKEN=your-token-value node scripts/create-dummy-collections.js`);
-    console.log('  or');
-    console.log(`  node scripts/create-dummy-collections.js [API_URL] [USER_EMAIL] [DMS_TOKEN]`);
-    console.log('');
-    process.exit(1);
+  if (DMS_TOKEN) {
+    console.log('✓ Authentication: Using DMS_TOKEN cookie');
+  } else {
+    console.log('⚠ Authentication: No DMS_TOKEN provided - will skip role assignment');
+    console.log('  (Collections and items will be created without authentication)');
   }
-  
-  console.log('✓ Authentication: Using DMS_TOKEN cookie');
   console.log('');
 
   try {
-    // Step 0: Get the actual logged-in user's email
-    console.log('='.repeat(60));
-    console.log('Getting logged-in user');
-    console.log('='.repeat(60));
-    const actualUserEmail = await getLoggedInUserEmail();
-    console.log('');
+    let actualUserEmail = null;
+    let group = null;
     
-    // Step 1: Get or create user group
-    console.log('='.repeat(60));
-    console.log('Setting up user group');
-    console.log('='.repeat(60));
-    const group = await getOrCreateUserGroup(actualUserEmail);
-    console.log('');
+    // Step 0: Get the actual logged-in user's email (only if authenticated)
+    if (DMS_TOKEN) {
+      console.log('='.repeat(60));
+      console.log('Getting logged-in user');
+      console.log('='.repeat(60));
+      actualUserEmail = await getLoggedInUserEmail();
+      console.log('');
+      
+      // Step 1: Get or create user group
+      console.log('='.repeat(60));
+      console.log('Setting up user group');
+      console.log('='.repeat(60));
+      group = await getOrCreateUserGroup(actualUserEmail);
+      console.log('');
+    } else {
+      console.log('⚠ Skipping authentication steps (no DMS_TOKEN provided)');
+      console.log('');
+    }
 
     // Step 2: Create dummy collections
     console.log('='.repeat(60));
@@ -414,15 +415,20 @@ async function main() {
       return;
     }
 
-    // Step 3: Assign collection permissions
-    console.log('');
-    console.log('='.repeat(60));
-    console.log('Assigning collection permissions');
-    console.log('='.repeat(60));
-    
-    // Assign COLLECTION_DATA_STEWARD role to the group for each collection
-    for (const collectionId of createdCollections) {
-      await assignCollectionRole(group.id, collectionId, 'collection_data_steward');
+    // Step 3: Assign collection permissions (only if authenticated)
+    if (DMS_TOKEN && group) {
+      console.log('');
+      console.log('='.repeat(60));
+      console.log('Assigning collection permissions');
+      console.log('='.repeat(60));
+      
+      // Assign COLLECTION_DATA_STEWARD role to the group for each collection
+      for (const collectionId of createdCollections) {
+        await assignCollectionRole(group.id, collectionId, 'collection_data_steward');
+      }
+    } else {
+      console.log('');
+      console.log('⚠ Skipping role assignment (no authentication provided)');
     }
 
     // Step 4: Upload dummy data to collections
@@ -456,8 +462,12 @@ async function main() {
     console.log('='.repeat(60));
     console.log('Summary');
     console.log('='.repeat(60));
-    console.log(`✓ User: ${actualUserEmail}`);
-    console.log(`✓ Group: ${group.name} (${group.id})`);
+    if (actualUserEmail) {
+      console.log(`✓ User: ${actualUserEmail}`);
+    }
+    if (group) {
+      console.log(`✓ Group: ${group.name} (${group.id})`);
+    }
     console.log(`✓ Collections created: ${createdCollections.length}`);
     createdCollections.forEach(id => {
       console.log(`  - ${id}`);
@@ -466,13 +476,18 @@ async function main() {
     console.log(`✗ Items failed: ${totalFailed}`);
     console.log('');
     console.log('✓ Setup complete!');
-    console.log(`\nUser ${actualUserEmail} now has COLLECTION_DATA_STEWARD rights on all created collections.`);
+    if (actualUserEmail) {
+      console.log(`\nUser ${actualUserEmail} now has COLLECTION_DATA_STEWARD rights on all created collections.`);
+    } else {
+      console.log(`\nCollections and items created without authentication.`);
+      console.log(`To assign permissions, run the script again with DMS_TOKEN.`);
+    }
 
   } catch (error) {
     console.error('\n✗ Error:', error.message);
     
-    // Provide helpful message for authentication errors
-    if (error.message && error.message.includes('401')) {
+    // Provide helpful message for authentication errors (only if DMS_TOKEN was provided)
+    if (DMS_TOKEN && error.message && (error.message.includes('401') || error.message.includes('Authentication'))) {
       console.log('');
       console.log('Authentication failed. Please:');
       console.log('1. Make sure you are logged in via the browser');

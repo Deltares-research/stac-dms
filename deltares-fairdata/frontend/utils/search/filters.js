@@ -48,9 +48,19 @@ export function textFilter(q = '') {
  * @returns { {op:'or', args:any[]} | {op:'not', args:any[]} | undefined }
  */
 export function geometryFilter(bbox, { includeEmptyGeometry = false } = {}) {
-    
+  // Handle both ref objects (bbox.value) and plain arrays
+  const bboxValue = bbox && typeof bbox === 'object' && 'value' in bbox ? bbox.value : bbox
+  
+  // Check if bbox is a valid array with 4 elements (not the default whole-world bbox)
+  const defaultBbox = [180, 90, -180, -90]
+  const isValidBbox = Array.isArray(bboxValue) && 
+    bboxValue.length === 4 &&
+    (bboxValue[0] !== defaultBbox[0] || 
+     bboxValue[1] !== defaultBbox[1] || 
+     bboxValue[2] !== defaultBbox[2] || 
+     bboxValue[3] !== defaultBbox[3])
 
-  const geom = (bbox && bbox.value) ? bboxPolygon(bbox.value).geometry : undefined 
+  const geom = isValidBbox ? bboxPolygon(bboxValue).geometry : undefined 
  
   const geomArgs = [
     geom

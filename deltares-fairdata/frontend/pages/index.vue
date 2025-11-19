@@ -10,7 +10,7 @@
         <v-sheet class="left-scroll pa-4">
           <!-- Not authenticated state -->
           <div
-            v-if="!isAuthenticated && !authLoading"
+            v-if="!canAccess && configStore.authEnabled && !authLoading"
             class="d-flex flex-column justify-center align-center text-center"
             style="height: 200px;"
           >
@@ -30,7 +30,7 @@
           </div>
 
           <!-- Authenticated state with features -->
-          <div v-else-if="isAuthenticated">
+          <div v-else-if="canAccess">
             <feature-filters
               :options="filterOptions"
               class="mb-4"
@@ -64,7 +64,12 @@
                 :key="f.id"
                 cols="12"
               >
-                <v-card class="mb-4" variant="elevated">
+                <v-card 
+                  class="mb-4" 
+                  variant="elevated"
+                  :class="{ 'selected-feature': f.id === store.selectedFeatureId }"
+                  @click="store.setSelectedFeature(f.id)"
+                >
                   <v-card-title class="text-wrap">
                     {{ f.properties?.title || 'Untitled' }}
                   </v-card-title>
@@ -123,17 +128,28 @@
 </template>
 
 <script setup>
-  import { computed, watch, onMounted, ref } from 'vue'
+  import { computed, watch, ref } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
   import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
+  import { useConfigStore } from '~/stores/config'
+  import { useNuxtApp } from '#app'
   import FeatureFilters from '@/components/FeatureFilters.vue'
   import { formatDate } from '~/utils/helpers'
 
-
   const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const configStore = useConfigStore()
+  const nuxtApp = useNuxtApp()
   
- 
+  // When auth is disabled, allow access without authentication
+  const canAccess = computed(() => {
+    // Wait for config to be loaded
+    if (configStore.authEnabled === null) {
+      return false
+    }
+    return !configStore.authEnabled || isAuthenticated.value
+  })
+
   const store = useSearchPageStore()
   const route = useRoute() 
   
@@ -143,39 +159,44 @@
   store.startDate = q.start || undefined
   store.endDate = q.end || undefined
   store.keywords = toArr(q.keywords)
-  store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
+  // If URL has includeEmptyGeometry parameter, use it; otherwise keep default (false)
+  if (q.includeEmptyGeometry !== undefined) {
+    store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
+  }
 
- 
+  // Fetch collections during SSR
+  await store.fetchCollections()
+  const ids = toArr(q.collections)
+  if (ids.length > 0) {
+    store.collections = store.collections.map(c => ({
+      ...c,
+      selected: ids.includes(c.id)
+    }))
+  }
+
+  // Perform initial search during SSR if access is allowed
+  // This runs on both server and client, preserving SSR benefits
+  if (canAccess.value) {
+    await store.search()
+  }
+
   const queryInput = ref(store.q || '')
   function applyQuery() {
     store.q = (queryInput.value || '').trim()
   }
-  
-  onMounted(async () => {
-    await store.fetchCollections()
-    const ids = toArr(q.collections)
-    if (ids.length > 0) {
-      store.collections = store.collections.map(c => ({
-        ...c,
-        selected: ids.includes(c.id)
-      }))
-    }
-  })
-  
 
   watch(
-    () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, isAuthenticated.value],
+    () => [store.q, store.startDate, store.endDate, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
     () => {
-      if (isAuthenticated.value) {
+      if (canAccess.value) {
         store.search()
       }
     },
-    { deep: true, immediate: true }
+    { deep: true }
   )
 
-
   const features = computed(() => {
-    if (!isAuthenticated.value) {
+    if (!canAccess.value) {
       return []
     }
     const collection = store.featureCollection
@@ -256,8 +277,15 @@
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Selected feature highlighting */
+.selected-feature {
+  border: 2px solid rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.05);
 }
 </style>
 
