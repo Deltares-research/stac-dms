@@ -1,5 +1,5 @@
 <template>
-  <div class="item-map-wrapper" :style="{ height: height }">
+  <div class="item-map-wrapper">
     <mapbox-map
       v-model:map="mapInstance"
       :access-token="accessToken"
@@ -19,12 +19,7 @@
 
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
-  const props = defineProps({
-    height: {
-      type: String,
-      default: '400px',
-    },
-  })
+
   // Default center (Netherlands)
   const center = ref([5.1, 52.07])
   const zoom = ref(10.5)
@@ -32,20 +27,17 @@
 
   function onMapCreated(map) {
     mapInstance.value = map
+    console.log(map)
   }
 
 </script>
 
 <style scoped>
-.item-map-wrapper {
-  width: 100%;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.item-map-wrapper :deep(.mapboxgl-map) {
-  width: 100%;
-  height: 100%;
+.item-map-wrapper, .item-map-wrapper :deep(.mapboxgl-map) { 
+  width: 100%; 
+  height: 100%; 
+  min-height: 300px;
 }
 </style>
+
 
