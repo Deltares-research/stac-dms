@@ -29,6 +29,14 @@ export default defineNuxtConfig({
     },
   },
 
+  runtimeConfig: {
+    // Private keys (only available on server-side)
+    // Public keys (exposed to client-side)
+    public: {
+      authEnabled: process.env.AUTH_ENABLED === 'true',
+    },
+  },
+
   openFetch: {
     clients: {
       api: {

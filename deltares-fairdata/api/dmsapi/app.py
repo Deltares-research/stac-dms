@@ -146,15 +146,6 @@ api = StacDmsApi(
 )
 
 
-@app.get("/config")
-async def get_config():
-    """Return public configuration including auth status."""
-    auth_enabled_value = getattr(settings, 'auth_enabled', None) or ""
-    return {
-        "auth_enabled": auth_enabled_value.lower() != "false"
-    }
-
-
 # def create_handler(app):
 #     """Create a handler to use with AWS Lambda if mangum available."""
 #     try:

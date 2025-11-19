@@ -27,28 +27,22 @@
   const { isAuthenticated, isLoading, checkAuth } = useAuth()
   const configStore = useConfigStore()
   
-  // Fetch configuration first
-  await configStore.fetchConfig(nuxtApp.$api)
+  // No need to fetch config anymore - it's read from runtimeConfig
   
   // Only check auth if auth is enabled
   if (configStore.authEnabled) {
-    // Check authentication on server-side (SSR)
-    // Pass the $api instance to avoid calling useNuxtApp() in stores during SSR
     await checkAuth(nuxtApp.$api)
   }
-  
+
   const layoutName = computed(() => {
-    // If auth is disabled, always use logged-in layout
     if (!configStore.authEnabled) {
       return 'logged-in'
     }
-    
-    // If auth is enabled, switch based on authentication state
     if (isAuthenticated.value) {
       return 'logged-in'
     }
     return 'default'
   })
-  
-  const configLoading = computed(() => configStore.isLoading)
+
+  // Remove configLoading - no longer needed
 </script>
