@@ -61,12 +61,6 @@ jobs:
         working-directory: deltares-fairdata/api
         run: uv run pytest tests/ --junit-xml=test-results.xml
 
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: |
-            deltares-fairdata/api/test-results.xml
 
   build-image:
     runs-on: ubuntu-latest

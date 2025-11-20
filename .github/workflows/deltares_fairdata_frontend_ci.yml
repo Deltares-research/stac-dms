@@ -38,6 +38,7 @@ env:
   CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-cluster-prod' || 'dms-cluster-dev' }}
   TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-frontend-prod' || 'dms-frontend-dev' }}
   SERVICE_NAME: frontend-service
+  
 
 jobs:
   build-image:
@@ -47,7 +48,10 @@ jobs:
       - name: Checkout the repository to the runner
         uses: actions/checkout@v2
       - name: Create .env file
-        run: echo "API_URL=${{ env.API_URL }}" > deltares-fairdata/frontend/.env
+        run: |
+          echo "API_URL=${{ env.API_URL }}" > deltares-fairdata/frontend/.env
+          echo "VITE_MAPBOX_TOKEN=${{ secrets.VITE_MAPBOX_TOKEN }}" >> deltares-fairdata/frontend/.env
+          echo "AUTH_ENABLED=${{ env.AUTH_ENABLED }}" >> deltares-fairdata/frontend/.env
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
