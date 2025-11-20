@@ -4,11 +4,11 @@
       <v-col cols="12" md="8">
         <v-card>
           <v-card-title>
-            <h1>Keywords Management</h1>
+            <h1>Groups Management</h1>
           </v-card-title>
           <v-card-text>
-            <p>This page will contain the keywords management interface.</p>
-            <p>Only users with 'keyword:all' permission can access this page.</p>
+            <p>This page will contain the groups management interface.</p>
+            <p>Only users with 'group:read' permission can access this page.</p>
           </v-card-text>
         </v-card>
       </v-col>
@@ -20,6 +20,6 @@
   // This page requires specific permission
   // definePageMeta({
   //   middleware: 'permissions',
-  //   permission: 'keyword:all'
+  //   permission: 'group:read'
   // })
 </script>

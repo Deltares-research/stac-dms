@@ -42,6 +42,7 @@ class SSOAuthExtension(ApiExtension):
     """
 
     sso_client: SSOBase
+    settings: DMSAPISettings
     algorithm: str = "HS256"
     public_endpoints: List[Scope] = []
 
@@ -53,6 +54,7 @@ class SSOAuthExtension(ApiExtension):
         public_endpoints: Optional[List[Scope]] = None,
     ):
         self.sso_client = sso_client
+        self.settings = settings
         global APP_SECRET_KEY
         APP_SECRET_KEY = OctKey.import_key(settings.app_secret_key)
         if algorithm:
@@ -134,7 +136,11 @@ class SSOAuthExtension(ApiExtension):
 
     async def logout(self):
         """Forget the user's session."""
-        response = RedirectResponse(url="/")
+        frontend_url = self.settings.frontend_url.strip().rstrip('/')
+        # Ensure URL is absolute (starts with http:// or https://)
+        if not frontend_url.startswith(('http://', 'https://')):
+            _LOGGER.warning(f"frontend_url '{frontend_url}' is not absolute, redirect may fail")
+        response = RedirectResponse(url=f"{frontend_url}/")
         response.delete_cookie(key=COOKIE_NAME)
         return response
 
@@ -144,7 +150,11 @@ class SSOAuthExtension(ApiExtension):
             openid = await self.sso_client.verify_and_process(request)
             if not openid:
                 raise HTTPException(status_code=401, detail="Authentication failed")
-        response = RedirectResponse(url="/")
+        frontend_url = self.settings.frontend_url.strip().rstrip('/')
+        # Ensure URL is absolute (starts with http:// or https://)
+        if not frontend_url.startswith(('http://', 'https://')):
+            _LOGGER.warning(f"frontend_url '{frontend_url}' is not absolute, redirect may fail")
+        response = RedirectResponse(url=f"{frontend_url}/")
         expiration, token = self.create_token(openid, APP_SECRET_KEY)
         response.set_cookie(
             key=COOKIE_NAME, value=token, expires=expiration

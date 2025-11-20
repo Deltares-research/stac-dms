@@ -4,11 +4,11 @@
       <v-col cols="12" md="8">
         <v-card>
           <v-card-title>
-            <h1>Keywords Management</h1>
+            <h1>Domains Management</h1>
           </v-card-title>
           <v-card-text>
-            <p>This page will contain the keywords management interface.</p>
-            <p>Only users with 'keyword:all' permission can access this page.</p>
+            <p>This page will contain the domains (collections) management interface.</p>
+            <p>Only users with 'collection:create' permission can access this page.</p>
           </v-card-text>
         </v-card>
       </v-col>
@@ -20,6 +20,11 @@
   // This page requires specific permission
   // definePageMeta({
   //   middleware: 'permissions',
-  //   permission: 'keyword:all'
+  //   permission: 'collection:create'
   // })
+  
+  // Component name for Vue linting
+  defineOptions({
+    name: 'DomainsPage'
+  })
 </script>

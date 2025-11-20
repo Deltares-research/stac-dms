@@ -64,6 +64,7 @@ class DMSAPISettings(OpensearchSettings):
     app_secret_key: str = ""
     db_connection_url: str = ""
     environment: str = "local"
+    frontend_url: str = ""
     es_use_ssl: str = "true"
     es_host: str = "0.0.0.0"
     es_port: str = "9200"
@@ -74,6 +75,7 @@ class DMSAPISettings(OpensearchSettings):
     es_pass: Optional[str] = None
     es_api_key: Optional[str] = None
     admin_users: Optional[str] = None
+    auth_enabled: str = ""
 
     @property
     def create_client(self):
@@ -94,6 +96,7 @@ class AsyncDMSAPISettings(OpensearchSettings):
     app_secret_key: str = ""
     db_connection_url: str = ""
     environment: str = "local"
+    frontend_url: str = ""
     es_use_ssl: str = "true"
     es_host: str
     es_port: str
@@ -104,6 +107,7 @@ class AsyncDMSAPISettings(OpensearchSettings):
     es_pass: Optional[str] = None
     es_api_key: Optional[str] = None
     admin_users: Optional[str] = None
+    auth_enabled: str = ""
 
     @property
     def create_client(self):
