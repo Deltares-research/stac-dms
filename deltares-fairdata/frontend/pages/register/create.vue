@@ -475,13 +475,13 @@
             <v-card-title class="text-h6">
               Geometry
             </v-card-title>
-            <v-card-text>
-              <div v-if="formData.geometry" class="mb-4">
-                <item-map-component
-                  height="300px"
-                />
+            <v-card-text style="min-height: 300px;">
+              <div class="mb-4 map-wrapper">
+                <item-map-component />
               </div>
-              <p v-else class="text-body-2 text-grey-darken-1 mb-4">
+            </v-card-text>
+            <v-card-text>
+              <p v-if="!formData.geometry" class="text-body-2 text-grey-darken-1 mb-4">
                 No geometry set. Use the coordinate input below or draw on the map.
               </p>
               
@@ -978,5 +978,6 @@
   .border-b {
     border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   }
+  .map-wrapper, .map-wrapper .mapboxgl-map { width: 100%; height: 100%; }
 </style>
 

@@ -68,7 +68,6 @@
                   class="mb-4" 
                   variant="elevated"
                   :class="{ 'selected-feature': f.id === store.selectedFeatureId }"
-                  @click="store.setSelectedFeature(f.id)"
                 >
                   <v-card-title class="text-wrap">
                     {{ f.properties?.title || 'Untitled' }}
@@ -101,6 +100,17 @@
                       >
                         View details
                       </v-btn>
+                    </div>
+
+                    <!-- Add this new paragraph for view details -->
+                    <div class="mb-3">
+                      <p 
+                        class="text-body-2 text-primary cursor-pointer"
+                        style="text-decoration: underline;"
+                        @click="navigateToView(f.id)"
+                      >
+                        View details
+                      </p>
                     </div>
 
                     <div class="text-body-2">
@@ -136,6 +146,7 @@
   import { useNuxtApp } from '#app'
   import FeatureFilters from '@/components/FeatureFilters.vue'
   import { formatDate } from '~/utils/helpers'
+  import { useRouter } from 'vue-router'
 
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const configStore = useConfigStore()
@@ -151,7 +162,8 @@
   })
 
   const store = useSearchPageStore()
-  const route = useRoute() 
+  const route = useRoute()
+  const router = useRouter()
   
   const q = route.query
   
@@ -251,6 +263,10 @@
       keyword: [...kw].sort(sortAsc),
     }
   })
+
+  function navigateToView(itemId) {
+    router.push(`/register/${itemId}/view`)
+  }
 </script>
 
 <style scoped>
