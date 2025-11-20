@@ -25,8 +25,9 @@
         @mb-feature-click="onFeatureClicked"
         @mb-cluster-click="onClusterClicked"
       />
+      <!-- Only auto-zoom to search results if no polygon filter is active -->
       <MapControlsZoom
-        v-if="bounds.length >= 4"
+        v-if="bounds.length >= 4 && !hasActivePolygonFilter"
         :bounds="bounds"
       />
       <MapCustomImage
@@ -46,11 +47,12 @@
       />
       
       <!-- Draw control for area selection -->
-      <MapboxDrawControl
+      <MapSelectTool
         v-if="mapInstance"
         ref="drawControlRef"
         :map="mapInstance"
-        :draw-mode="drawMode"
+        :show-buttons="true"
+        :enabled-tools="['polygon']"
         @change="onDrawChange"
       />
       
@@ -118,7 +120,7 @@
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
-  import MapboxDrawControl from '@/components/MapboxDrawControl.vue'
+  import MapSelectTool from '@/components/MapSelectTool.vue'
   import { formatDate } from '~/utils/helpers'
   import * as geojsonBounds from 'geojson-bounds'
 
@@ -137,20 +139,57 @@
   // Default bbox (whole world)
   const DEFAULT_BBOX = [180, 90, -180, -90]
   
-  // Draw mode for area selection
-  const drawMode = computed(() => {
-    return store.areaDrawMode ? 'rectangle' : null
+  // Flag to prevent recursive updates
+  const isClearingPolygon = ref(false)
+  
+  // Check if polygon filter is active (bbox is not default)
+  const hasActivePolygonFilter = computed(() => {
+    if (!store.bboxFilter || store.bboxFilter.length !== 4) return false
+    return store.bboxFilter[0] !== DEFAULT_BBOX[0] ||
+      store.bboxFilter[1] !== DEFAULT_BBOX[1] ||
+      store.bboxFilter[2] !== DEFAULT_BBOX[2] ||
+      store.bboxFilter[3] !== DEFAULT_BBOX[3]
   })
   
-  // Watch for areaDrawMode changes to clear draw when disabled
+  // Watch for bboxFilter changes to clear polygon when reset to default
   watch(
-    () => store.areaDrawMode,
-    (isActive) => {
-      if (!isActive && drawControlRef.value) {
-        // Clear the drawn rectangle when draw mode is disabled
-        drawControlRef.value.clear()
-        // Reset bbox filter to default
-        store.bboxFilter = [...DEFAULT_BBOX]
+    () => store.bboxFilter,
+    (newBbox, oldBbox) => {
+      // Skip if we're already clearing (prevent recursion)
+      if (isClearingPolygon.value) return
+      
+      // Only clear if bboxFilter was changed from non-default to default
+      // (i.e., not when it's already default)
+      const wasNonDefault = oldBbox && oldBbox.length === 4 &&
+        (oldBbox[0] !== DEFAULT_BBOX[0] ||
+          oldBbox[1] !== DEFAULT_BBOX[1] ||
+          oldBbox[2] !== DEFAULT_BBOX[2] ||
+          oldBbox[3] !== DEFAULT_BBOX[3])
+      
+      // If bboxFilter is reset to default (and it wasn't already default), clear the polygon on map
+      if (wasNonDefault &&
+        newBbox &&
+        newBbox.length === 4 &&
+        newBbox[0] === DEFAULT_BBOX[0] &&
+        newBbox[1] === DEFAULT_BBOX[1] &&
+        newBbox[2] === DEFAULT_BBOX[2] &&
+        newBbox[3] === DEFAULT_BBOX[3] &&
+        drawControlRef.value) {
+        // Check if polygon actually exists before clearing
+        const draw = drawControlRef.value.getDraw()
+        if (draw) {
+          const { features } = draw.getAll()
+          if (features && features.length > 0) {
+            isClearingPolygon.value = true
+            drawControlRef.value.clear()
+            // Reset flag after a short delay to allow the clear to complete
+            nextTick(() => {
+              setTimeout(() => {
+                isClearingPolygon.value = false
+              }, 100)
+            })
+          }
+        }
       }
     }
   )
@@ -276,7 +315,7 @@
         return [coords[0], coords[1]]
       }
       return null
-    } catch (error) {
+    } catch {
       return null
     }
   })
@@ -383,13 +422,13 @@
     }, 400)
   }
   
-  function onClusterClicked(clusterId, event) {
+  function onClusterClicked() {
     // Handle cluster click - clear selection and let default zoom behavior happen
     selectedFeature.value = null
     store.clearSelectedFeature()
   }
   
-  function onMapClick(event) {
+  function onMapClick() {
     // Only clear selection if clicking empty map area (not on a feature)
     // Cancel any previous pending map click handler
     if (mapClickTimeout) {
@@ -415,11 +454,23 @@
   }
 
   
-  // Handle draw control changes (when user draws a rectangle)
-  function onDrawChange(feature) {
+  // Handle draw control changes (when user draws a polygon)
+  function onDrawChange({ feature }) {
+    // Skip if we're in the middle of programmatic clearing
+    if (isClearingPolygon.value) return
+    
     if (!feature || !feature.geometry) {
       // Draw was cleared - reset bbox filter to default
-      store.bboxFilter = [...DEFAULT_BBOX]
+      // Only update if it's not already default (prevent unnecessary updates)
+      const currentBbox = store.bboxFilter
+      if (!currentBbox ||
+        currentBbox.length !== 4 ||
+        currentBbox[0] !== DEFAULT_BBOX[0] ||
+        currentBbox[1] !== DEFAULT_BBOX[1] ||
+        currentBbox[2] !== DEFAULT_BBOX[2] ||
+        currentBbox[3] !== DEFAULT_BBOX[3]) {
+        store.bboxFilter = [...DEFAULT_BBOX]
+      }
       return
     }
     

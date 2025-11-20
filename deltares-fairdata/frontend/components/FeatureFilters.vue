@@ -293,40 +293,6 @@
             </v-col>
           </v-row>
 
-          <!-- Area Filter -->
-          <v-row>
-            <v-col
-              cols="12"
-              md="4"
-              class="filter-col"
-            >
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-subtitle-2">
-                  Area
-                </div>
-                <v-btn
-                  v-if="hasActiveAreaFilter"
-                  size="x-small"
-                  variant="text"
-                  @click="clearAreaFilter"
-                >
-                  Clear
-                </v-btn>
-              </div>
-              <v-btn
-                variant="outlined"
-                block
-                :color="store.areaDrawMode ? 'primary' : undefined"
-                @click="toggleAreaDraw"
-              >
-                <v-icon start>
-                  mdi-selection-drag
-                </v-icon>
-                {{ store.areaDrawMode ? 'Drawing...' : 'Draw area on map' }}
-              </v-btn>
-            </v-col>
-          </v-row>
-
           <!-- Include Empty Geometry Checkbox -->
           <v-row>
             <v-col
@@ -365,15 +331,6 @@
   const expanded = ref(false)
   const rootEl = ref(null)
   
-  // Check if area filter is active (bbox is not default)
-  const defaultBbox = [180, 90, -180, -90]
-  const hasActiveAreaFilter = computed(() => {
-    if (!store.bboxFilter) return false
-    return store.bboxFilter[0] !== defaultBbox[0] || 
-      store.bboxFilter[1] !== defaultBbox[1] || 
-      store.bboxFilter[2] !== defaultBbox[2] || 
-      store.bboxFilter[3] !== defaultBbox[3]
-  })
 
   /* --- Convert store arrays to single values for display --- */
   const selectedCollection = computed({
@@ -463,17 +420,6 @@
     endMenu.value = false
   }
 
-  function toggleAreaDraw() {
-    store.areaDrawMode = !store.areaDrawMode
-  }
-  
-  function clearAreaFilter() {
-    store.areaDrawMode = false
-    // Reset bbox filter to default (whole world)
-    // This will be handled by the watcher in MapComponent, but we set it here too for consistency
-    store.bboxFilter = [180, 90, -180, -90]
-  }
-  
   function clear () {
     store.q = ''
     store.collections = store.collections.map(c => ({ ...c, selected: false }))
@@ -482,7 +428,6 @@
     store.endDate = undefined
     store.includeEmptyGeometry = false
     store.topics = store.topics.map(t => ({ ...t, selected: false }))
-    store.areaDrawMode = false
     store.bboxFilter = [180, 90, -180, -90]
   }
   function clearOne (key) {
@@ -504,7 +449,8 @@
         t.id === topicId ? { ...t, selected: false } : t
       )
     } else if (key === 'area') {
-      clearAreaFilter()
+      // Clear area filter by resetting bbox to default
+      store.bboxFilter = [180, 90, -180, -90]
     }
   }
 
@@ -568,8 +514,13 @@
       chips.push({ key: 'includeEmptyGeometry', label: FIELD_LABEL.includeEmptyGeometry, value: 'Yes' })
     }
     
-    // Show area chip if bbox filter is active
-    if (hasActiveAreaFilter.value) {
+    // Show area chip if bbox filter is active (not default)
+    const defaultBbox = [180, 90, -180, -90]
+    if (store.bboxFilter &&
+      (store.bboxFilter[0] !== defaultBbox[0] ||
+        store.bboxFilter[1] !== defaultBbox[1] ||
+        store.bboxFilter[2] !== defaultBbox[2] ||
+        store.bboxFilter[3] !== defaultBbox[3])) {
       chips.push({ key: 'area', label: FIELD_LABEL.area, value: 'Selected' })
     }
     
