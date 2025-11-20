@@ -2,6 +2,7 @@
  * Items API requests
  */
 import { useNuxtApp, useRequestHeaders } from '#app'
+import { useRouter } from 'vue-router'
 
 /**
  * Create a new item in a collection
@@ -91,6 +92,41 @@ export async function deleteItem(collectionId, itemId) {
     })
   } catch (error) {
     console.error('Failed to delete item:', error?.message || error?.toString() || 'Unknown error')
+    throw error
+  }
+}
+
+/**
+ * Fetch a single item by ID using search API
+ * @param {string} itemId - Item ID
+ * @returns {Promise<Object>} Item data
+ */
+export async function fetchItemById(itemId) {
+  const { $api } = useNuxtApp()
+  const headers = process.server ? useRequestHeaders() : {}
+  
+  try {
+    const result = await $api('/search', {
+      method: 'POST',
+      body: {
+        ids: [ itemId ],
+        limit: 1,
+      },
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    })
+    
+    if (result?.features && result.features.length > 0) {
+      return result.features[0]
+    }
+    
+    throw new Error('Item not found')
+  } catch (error) {
+    console.error('Failed to fetch item:', error?.message || error?.toString() || 'Unknown error')
     throw error
   }
 }
