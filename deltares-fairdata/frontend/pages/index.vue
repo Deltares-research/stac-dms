@@ -88,20 +88,6 @@
                       <span v-else>—</span>
                     </div>
 
-                    <div class="mb-3">
-                      <v-btn
-                        v-if="firstAssetHref(f)"
-                        :href="firstAssetHref(f)"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        variant="tonal"
-                        density="comfortable"
-                        prepend-icon="mdi-open-in-new"
-                      >
-                        View details
-                      </v-btn>
-                    </div>
-
                     <!-- Add this new paragraph for view details -->
                     <div class="mb-3">
                       <p 
