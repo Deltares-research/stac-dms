@@ -56,6 +56,7 @@
         <v-container fluid class="py-4">
           <v-row>
             <!-- Domain (collection) -->
+            
             <v-col
               cols="12"
               md="4"
@@ -101,6 +102,56 @@
                 </template>
                 <template #selection="{ item }">
                   {{ item.raw.title }}
+                </template>
+              </v-autocomplete>
+            </v-col>
+
+            <!-- Topic -->
+
+            <v-col
+              cols="12"
+              md="4"
+              class="filter-col"
+            >
+              <div class="text-subtitle-2 mb-2">
+                Topic
+              </div>
+              <v-autocomplete
+                v-model="selectedTopic"
+                :items="store.topics"
+                item-title="id"
+                item-value="id"
+                return-object
+                multiple
+                chips
+                prepend-inner-icon="mdi-magnify"
+                placeholder="Search topic..."
+                variant="outlined"
+                density="compact"
+                clearable
+                hide-details
+                @update:model-value="handleTopicChange"
+              >
+                <template #item="{ props: itemProps, item }">
+                  <v-list-item v-bind="itemProps">
+                    <template #prepend>
+                      <v-list-item-action>
+                        <v-icon v-if="item.raw.selected" color="primary">
+                          mdi-check
+                        </v-icon>
+                      </v-list-item-action>
+                    </template>
+                    <v-list-item-title>
+                      <div class="d-flex justify-space-between align-center">
+                        <div class="text-caption text-grey-darken-1">
+                          {{ item.raw.count }} items
+                        </div>
+                      </div>
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+                <template #selection="{ item }">
+                  {{ item.raw.id }}
                 </template>
               </v-autocomplete>
             </v-col>
@@ -300,15 +351,15 @@
   import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
 
-  const props = defineProps({
-    options: {
-      type: Object,
-      default: () => ({
-        collection: [],
-        keyword: [],
-      }),
-    },
-  })
+  // const props = defineProps({
+  //   options: {
+  //     type: Object,
+  //     default: () => ({
+  //       collection: [],
+  //       keyword: [],
+  //     }),
+  //   },
+  // })
 
   const store = useSearchPageStore()
   const expanded = ref(false)
@@ -319,9 +370,9 @@
   const hasActiveAreaFilter = computed(() => {
     if (!store.bboxFilter) return false
     return store.bboxFilter[0] !== defaultBbox[0] || 
-           store.bboxFilter[1] !== defaultBbox[1] || 
-           store.bboxFilter[2] !== defaultBbox[2] || 
-           store.bboxFilter[3] !== defaultBbox[3]
+      store.bboxFilter[1] !== defaultBbox[1] || 
+      store.bboxFilter[2] !== defaultBbox[2] || 
+      store.bboxFilter[3] !== defaultBbox[3]
   })
 
   /* --- Convert store arrays to single values for display --- */
@@ -349,6 +400,36 @@
       store.collections = store.collections.map(c => ({
         ...c,
         selected: c.id === value.id
+      }))
+    }
+  }
+
+  const selectedTopic = computed({
+    get: () => {
+      const selected = store.topics.filter(t => t.selected)
+      return selected
+    },
+    set: (value) => {
+      if (!value || value.length === 0) {
+        store.topics = store.topics.map(t => ({ ...t, selected: false }))
+      } else {
+        const selectedIds = value.map(v => v.id)
+        store.topics = store.topics.map(t => ({
+          ...t,
+          selected: selectedIds.includes(t.id)
+        }))
+      }
+    },
+  })
+
+  function handleTopicChange(value) {
+    if (!value || value.length === 0) {
+      store.topics = store.topics.map(t => ({ ...t, selected: false }))
+    } else {
+      const selectedIds = value.map(v => v.id)
+      store.topics = store.topics.map(t => ({
+        ...t,
+        selected: selectedIds.includes(t.id)
       }))
     }
   }
@@ -400,6 +481,7 @@
     store.startDate = undefined
     store.endDate = undefined
     store.includeEmptyGeometry = false
+    store.topics = store.topics.map(t => ({ ...t, selected: false }))
     store.areaDrawMode = false
     store.bboxFilter = [180, 90, -180, -90]
   }
@@ -416,6 +498,11 @@
       store.keywords = []
     } else if (key === 'includeEmptyGeometry') {
       store.includeEmptyGeometry = false
+    } else if (key.startsWith('topic-')) {
+      const topicId = key.replace('topic-', '')
+      store.topics = store.topics.map(t => 
+        t.id === topicId ? { ...t, selected: false } : t
+      )
     } else if (key === 'area') {
       clearAreaFilter()
     }
@@ -424,6 +511,7 @@
   const FIELD_LABEL = {
     query: 'Search',
     collection: 'Domain',
+    topic: 'Topic',
     keyword: 'Keyword',
     startDate: 'Start date',
     endDate: 'End date',
@@ -468,6 +556,13 @@
     if (store.keywords && store.keywords.length > 0) {
       chips.push({ key: 'keyword', label: FIELD_LABEL.keyword, value: store.keywords[0] })
     }
+
+    if (store.topics && store.topics.length > 0) {
+      const selectedTopics = store.topics.filter(t => t.selected)
+      selectedTopics.forEach(topic => {
+        chips.push({ key: `topic-${topic.id}`, label: FIELD_LABEL.topic, value: topic.id })
+      })
+    } 
     
     if (store.includeEmptyGeometry) {
       chips.push({ key: 'includeEmptyGeometry', label: FIELD_LABEL.includeEmptyGeometry, value: 'Yes' })

@@ -113,6 +113,32 @@ export function keywordsFilter(keywords) {
 }
 
 /**
+ * Topics filter.
+ * Expects topic IDs and targets deltares:topics property.
+ * Uses 'or' with '=' operators since deltares:topic is an array property.
+ *
+ * @param {string[]} topics
+ * @returns {{op:'or', args:any[]} | undefined}
+ */
+export function topicsFilter(topics) {
+  if (!Array.isArray(topics) || topics.length === 0) return undefined
+  
+  // If only one topic, return a simple equality check
+  if (topics.length === 1) {
+    return { op: 'like', args: [ { property: 'properties.deltares:topics' }, topics[0] ] }
+  }
+  
+  // Multiple topics - use OR
+  return {
+    op: 'or',
+    args: topics.map(topic => ({
+      op: 'like',
+      args: [ { property: 'properties.deltares:topics' }, topic ],
+    })),
+  }
+}
+
+/**
  * Date/time filter that supports either:
  * - a single datetime field: properties.datetime
  * - a start/end range: properties.start_datetime .. properties.end_datetime
@@ -157,11 +183,12 @@ export function dateFilter(startDate, endDate) {
  * Compose your final CQL2-JSON filter with the blocks you want.
  * Pass only the params you need; undefined blocks are ignored.
  */
-export function buildFilter({ q = '', bbox, includeEmptyGeometry = false, keywords = [], startDate, endDate } = {}) {
+export function buildFilter({ q = '', bbox, includeEmptyGeometry = false, keywords = [], topics = [], startDate, endDate } = {}) {
   const filters = [
     geometryFilter(bbox, { includeEmptyGeometry }),
     textFilter(q),
     keywordsFilter(keywords),
+    topicsFilter(topics),
     dateFilter(startDate, endDate),
   ].filter(Boolean) // Remove undefined filters
 
