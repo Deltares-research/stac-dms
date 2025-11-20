@@ -97,160 +97,214 @@
 
           <!-- Assets Section -->
           <v-card class="mb-4">
-            <v-card-title class="text-h6">
+            <v-card-title class="text-subtitle-1 d-flex align-center bg-grey-lighten-3">
+              <v-icon
+                class="mr-2"
+                size="small"
+                style="opacity: 0.3"
+              >
+                mdi-file
+              </v-icon>
               Assets
+              <v-spacer />
+              <v-btn
+                icon
+                variant="text"
+                size="small"
+                @click="assetsExpanded = !assetsExpanded"
+              >
+                <v-icon>{{ assetsExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+              </v-btn>
             </v-card-title>
-            <v-card-text>
-              <div v-if="!assets || assets.length === 0" class="text-body-2 text-grey-darken-1">
-                No assets available
-              </div>
-              <div v-else>
-                <div
-                  v-for="(assetGroup, role) in groupedAssets"
-                  :key="role"
-                  class="mb-6"
-                >
-                  <h3 class="text-subtitle-1 font-weight-medium mb-3 text-primary">
-                    {{ role }}
-                  </h3>
-                  <div class="d-flex flex-column" style="gap: 16px;">
-                    <v-card
-                      v-for="asset in assetGroup"
-                      :key="asset.key"
-                      variant="outlined"
-                      class="pa-4"
-                    >
-                      <div class="d-flex justify-space-between align-center mb-2">
-                        <h4 class="text-subtitle-2 font-weight-medium">
-                          {{ asset.title }}
-                        </h4>
-                        <v-chip
-                          size="small"
-                          color="primary"
-                          variant="tonal"
-                        >
-                          {{ asset.type }}
-                        </v-chip>
-                      </div>
-                      <p v-if="asset.description" class="text-body-2 text-grey-darken-1 mb-2">
-                        {{ asset.description }}
-                      </p>
-                      <div class="text-body-2 text-grey-darken-1 mb-3" style="word-break: break-all;">
-                        <v-icon size="small" class="mr-1">
-                          mdi-link
-                        </v-icon>
-                        {{ asset.href }}
-                      </div>
-                      <div>
-                        <v-btn
-                          v-if="isUrl(asset.href)"
-                          :href="asset.href"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          variant="outlined"
-                          size="small"
-                          prepend-icon="mdi-open-in-new"
-                        >
-                          Open
-                        </v-btn>
-                        <v-btn
-                          v-else
-                          variant="outlined"
-                          size="small"
-                          prepend-icon="mdi-content-copy"
-                          @click="copyToClipboard(asset.href, asset.key)"
-                        >
-                          {{ copiedAssets[asset.key] ? 'Copied!' : 'Copy' }}
-                        </v-btn>
-                      </div>
-                    </v-card>
+            <v-expand-transition>
+              <v-card-text v-show="assetsExpanded">
+                <div v-if="!assets || assets.length === 0" class="text-body-2 text-grey-darken-1">
+                  No assets available
+                </div>
+                <div v-else>
+                  <div
+                    v-for="(assetGroup, role) in groupedAssets"
+                    :key="role"
+                    class="mb-6"
+                  >
+                    <h3 class="text-subtitle-1 font-weight-medium mb-3 text-primary">
+                      {{ role }}
+                    </h3>
+                    <div class="d-flex flex-column" style="gap: 16px;">
+                      <v-card
+                        v-for="asset in assetGroup"
+                        :key="asset.key"
+                        variant="outlined"
+                        class="pa-4"
+                      >
+                        <div class="d-flex justify-space-between align-center mb-2">
+                          <h4 class="text-subtitle-2 font-weight-medium">
+                            {{ asset.title }}
+                          </h4>
+                          <v-chip
+                            size="small"
+                            color="primary"
+                            variant="tonal"
+                          >
+                            {{ asset.type }}
+                          </v-chip>
+                        </div>
+                        <p v-if="asset.description" class="text-body-2 text-grey-darken-1 mb-2">
+                          {{ asset.description }}
+                        </p>
+                        <div class="text-body-2 text-grey-darken-1 mb-3" style="word-break: break-all;">
+                          <v-icon size="small" class="mr-1">
+                            mdi-link
+                          </v-icon>
+                          {{ asset.href }}
+                        </div>
+                        <div>
+                          <v-btn
+                            v-if="isUrl(asset.href)"
+                            :href="asset.href"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="outlined"
+                            size="small"
+                            prepend-icon="mdi-open-in-new"
+                          >
+                            Open
+                          </v-btn>
+                          <v-btn
+                            v-else
+                            variant="outlined"
+                            size="small"
+                            prepend-icon="mdi-content-copy"
+                            @click="copyToClipboard(asset.href, asset.key)"
+                          >
+                            {{ copiedAssets[asset.key] ? 'Copied!' : 'Copy' }}
+                          </v-btn>
+                        </div>
+                      </v-card>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </v-card-text>
+              </v-card-text>
+            </v-expand-transition>
           </v-card>
 
           <!-- Properties Section -->
           <v-card class="mb-4">
-            <v-card-title class="text-h6">
+            <v-card-title class="text-subtitle-1 d-flex align-center bg-grey-lighten-3">
+              <v-icon
+                class="mr-2"
+                size="small"
+                style="opacity: 0.3"
+              >
+                mdi-information
+              </v-icon>
               Properties
+              <v-spacer />
+              <v-btn
+                icon
+                variant="text"
+                size="small"
+                @click="propertiesExpanded = !propertiesExpanded"
+              >
+                <v-icon>{{ propertiesExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+              </v-btn>
             </v-card-title>
-            <v-card-text>
-              <v-table>
-                <tbody>
-                  <tr
-                    v-for="prop in properties"
-                    :key="prop.key"
-                  >
-                    <td class="text-subtitle-2 font-weight-medium">
-                      {{ formatPropertyKey(prop.key) }}
-                    </td>
-                    <td>
-                      <a
-                        v-if="isUrl(prop.value)"
-                        :href="prop.value"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-primary"
-                      >
-                        {{ prop.value }}
-                        <v-icon size="small" class="ml-1">mdi-open-in-new</v-icon>
-                      </a>
-                      <span v-else>{{ formatValue(prop.key, prop.value) }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </v-table>
-            </v-card-text>
+            <v-expand-transition>
+              <v-card-text v-show="propertiesExpanded">
+                <v-table>
+                  <tbody>
+                    <tr
+                      v-for="prop in properties"
+                      :key="prop.key"
+                    >
+                      <td class="text-subtitle-2 font-weight-medium">
+                        {{ formatPropertyKey(prop.key) }}
+                      </td>
+                      <td>
+                        <a
+                          v-if="isUrl(prop.value)"
+                          :href="prop.value"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-primary"
+                        >
+                          {{ prop.value }}
+                          <v-icon size="small" class="ml-1">mdi-open-in-new</v-icon>
+                        </a>
+                        <span v-else>{{ formatValue(prop.key, prop.value) }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </v-card-text>
+            </v-expand-transition>
           </v-card>
 
           <!-- Providers Section (if available) -->
           <v-card v-if="providers && providers.length > 0" class="mb-4">
-            <v-card-title class="text-h6">
+            <v-card-title class="text-subtitle-1 d-flex align-center bg-grey-lighten-3">
+              <v-icon
+                class="mr-2"
+                size="small"
+                style="opacity: 0.3"
+              >
+                mdi-account-group
+              </v-icon>
               Providers
+              <v-spacer />
+              <v-btn
+                icon
+                variant="text"
+                size="small"
+                @click="providersExpanded = !providersExpanded"
+              >
+                <v-icon>{{ providersExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+              </v-btn>
             </v-card-title>
-            <v-card-text>
-              <div class="d-flex flex-column" style="gap: 16px;">
-                <v-card
-                  v-for="(provider, index) in providers"
-                  :key="index"
-                  variant="outlined"
-                  class="pa-4"
-                >
-                  <h4 class="text-subtitle-2 font-weight-medium mb-2">
-                    {{ provider.name }}
-                  </h4>
-                  <p v-if="provider.description" class="text-body-2 text-grey-darken-1 mb-2">
-                    {{ provider.description }}
-                  </p>
-                  <div v-if="provider.url" class="mb-2">
-                    <a
-                      :href="provider.url"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-primary text-body-2"
-                    >
-                      <v-icon size="small" class="mr-1">mdi-link</v-icon>
-                      {{ provider.url }}
-                    </a>
-                  </div>
-                  <div
-                    v-if="provider.role && provider.role.length > 0"
-                    class="d-flex flex-wrap"
-                    style="gap: 8px;"
+            <v-expand-transition>
+              <v-card-text v-show="providersExpanded">
+                <div class="d-flex flex-column" style="gap: 16px;">
+                  <v-card
+                    v-for="(provider, index) in providers"
+                    :key="index"
+                    variant="outlined"
+                    class="pa-4"
                   >
-                    <v-chip
-                      v-for="role in provider.role"
-                      :key="role"
-                      size="small"
-                      variant="tonal"
+                    <h4 class="text-subtitle-2 font-weight-medium mb-2">
+                      {{ provider.name }}
+                    </h4>
+                    <p v-if="provider.description" class="text-body-2 text-grey-darken-1 mb-2">
+                      {{ provider.description }}
+                    </p>
+                    <div v-if="provider.url" class="mb-2">
+                      <a
+                        :href="provider.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-primary text-body-2"
+                      >
+                        <v-icon size="small" class="mr-1">mdi-link</v-icon>
+                        {{ provider.url }}
+                      </a>
+                    </div>
+                    <div
+                      v-if="provider.role && provider.role.length > 0"
+                      class="d-flex flex-wrap"
+                      style="gap: 8px;"
                     >
-                      {{ role }}
-                    </v-chip>
-                  </div>
-                </v-card>
-              </div>
-            </v-card-text>
+                      <v-chip
+                        v-for="role in provider.role"
+                        :key="role"
+                        size="small"
+                        variant="tonal"
+                      >
+                        {{ role }}
+                      </v-chip>
+                    </div>
+                  </v-card>
+                </div>
+              </v-card-text>
+            </v-expand-transition>
           </v-card>
 
           <!-- Back button -->
@@ -270,7 +324,6 @@
   import { useRoute } from 'vue-router'
   import { fetchItemById } from '~/requests/items'
   import { formatDate } from '~/utils/helpers'
-  import ItemMapComponent from '@/components/ItemMapComponent.vue'
 
   const route = useRoute()
   const itemId = route.params['itemid']
@@ -278,7 +331,12 @@
   const item = ref(null)
   const isLoading = ref(true)
   const error = ref(null)
+  
+
   const copiedAssets = ref({})
+  const assetsExpanded = ref(true)
+  const propertiesExpanded = ref(true)
+  const providersExpanded = ref(true)
 
   // Computed properties
   const assets = computed(() => {
