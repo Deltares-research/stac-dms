@@ -69,6 +69,7 @@ class DMSAPISettings(OpensearchSettings):
     es_host: str = "0.0.0.0"
     es_port: str = "9200"
     es_verify_certs: str = "true"
+    auth_enabled: str = "true"
     curl_ca_bundle: Optional[str] = None
     es_user: Optional[str] = None
     es_pass: Optional[str] = None
@@ -100,6 +101,7 @@ class AsyncDMSAPISettings(OpensearchSettings):
     es_host: str
     es_port: str
     es_verify_certs: str = "true"
+    auth_enabled: str = "true"
     curl_ca_bundle: Optional[str] = None
     es_user: Optional[str] = None
     es_pass: Optional[str] = None
