@@ -38,6 +38,7 @@ env:
   CLUSTER_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-cluster-prod' || 'dms-cluster-dev' }}
   TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-frontend-prod' || 'dms-frontend-dev' }}
   SERVICE_NAME: frontend-service
+  AUTH_ENABLED: true
 
 jobs:
   build-image:
