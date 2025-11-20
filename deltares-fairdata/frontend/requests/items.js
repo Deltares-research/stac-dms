@@ -2,7 +2,7 @@
  * Items API requests
  */
 import { useNuxtApp, useRequestHeaders } from '#app'
-import { useRouter } from 'vue-router'
+
 
 /**
  * Create a new item in a collection

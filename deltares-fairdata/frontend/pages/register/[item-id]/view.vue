@@ -273,8 +273,8 @@
   import ItemMapComponent from '@/components/ItemMapComponent.vue'
 
   const route = useRoute()
-  const itemId = route.params['item-id']
-  
+  const itemId = route.params['itemid']
+ 
   const item = ref(null)
   const isLoading = ref(true)
   const error = ref(null)
