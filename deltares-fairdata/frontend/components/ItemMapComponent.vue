@@ -10,11 +10,27 @@
     >
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
       
+      <!-- Handle array of layers (polygon) or single layer (point) -->
+      <template v-if="layerOptions">
+        <template v-if="Array.isArray(layerOptions)">
+          <MapboxLayer
+            v-for="layer in layerOptions"
+            :key="layer.id"
+            :options="layer"
+          />
+        </template>
+        <MapboxLayer
+          v-else
+          :id="layerOptions.id"
+          :options="layerOptions"
+        />
+      </template>
+      
       <MapSelectTool
         v-if="mapInstance"
         ref="mapSelectToolRef"
         position="top-left"
-        enabled-tools="['polygon','marker']"
+        :enabled-tools="enabledTools"
         :draw-mode="drawMode"
         @change="onToolChange"
         @error="onError"
@@ -25,7 +41,7 @@
 
 <script setup>
   import { ref, provide } from 'vue'
-  import { MapboxMap, MapboxNavigationControl } from '@studiometa/vue-mapbox-gl'
+  import { MapboxMap, MapboxNavigationControl, MapboxLayer } from '@studiometa/vue-mapbox-gl'
   import MapSelectTool from '@/components/MapSelectTool.vue'
 
   defineProps({
@@ -36,6 +52,10 @@
     center: {
       type: Array,
       default: () => [5.1, 52.07],
+    },
+    layerOptions: {
+      type: [Object, Array],
+      default: null,
     },
   })
 

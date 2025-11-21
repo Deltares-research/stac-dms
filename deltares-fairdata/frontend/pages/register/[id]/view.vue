@@ -90,6 +90,7 @@
                 <item-map-component
                   :draw-mode="false"
                   :center="mapCenter"
+                  :layer-options="layerOptions"
                 />
               </div>
             </v-card-text>
@@ -325,6 +326,7 @@
   import { center } from '@turf/turf'
   import { fetchItemById } from '~/requests/items'
   import { formatDate } from '~/utils/helpers'
+  import buildGeoJsonLayer from '~/utils/build-geojson-layer'
 
   const route = useRoute()
   const itemId = route.params['id']
@@ -379,7 +381,7 @@
   const providers = computed(() => {
     return item.value?.properties?.providers || []
   })
-
+  
   // Methods
   function formatPropertyKey(key) {
     return key
@@ -422,6 +424,19 @@
       console.error('Failed to copy text:', err)
     }
   }
+
+  // Build layer options from the item
+  const layerOptions = computed(() => {
+    if (!item.value || !item.value.geometry) return null
+    
+    // Convert single item to featureCollection format
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: [item.value],
+    }
+    
+    return buildGeoJsonLayer(featureCollection)
+  })
 
   // Fetch item on mount
   onMounted(async () => {
