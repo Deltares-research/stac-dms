@@ -3,7 +3,7 @@
     <mapbox-map
       v-model:map="mapInstance"
       :access-token="accessToken"
-      map-style="mapbox://styles/mapbox/streets-v12"
+      map-style="mapbox://styles/mapbox/light-v11"
       :center="center"
       :zoom="zoom"
       @mb-created="onMapCreated"
