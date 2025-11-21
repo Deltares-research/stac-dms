@@ -326,7 +326,7 @@
   import { formatDate } from '~/utils/helpers'
 
   const route = useRoute()
-  const itemId = route.params['itemid']
+  const itemId = route.params['id']
  
   const item = ref(null)
   const isLoading = ref(true)

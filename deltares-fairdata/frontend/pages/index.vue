@@ -90,13 +90,13 @@
 
                     <!-- Add this new paragraph for view details -->
                     <div class="mb-3">
-                      <p 
-                        class="text-body-2 text-primary cursor-pointer"
-                        style="text-decoration: underline;"
-                        @click="navigateToView(f.id)"
+                      <NuxtLink
+                        :to="`/register/${f.id}/view`"
+                        class="text-body-2 text-primary"
+                        style="text-decoration: underline; cursor: pointer;"
                       >
                         View details
-                      </p>
+                      </NuxtLink>
                     </div>
 
                     <div class="text-body-2">
@@ -129,15 +129,11 @@
   import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
   import { useConfigStore } from '~/stores/config'
-  import { useNuxtApp } from '#app'
   import FeatureFilters from '@/components/FeatureFilters.vue'
   import { formatDate } from '~/utils/helpers'
-  import { useRouter } from 'vue-router'
-  import { firstAssetHref } from '~/utils/helpers'
 
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const configStore = useConfigStore()
-  const nuxtApp = useNuxtApp()
   
   // When auth is disabled, allow access without authentication
   const canAccess = computed(() => {
@@ -150,7 +146,6 @@
 
   const store = useSearchPageStore()
   const route = useRoute()
-  const router = useRouter()
   
   const q = route.query
   
@@ -225,6 +220,13 @@
     return norm(a).localeCompare(norm(b))
   }
 
+  function firstAssetHref(feature) {
+    const assets = feature?.assets
+    if (!assets) return null
+    const firstKey = Object.keys(assets)[0]
+    return firstKey ? assets[firstKey]?.href : null
+  }
+
   // Filter options
   const filterOptions = computed(() => {
     const col = new Set()
@@ -244,9 +246,11 @@
     }
   })
 
-  function navigateToView(itemId) {
-    router.push(`/register/${itemId}/view`)
-  }
+/*   function navigateToView(itemId) {
+    navigateTo(`/register/${itemId}/view`).catch(() => {
+      // Handle navigation errors silently
+    })
+  } */
 </script>
 
 <style scoped>
