@@ -116,7 +116,8 @@
 <script setup>
   import { ref, computed, watch, nextTick } from 'vue'
   import { MapboxMap, MapboxCluster, MapboxNavigationControl, MapboxPopup } from '@studiometa/vue-mapbox-gl'
-  import { center } from '@turf/turf'
+  import { center, bbox } from '@turf/turf'
+  import { isEqual } from 'lodash'
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
@@ -145,10 +146,7 @@
   // Check if polygon filter is active (bbox is not default)
   const hasActivePolygonFilter = computed(() => {
     if (!store.bboxFilter || store.bboxFilter.length !== 4) return false
-    return store.bboxFilter[0] !== DEFAULT_BBOX[0] ||
-      store.bboxFilter[1] !== DEFAULT_BBOX[1] ||
-      store.bboxFilter[2] !== DEFAULT_BBOX[2] ||
-      store.bboxFilter[3] !== DEFAULT_BBOX[3]
+    return !isEqual(store.bboxFilter, DEFAULT_BBOX)
   })
   
   // Watch for bboxFilter changes to clear polygon when reset to default
@@ -160,20 +158,13 @@
       
       // Only clear if bboxFilter was changed from non-default to default
       // (i.e., not when it's already default)
-      const wasNonDefault = oldBbox && oldBbox.length === 4 &&
-        (oldBbox[0] !== DEFAULT_BBOX[0] ||
-          oldBbox[1] !== DEFAULT_BBOX[1] ||
-          oldBbox[2] !== DEFAULT_BBOX[2] ||
-          oldBbox[3] !== DEFAULT_BBOX[3])
+      const wasNonDefault = oldBbox && oldBbox.length === 4 && !isEqual(oldBbox, DEFAULT_BBOX)
       
       // If bboxFilter is reset to default (and it wasn't already default), clear the polygon on map
       if (wasNonDefault &&
         newBbox &&
         newBbox.length === 4 &&
-        newBbox[0] === DEFAULT_BBOX[0] &&
-        newBbox[1] === DEFAULT_BBOX[1] &&
-        newBbox[2] === DEFAULT_BBOX[2] &&
-        newBbox[3] === DEFAULT_BBOX[3] &&
+        isEqual(newBbox, DEFAULT_BBOX) &&
         drawControlRef.value) {
         // Check if polygon actually exists before clearing
         const draw = drawControlRef.value.getDraw()
@@ -338,16 +329,6 @@
     if (!extent || extent.length < 4) {
       return []
     }
-    // Validate that all values are valid numbers
-    const [minLng, minLat, maxLng, maxLat] = extent
-    if (
-      typeof minLng !== 'number' || isNaN(minLng) ||
-      typeof minLat !== 'number' || isNaN(minLat) ||
-      typeof maxLng !== 'number' || isNaN(maxLng) ||
-      typeof maxLat !== 'number' || isNaN(maxLat)
-    ) {
-      return []
-    }
     return extent
   })
   
@@ -357,7 +338,6 @@
   }
   
   async function onFeatureClicked(feature, event) {
-    console.log('onFeatureClicked', JSON.stringify(feature))
    
     // Cancel any pending map click handlers
     if (mapClickTimeout) {
@@ -379,7 +359,6 @@
       }
     }
     
-    // Get the feature ID from properties (normalized in store)
     const featureId = feature.properties?.id || feature.id
     
     if (!featureId) {
@@ -423,25 +402,20 @@
   }
   
   function onClusterClicked() {
-    // Handle cluster click - clear selection and let default zoom behavior happen
     selectedFeature.value = null
     store.clearSelectedFeature()
   }
   
   function onMapClick() {
-    // Only clear selection if clicking empty map area (not on a feature)
-    // Cancel any previous pending map click handler
     if (mapClickTimeout) {
       clearTimeout(mapClickTimeout)
     }
     
-    // Check the flag with a small delay to account for async feature click handler
     mapClickTimeout = setTimeout(() => {
       mapClickTimeout = null
       if (justClickedFeature.value) {
         return
       }
-      
       selectedFeature.value = null
       store.clearSelectedFeature()
     }, 150)
@@ -454,50 +428,19 @@
   }
 
   
-  // Handle draw control changes (when user draws a polygon)
+
   function onDrawChange({ feature }) {
-    // Skip if we're in the middle of programmatic clearing
     if (isClearingPolygon.value) return
-    
     if (!feature || !feature.geometry) {
-      // Draw was cleared - reset bbox filter to default
-      // Only update if it's not already default (prevent unnecessary updates)
       const currentBbox = store.bboxFilter
-      if (!currentBbox ||
-        currentBbox.length !== 4 ||
-        currentBbox[0] !== DEFAULT_BBOX[0] ||
-        currentBbox[1] !== DEFAULT_BBOX[1] ||
-        currentBbox[2] !== DEFAULT_BBOX[2] ||
-        currentBbox[3] !== DEFAULT_BBOX[3]) {
+      if (!currentBbox || !isEqual(currentBbox, DEFAULT_BBOX)) {
         store.bboxFilter = [...DEFAULT_BBOX]
       }
       return
     }
     
-    // Extract bbox from polygon
-    if (feature.geometry.type === 'Polygon' && feature.geometry.coordinates && feature.geometry.coordinates.length > 0) {
-      const coordinates = feature.geometry.coordinates[0] // First ring of polygon
-      
-      // Find min/max lng and lat
-      let minLng = Infinity
-      let minLat = Infinity
-      let maxLng = -Infinity
-      let maxLat = -Infinity
-      
-      coordinates.forEach(coord => {
-        const [lng, lat] = coord
-        minLng = Math.min(minLng, lng)
-        minLat = Math.min(minLat, lat)
-        maxLng = Math.max(maxLng, lng)
-        maxLat = Math.max(maxLat, lat)
-      })
-      
-      const bbox = [minLng, minLat, maxLng, maxLat]
-      
-      // Update the bbox filter in the store
-      // This will trigger the watcher in index.vue which will call store.search()
-      store.bboxFilter = bbox
-    }
+    const featureBbox = bbox(feature)
+    store.bboxFilter = featureBbox
   }
 </script>
 
