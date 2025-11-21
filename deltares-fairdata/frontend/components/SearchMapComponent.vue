@@ -212,7 +212,6 @@
     return `cluster-${layerTimestamp.value}`
   })
   
-  // Cluster configurations are imported from utils/mapbox-cluster-config.js
   
   // Popup coordinates computed property
   const popupCoordinates = computed(() => {
@@ -222,7 +221,6 @@
     
     const geometry = selectedFeature.value.geometry
     
-    // For Point geometry, coordinates are directly [lng, lat]
     if (geometry.type === 'Point') {
       const coords = geometry.coordinates
       if (Array.isArray(coords) && coords.length >= 2) {
@@ -231,7 +229,6 @@
       return null
     }
     
-    // For other geometries, calculate center using @turf/center
     try {
       const centerPoint = center(selectedFeature.value)
       const coords = centerPoint.geometry.coordinates
@@ -243,12 +240,7 @@
       return null
     }
   })
-  
-  // Helper function to get first asset href (same as index.vue)
-  // This function is now imported from helpers.js
-  
-  
-  // Calculate bounds from featureCollectionWithGeometry using geojson-bounds
+
   const bounds = computed(() => {
     if (!store.featureCollectionWithGeometry) {
       return []
@@ -348,14 +340,13 @@
       store.clearSelectedFeature()
     }, 150)
   }
+
   function onPopupClose() {
     if (!justClickedFeature.value && !store.selectedFeatureId) {
       selectedFeature.value = null
       store.clearSelectedFeature()
     }
   }
-
-  
 
   function onDrawChange({ feature }) {
     if (isClearingPolygon.value) return
