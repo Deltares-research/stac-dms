@@ -477,7 +477,10 @@
             </v-card-title>
             <v-card-text style="min-height: 300px;">
               <div class="mb-4 map-wrapper">
-                <item-map-component />
+                <item-map-component
+                  :enabled-tools="['polygon', 'marker']"
+                  :center="[5.1, 52.07]"
+                />
               </div>
             </v-card-text>
             <v-card-text>

@@ -44,7 +44,7 @@
           </v-card-text>
         </v-card>
 
-        <!-- Item content -->
+      
         <div v-else-if="item">
           <h1 class="text-h4 font-weight-bold mb-4">
             {{ item.properties?.title || 'Untitled Item' }}
@@ -81,19 +81,19 @@
           </v-card>
 
           <!-- Map if geometry available -->
-          <!--  <v-card v-if="item.geometry || item.bbox" class="mb-4">
+          <v-card v-if="item.geometry" class="mb-4">
             <v-card-title class="text-h6">
               Geometry
             </v-card-title>
             <v-card-text style="min-height: 300px;">
               <div class="map-wrapper">
                 <item-map-component
-                  :static-mode="true"
-                  :initial-geometry="item.geometry"
+                  :draw-mode="false"
+                  :center="mapCenter"
                 />
               </div>
             </v-card-text>
-          </v-card> -->
+          </v-card>
 
           <!-- Assets Section -->
           <v-card class="mb-4">
@@ -322,6 +322,7 @@
 <script setup>
   import { ref, computed, onMounted } from 'vue'
   import { useRoute } from 'vue-router'
+  import { center } from '@turf/turf'
   import { fetchItemById } from '~/requests/items'
   import { formatDate } from '~/utils/helpers'
 

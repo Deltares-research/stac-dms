@@ -10,12 +10,12 @@
     >
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
       
-      <!-- Consolidated map select tool -->
       <MapSelectTool
         v-if="mapInstance"
         ref="mapSelectToolRef"
         position="top-left"
-        :enabled-tools="['polygon', 'rectangle', 'marker']"
+        enabled-tools="['polygon','marker']"
+        :draw-mode="drawMode"
         @change="onToolChange"
         @error="onError"
       />
@@ -28,12 +28,21 @@
   import { MapboxMap, MapboxNavigationControl } from '@studiometa/vue-mapbox-gl'
   import MapSelectTool from '@/components/MapSelectTool.vue'
 
+  defineProps({
+    drawMode: {
+      type: Boolean,
+      default: true, 
+    },
+    center: {
+      type: Array,
+      default: () => [5.1, 52.07],
+    },
+  })
+
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
   const mapSelectToolRef = ref(null)
 
-  // Default center (Netherlands)
-  const center = ref([5.1, 52.07])
   const zoom = ref(10.5)
 
   // Provide map to child components

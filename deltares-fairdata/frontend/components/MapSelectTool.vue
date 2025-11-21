@@ -21,10 +21,10 @@
       type: Object,
       default: null,
     },
-    // External control mode - when provided, component is controlled externally
+    // Control mode - true = normal/internal control, false = external control (disabled)
     drawMode: {
-      type: String,
-      default: null, // null, 'polygon', 'rectangle', or 'marker'
+      type: Boolean,
+      default: true, // true = normal mode (internal control with buttons)
     },
     // Show/hide the UI buttons (hide when externally controlled)
     showButtons: {
@@ -54,7 +54,7 @@
   const map = computed(() => props.map || mapFromComposable.value)
   
   // Determine if we're in external control mode
-  const isExternalControl = computed(() => props.drawMode !== null)
+  const isExternalControl = computed(() => props.drawMode === false)
 
   // Internal state
   const currentTool = ref(null) // 'polygon', 'rectangle', or 'marker'
@@ -67,31 +67,8 @@
   const deleteButton = ref(null)
   let staticMode = false
 
-  // Watch for external drawMode changes
-  watch(
-    () => props.drawMode,
-    (mode) => {
-      if (!isExternalControl.value) return
-      const mapInstance = unref(map.value)
-      if (!mapInstance || !mbDraw.value) return
-      
-      if (mode === 'rectangle') {
-        mapInstance.getCanvas().style.cursor = 'crosshair'
-        mbDraw.value.changeMode('draw_rectangle')
-      } else if (mode === 'polygon') {
-        mapInstance.getCanvas().style.cursor = 'crosshair'
-        mbDraw.value.changeMode('draw_polygon')
-      } else if (mode === 'marker') {
-        mapInstance.getCanvas().style.cursor = 'crosshair'
-        // For marker in external mode, we'll handle it via click handler
-        mapInstance.on('click', handleExternalMarkerClick)
-      } else {
-        mapInstance.getCanvas().style.cursor = ''
-        mbDraw.value.changeMode('simple_select')
-        mapInstance.off('click', handleExternalMarkerClick)
-      }
-    }
-  )
+  // Remove the entire watch block for drawMode (lines 75-94)
+  // No longer needed since drawMode is just a boolean
 
   // Initialize when map is available
   watch(
@@ -206,7 +183,7 @@
   // Handle marker click in external control mode
   function handleExternalMarkerClick(event) {
     const mapInstance = unref(map.value)
-    if (props.drawMode !== 'marker' || !mapInstance) return
+    if (props.drawMode === true || !mapInstance) return // Only works in external mode (false)
 
     const { lng, lat } = event.lngLat
 
@@ -375,11 +352,11 @@
     
     // In external control mode, emit change when drawing completes
     if (isExternalControl.value) {
-      if (currentMode === 'simple_select' && props.drawMode) {
+      if (currentMode === 'simple_select') {
         const { features } = mbDraw.value.getAll()
         const feature = features[0] || null
         if (feature) {
-          emit('change', { tool: props.drawMode, feature, active: false })
+          emit('change', { tool: 'draw', feature, active: false })
         }
       }
       return
@@ -427,7 +404,7 @@
 
     // In external control mode, emit change directly
     if (isExternalControl.value) {
-      emit('change', { tool: props.drawMode || 'draw', feature, active: false })
+      emit('change', { tool: 'draw', feature, active: false })
       return
     }
 
