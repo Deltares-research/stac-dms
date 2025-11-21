@@ -25,7 +25,7 @@
         @mb-feature-click="onFeatureClicked"
         @mb-cluster-click="onClusterClicked"
       />
-      <!-- Only auto-zoom to search results if no polygon filter is active -->
+    
       <MapControlsZoom
         v-if="bounds.length >= 4 && !hasActivePolygonFilter"
         :bounds="bounds"
@@ -36,8 +36,6 @@
         @image-loaded="imageLoaded = true"
       />
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
-      
-      <!-- Zoom to feature when bbox changes -->
       <MapControlsZoom
         v-if="mapInstance && store.selectedFeatureBbox"
         :bounds="store.selectedFeatureBbox"
@@ -45,8 +43,6 @@
         :duration="1000"
         :zoom-on-mount="false"
       />
-      
-      <!-- Draw control for area selection -->
       <MapSelectTool
         v-if="mapInstance"
         ref="drawControlRef"
@@ -56,7 +52,6 @@
         @change="onDrawChange"
       />
       
-      <!-- Popup for selected feature -->
       <MapboxPopup
         v-if="selectedFeature && popupCoordinates && Array.isArray(popupCoordinates) && popupCoordinates.length === 2"
         :key="`popup-${selectedFeature?.id || 'unknown'}`"
@@ -124,6 +119,13 @@
   import MapSelectTool from '@/components/MapSelectTool.vue'
   import { formatDate } from '~/utils/helpers'
   import * as geojsonBounds from 'geojson-bounds'
+  import {
+    unclusteredPointLayout,
+    unclusteredPointPaint,
+    clustersPaint,
+    clusterCountLayout,
+    clusterCountPaint
+  } from '~/utils/mapbox-cluster-config'
 
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
@@ -248,38 +250,7 @@
     return `cluster-${layerTimestamp.value}`
   })
   
-  // Configuration for unclustered points (your custom marker)
-  const unclusteredPointLayout = computed(() => ({
-    'icon-image': 'custom-marker',
-    'icon-size': 0.04,
-    'icon-allow-overlap': true,
-    'icon-anchor': 'bottom',
-  }))
-  
-  const unclusteredPointPaint = computed(() => ({}))
-  
-  // Configuration for cluster circles
-  const clustersPaint = computed(() => ({
-    'circle-color': '#51bbd6',
-    'circle-radius': [
-      'step',
-      ['get', 'point_count'],
-      20,  // radius for clusters with < 100 points
-      30,  // radius for clusters with < 750 points
-      40   // radius for clusters >= 750 points
-    ],
-  }))
-  
-  // Configuration for cluster count text
-  const clusterCountLayout = computed(() => ({
-    'text-field': ['get', 'point_count_abbreviated'],
-    'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-    'text-size': 12,
-  }))
-  
-  const clusterCountPaint = computed(() => ({
-    'text-color': '#fff',
-  }))
+  // Cluster configurations are imported from utils/mapbox-cluster-config.js
   
   // Popup coordinates computed property
   const popupCoordinates = computed(() => {
