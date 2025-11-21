@@ -9,7 +9,10 @@
       @mb-created="onMapCreated"
     >
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
-      
+      <MapCustomImage
+        image-path="/custom-marker.png"
+        image-name="custom-marker"
+      />
       <!-- Handle array of layers (polygon) or single layer (point) -->
       <template v-if="layerOptions">
         <template v-if="Array.isArray(layerOptions)">
