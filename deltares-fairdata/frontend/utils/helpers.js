@@ -61,3 +61,10 @@ export function formatDate(feature) {
   return '—'
 }
 
+export function firstAssetHref(feature) {
+  const assets = feature?.assets
+  if (!assets) return null
+  const firstKey = Object.keys(assets)[0]
+  return firstKey ? assets[firstKey]?.href : null
+}
+

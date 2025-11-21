@@ -64,45 +64,7 @@
         max-width="420px"
         @mb-close="onPopupClose"
       >
-        <v-card style="min-width: 300px; max-width: 420px; box-shadow: none;">
-          <v-card-title class="text-h6 text-wrap">
-            {{ selectedFeature.properties?.title || selectedFeature.id }}
-          </v-card-title>
-          <v-card-text>
-            <p class="text-body-2 mb-3">
-              {{ selectedFeature.properties?.description || 'No description.' }}
-            </p>
-            
-            <!-- View details section (same as index.vue) -->
-            <div class="d-flex align-center mb-3">
-              <v-icon class="mr-2" size="small">
-                mdi-link-variant
-              </v-icon>
-              <span v-if="firstAssetHref(selectedFeature)">
-                {{ firstAssetHref(selectedFeature) }}
-              </span>
-              <span v-else>—</span>
-            </div>
-            
-            <div class="mb-3">
-              <v-btn
-                v-if="firstAssetHref(selectedFeature)"
-                :href="firstAssetHref(selectedFeature)"
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="tonal"
-                density="comfortable"
-                prepend-icon="mdi-open-in-new"
-              >
-                View details
-              </v-btn>
-            </div>
-            
-            <div class="text-body-2">
-              {{ formatDate(selectedFeature) }}
-            </div>
-          </v-card-text>
-        </v-card>
+        <PopupContent :feature="selectedFeature" />
       </MapboxPopup>
     </mapbox-map>
   </div>
@@ -117,7 +79,7 @@
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
   import MapSelectTool from '@/components/MapSelectTool.vue'
-  import { formatDate } from '~/utils/helpers'
+  import PopupContent from '@/components/PopupContent.vue'
   import * as geojsonBounds from 'geojson-bounds'
   import {
     unclusteredPointLayout,
@@ -283,12 +245,7 @@
   })
   
   // Helper function to get first asset href (same as index.vue)
-  function firstAssetHref(feature) {
-    const assets = feature?.assets
-    if (!assets) return null
-    const firstKey = Object.keys(assets)[0]
-    return firstKey ? assets[firstKey]?.href : null
-  }
+  // This function is now imported from helpers.js
   
   
   // Calculate bounds from featureCollectionWithGeometry using geojson-bounds

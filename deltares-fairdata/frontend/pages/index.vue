@@ -133,6 +133,7 @@
   import FeatureFilters from '@/components/FeatureFilters.vue'
   import { formatDate } from '~/utils/helpers'
   import { useRouter } from 'vue-router'
+  import { firstAssetHref } from '~/utils/helpers'
 
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const configStore = useConfigStore()
@@ -222,13 +223,6 @@
 
   function sortAsc(a, b) {
     return norm(a).localeCompare(norm(b))
-  }
-
-  function firstAssetHref(feature) {
-    const assets = feature?.assets
-    if (!assets) return null
-    const firstKey = Object.keys(assets)[0]
-    return firstKey ? assets[firstKey]?.href : null
   }
 
   // Filter options
