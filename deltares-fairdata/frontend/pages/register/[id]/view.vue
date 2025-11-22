@@ -91,6 +91,7 @@
                   :draw-mode="false"
                   :center="mapCenter"
                   :layer-options="layerOptions"
+                  :zoom-bounds="bounds"
                 />
               </div>
             </v-card-text>
@@ -424,6 +425,10 @@
       console.error('Failed to copy text:', err)
     }
   }
+  const bounds = computed(() => {
+    if (!item.value || !item.value.geometry || !item.value.bbox) return []
+    return Array.isArray(item.value.bbox) ? item.value.bbox : []
+  })
 
   // Build layer options from the item
   const layerOptions = computed(() => {
@@ -437,6 +442,8 @@
     
     return buildGeoJsonLayer(featureCollection)
   })
+
+
 
   // Fetch item on mount
   onMounted(async () => {

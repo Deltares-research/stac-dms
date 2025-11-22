@@ -119,9 +119,9 @@ export async function fetchItemById(itemId) {
         ...headers,
       },
     })
-    
+    //Here we are returing only on feature back. What will happen if in the feature we have more features?
     if (result?.features && result.features.length > 0) {
-      return result.features[0]
+      return result.features[0] 
     }
     
     throw new Error('Item not found')

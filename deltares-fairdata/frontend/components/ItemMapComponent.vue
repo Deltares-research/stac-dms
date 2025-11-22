@@ -13,6 +13,10 @@
         image-path="/custom-marker.png"
         image-name="custom-marker"
       />
+      <MapControlsZoom
+        v-if="zoomBounds && zoomBounds.length >= 4"
+        :bounds="zoomBounds"
+      />
       <!-- Handle array of layers (polygon) or single layer (point) -->
       <template v-if="layerOptions">
         <template v-if="Array.isArray(layerOptions)">
@@ -46,6 +50,7 @@
   import { ref, provide } from 'vue'
   import { MapboxMap, MapboxNavigationControl, MapboxLayer } from '@studiometa/vue-mapbox-gl'
   import MapSelectTool from '@/components/MapSelectTool.vue'
+  import MapControlsZoom from '@/components/MapControlsZoom.vue'
 
   defineProps({
     drawMode: {
@@ -54,33 +59,30 @@
     },
     center: {
       type: Array,
-      default: () => [5.1, 52.07],
+      default: () => [0, 0],
     },
     layerOptions: {
       type: [Object, Array],
       default: null,
     },
+    zoomBounds: {
+      type: Array,
+      default: () => [],
+    }
   })
 
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
   const mapSelectToolRef = ref(null)
 
-  const zoom = ref(10.5)
+  const zoom = ref(1)
 
   // Provide map to child components
   provide('map', mapInstance)
 
   function onMapCreated(map) {
     mapInstance.value = map
-    console.log('Map created:', map)
   }
-
-  function onToolChange({ tool, feature, active }) {
-    console.log('Tool change:', { tool, feature, active })
-    // Handle tool changes as needed
-  }
-
   function onError(err) {
     console.error('Map tool error:', err)
   }
@@ -90,7 +92,6 @@
       mapSelectToolRef.value.clear()
     }
   }
-
   // Expose methods if needed
   defineExpose({
     clearAll,
