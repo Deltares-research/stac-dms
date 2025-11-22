@@ -361,6 +361,18 @@ function generateDummyItem(index, collectionId, collectionName, geometryType = '
     ];
   }
   
+  // Build title with geometry information
+  let titleSuffix = '';
+  if (geometry) {
+    if (geometryType === 'polygon' || geometryType === 'world') {
+      titleSuffix = ' [Polygon]';
+    } else if (geometryType === 'point') {
+      titleSuffix = ' [Point/Marker]';
+    }
+  } else {
+    titleSuffix = ' [No Geometry]';
+  }
+  
   const item = {
     type: 'Feature',
     stac_version: '1.0.0',
@@ -368,7 +380,7 @@ function generateDummyItem(index, collectionId, collectionName, geometryType = '
     id: itemId,
     collection: collectionId,
     properties: {
-      title: `Dummy Dataset ${index}`,
+      title: `Dummy Dataset ${index}${titleSuffix}`,
       projectNumber: `PROJ-${String(index).padStart(3, '0')}`,
       description: `Test description for dummy dataset ${index} from collection "${collectionName}". This is a sample dataset created for testing purposes.`,
       collectionName: collectionName,
