@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { center } from '@turf/turf'
 import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
 
@@ -32,18 +33,40 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     const validFeatures = featureCollection.value.features
       .filter(feature => feature.geometry && feature.geometry.type)
       .map(feature => {
+        let processedFeature = { ...feature }
+        
+        // Convert Polygon and MultiPolygon to Point using center
+        if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+          try {
+            const centerPoint = center(feature)
+            processedFeature = {
+              ...feature,
+              geometry: {
+                type: 'Point',
+                coordinates: centerPoint.geometry.coordinates,
+              },
+            }
+          } catch (error) {
+            console.error('Error calculating center for polygon feature:', error)
+            // If center calculation fails, skip this feature
+            return null
+          }
+        }
+        
         // Ensure properties.id is set to feature.id if it exists
-        if (feature.id) {
-          return {
-            ...feature,
+        if (processedFeature.id) {
+          processedFeature = {
+            ...processedFeature,
             properties: {
-              ...feature.properties,
-              id: feature.properties?.id || feature.id,
+              ...processedFeature.properties,
+              id: processedFeature.properties?.id || processedFeature.id,
             },
           }
         }
-        return feature
+        
+        return processedFeature
       })
+      .filter(feature => feature !== null) // Remove any features that failed center calculation
     
     // Return null if no valid features, otherwise return filtered collection
     if (validFeatures.length === 0) {
