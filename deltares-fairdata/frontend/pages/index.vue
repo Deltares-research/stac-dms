@@ -69,8 +69,16 @@
                   variant="elevated"
                   :class="{ 'selected-feature': f.id === store.selectedFeatureId }"
                 >
-                  <v-card-title class="text-wrap">
-                    {{ f.properties?.title || 'Untitled' }}
+                  <v-card-title class="text-wrap d-flex align-center">
+                    <span class="flex-grow-1">{{ f.properties?.title || 'Untitled' }}</span>
+                    <v-chip
+                      v-if="f.properties?.globaldataset"
+                      color="primary"
+                      size="small"
+                      class="ml-2"
+                    >
+                      Global Dataset
+                    </v-chip>
                   </v-card-title>
 
                   <v-card-text>

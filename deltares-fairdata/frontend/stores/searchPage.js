@@ -1,8 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { center } from '@turf/turf'
+import { isEqual } from 'lodash'
 import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
+
+// Global bounding box constant (covers entire world)
+const GLOBAL_BBOX = [ -180, -90, 180, 90 ]
 
 export const useSearchPageStore = defineStore('searchPage', () => {
   //State
@@ -32,6 +36,10 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     // Filter out features with null or missing geometry and normalize properties.id
     const validFeatures = featureCollection.value.features
       .filter(feature => feature.geometry && feature.geometry.type)
+      .filter(feature => {
+        // Exclude features marked as global dataset
+        return !feature.properties?.globaldataset
+      })
       .map(feature => {
         let processedFeature = { ...feature }
         
@@ -106,7 +114,26 @@ export const useSearchPageStore = defineStore('searchPage', () => {
         bbox: bboxFilter.value,
         limit: 1000,
       })
-  
+
+      // Mark features with global bounding box
+      if (data && data.features && Array.isArray(data.features)) {
+        data.features = data.features.map(feature => {
+          // Check if feature has global bbox
+          if (feature.bbox && Array.isArray(feature.bbox) && feature.bbox.length === 4) {
+            if (isEqual(feature.bbox, GLOBAL_BBOX)) {
+              return {
+                ...feature,
+                properties: {
+                  ...feature.properties,
+                  globaldataset: true,
+                },
+              }
+            }
+          }
+          return feature
+        })
+      }
+
       featureCollection.value = data
       searchStatus.value = 'success'
       

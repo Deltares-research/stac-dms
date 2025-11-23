@@ -79,27 +79,6 @@
                 hide-details
                 @update:model-value="handleCollectionChange"
               >
-                <template #item="{ props: itemProps, item }">
-                  <v-list-item v-bind="itemProps">
-                    <template #prepend>
-                      <v-list-item-action>
-                        <v-icon v-if="item.raw.selected" color="primary">
-                          mdi-check
-                        </v-icon>
-                      </v-list-item-action>
-                    </template>
-                    <v-list-item-title>
-                      <div class="d-flex flex-column">
-                        <div class="text-caption text-grey-darken-1">
-                          {{ item.raw.description || '' }}
-                        </div>
-                        <div class="text-body-2 font-weight-medium">
-                          {{ item.raw.title }}
-                        </div>
-                      </div>
-                    </v-list-item-title>
-                  </v-list-item>
-                </template>
                 <template #selection="{ item }">
                   {{ item.raw.title }}
                 </template>
@@ -107,8 +86,8 @@
             </v-col>
 
             <!-- Topic -->
-
             <v-col
+              v-if="store.topics && store.topics.length > 0"
               cols="12"
               md="4"
               class="filter-col"
@@ -180,116 +159,122 @@
             <!-- Start & End date (buttons open date pickers) -->
             <v-col
               cols="12"
-              md="4"
+              md="6"
               class="filter-col"
             >
-              <!-- Start date -->
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-subtitle-2">
-                  Start date
-                </div>
-                <v-btn
-                  v-if="store.startDate"
-                  size="x-small"
-                  variant="text"
-                  @click="store.startDate = undefined"
-                >
-                  Clear
-                </v-btn>
-              </div>
+              <v-row>
+                <!-- Start date -->
+                <v-col cols="6">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <div class="text-subtitle-2">
+                      Start date
+                    </div>
+                    <v-btn
+                      v-if="store.startDate"
+                      size="x-small"
+                      variant="text"
+                      @click="store.startDate = undefined"
+                    >
+                      Clear
+                    </v-btn>
+                  </div>
 
-              <v-menu
-                v-model="startMenu"
-                :close-on-content-click="false"
-                content-class="filters-portal"
-                location="bottom start"
-                :offset="8"
-              >
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    variant="outlined"
-                    block
+                  <v-menu
+                    v-model="startMenu"
+                    :close-on-content-click="false"
+                    content-class="filters-portal"
+                    location="bottom start"
+                    :offset="8"
                   >
-                    <v-icon start>
-                      mdi-calendar
-                    </v-icon>
-                    {{ store.startDate ? labelFor('startDate', store.startDate) : 'Pick a date' }}
-                  </v-btn>
-                </template>
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        variant="outlined"
+                        block
+                      >
+                        <v-icon start>
+                          mdi-calendar
+                        </v-icon>
+                        {{ store.startDate ? labelFor('startDate', store.startDate) : 'Pick a date' }}
+                      </v-btn>
+                    </template>
 
-                <v-card>
-                  <v-date-picker
-                    v-model="tempStart"
-                    show-adjacent-months
-                    elevation="0"
-                  />
-                  <v-divider />
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="text" @click="startMenu = false">
-                      Cancel
+                    <v-card>
+                      <v-date-picker
+                        v-model="tempStart"
+                        show-adjacent-months
+                        elevation="0"
+                      />
+                      <v-divider />
+                      <v-card-actions>
+                        <v-spacer />
+                        <v-btn variant="text" @click="startMenu = false">
+                          Cancel
+                        </v-btn>
+                        <v-btn variant="flat" @click="applyStart">
+                          Apply
+                        </v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-menu>
+                </v-col>
+
+                <!-- End date -->
+                <v-col cols="6">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <div class="text-subtitle-2">
+                      End date
+                    </div>
+                    <v-btn
+                      v-if="store.endDate"
+                      size="x-small"
+                      variant="text"
+                      @click="store.endDate = undefined"
+                    >
+                      Clear
                     </v-btn>
-                    <v-btn variant="flat" @click="applyStart">
-                      Apply
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-menu>
+                  </div>
 
-              <!-- End date -->
-              <div class="d-flex align-center justify-space-between mt-6 mb-2">
-                <div class="text-subtitle-2">
-                  End date
-                </div>
-                <v-btn
-                  v-if="store.endDate"
-                  size="x-small"
-                  variant="text"
-                  @click="store.endDate = undefined"
-                >
-                  Clear
-                </v-btn>
-              </div>
-
-              <v-menu
-                v-model="endMenu"
-                :close-on-content-click="false"
-                content-class="filters-portal"
-                location="bottom start"
-                :offset="8"
-              >
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    variant="outlined"
-                    block
+                  <v-menu
+                    v-model="endMenu"
+                    :close-on-content-click="false"
+                    content-class="filters-portal"
+                    location="bottom start"
+                    :offset="8"
                   >
-                    <v-icon start>
-                      mdi-calendar
-                    </v-icon>
-                    {{ store.endDate ? labelFor('endDate', store.endDate) : 'Pick a date' }}
-                  </v-btn>
-                </template>
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        variant="outlined"
+                        block
+                      >
+                        <v-icon start>
+                          mdi-calendar
+                        </v-icon>
+                        {{ store.endDate ? labelFor('endDate', store.endDate) : 'Pick a date' }}
+                      </v-btn>
+                    </template>
 
-                <v-card>
-                  <v-date-picker
-                    v-model="tempEnd"
-                    show-adjacent-months
-                    elevation="0"
-                  />
-                  <v-divider />
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="text" @click="endMenu = false">
-                      Cancel
-                    </v-btn>
-                    <v-btn variant="flat" @click="applyEnd">
-                      Apply
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-menu>
+                    <v-card>
+                      <v-date-picker
+                        v-model="tempEnd"
+                        show-adjacent-months
+                        elevation="0"
+                      />
+                      <v-divider />
+                      <v-card-actions>
+                        <v-spacer />
+                        <v-btn variant="text" @click="endMenu = false">
+                          Cancel
+                        </v-btn>
+                        <v-btn variant="flat" @click="applyEnd">
+                          Apply
+                        </v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-menu>
+                </v-col>
+              </v-row>
             </v-col>
           </v-row>
 
