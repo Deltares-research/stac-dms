@@ -22,6 +22,7 @@
         <template v-if="Array.isArray(layerOptions)">
           <MapboxLayer
             v-for="layer in layerOptions"
+            :id="layer.id"
             :key="layer.id"
             :options="layer"
           />

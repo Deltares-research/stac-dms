@@ -439,7 +439,6 @@
       type: 'FeatureCollection',
       features: [item.value],
     }
-    
     return buildGeoJsonLayer(featureCollection)
   })
 

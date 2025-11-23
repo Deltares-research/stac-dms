@@ -37,7 +37,6 @@ export default (featureCollection) => {
         },
         paint: {
           'fill-color': '#008fc5',
-          'fill-outline-color': '#008fc5',
           'fill-opacity': 0.2,
         },
       },
@@ -53,7 +52,7 @@ export default (featureCollection) => {
           'line-join': 'round',
         },
         paint: {
-          'line-color': '#ff0000', // Red line when finished (from draw-style.js)
+          'line-color': '#ff0000',
           'line-width': 2,
         },
       },
