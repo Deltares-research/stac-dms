@@ -188,7 +188,7 @@
   // Perform initial search during SSR if access is allowed
   // This runs on both server and client, preserving SSR benefits
   if (canAccess.value) {
-    await store.search()
+    await store.search(100)
   }
 
   const queryInput = ref(store.q || '')
@@ -200,7 +200,7 @@
     () => [store.q, store.startDate, store.endDate,store.topics, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
     () => {
       if (canAccess.value) {
-        store.search()
+        store.search(1000)
       }
     },
     { deep: true }

@@ -89,7 +89,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
 
 
   //Functions
-  async function search() {
+  async function search(limit = 1000) {
     // Get selected collections (collections that are marked as selected)
     const selected = (collections.value || []).filter(c => c.selected)
     const selectedIds = selected.map(c => c.id)
@@ -102,7 +102,6 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     searchError.value = null
   
     try {
-      console.log('topics', selectedTopicIds)
       const data = await searchItems({
         q: q.value,
         startDate: startDate.value,
@@ -112,7 +111,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
         topics: selectedTopicIds,
         includeEmptyGeometry: includeEmptyGeometry.value,
         bbox: bboxFilter.value,
-        limit: 1000,
+        limit: limit,
       })
 
       // Mark features with global bounding box
