@@ -19,17 +19,13 @@
       </div>
       
       <div class="mb-3">
-        <v-btn
-          v-if="firstAssetHref(feature)"
-          :href="firstAssetHref(feature)"
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="tonal"
-          density="comfortable"
-          prepend-icon="mdi-open-in-new"
+        <NuxtLink
+          :to="`/register/${feature.id}/view`"
+          class="text-body-2 text-primary"
+          style="text-decoration: underline; cursor: pointer;"
         >
           View details
-        </v-btn>
+        </NuxtLink>
       </div>
       
       <div class="text-body-2">
