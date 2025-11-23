@@ -3,19 +3,43 @@
     <mapbox-map
       v-model:map="mapInstance"
       :access-token="accessToken"
-      map-style="mapbox://styles/mapbox/streets-v12"
+      map-style="mapbox://styles/mapbox/light-v11"
       :center="center"
       :zoom="zoom"
       @mb-created="onMapCreated"
     >
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
+      <MapCustomImage
+        image-path="/custom-marker.png"
+        image-name="custom-marker"
+      />
+      <MapControlsZoom
+        v-if="zoomBounds && zoomBounds.length >= 4"
+        :bounds="zoomBounds"
+      />
+      <!-- Handle array of layers (polygon) or single layer (point) -->
+      <template v-if="layerOptions">
+        <template v-if="Array.isArray(layerOptions)">
+          <MapboxLayer
+            v-for="layer in layerOptions"
+            :id="layer.id"
+            :key="layer.id"
+            :options="layer"
+          />
+        </template>
+        <MapboxLayer
+          v-else
+          :id="layerOptions.id"
+          :options="layerOptions"
+        />
+      </template>
       
-      <!-- Consolidated map select tool -->
       <MapSelectTool
         v-if="mapInstance"
         ref="mapSelectToolRef"
         position="top-left"
-        :enabled-tools="['polygon', 'rectangle', 'marker']"
+        :enabled-tools="enabledTools"
+        :draw-mode="drawMode"
         @change="onToolChange"
         @error="onError"
       />
@@ -25,30 +49,41 @@
 
 <script setup>
   import { ref, provide } from 'vue'
-  import { MapboxMap, MapboxNavigationControl } from '@studiometa/vue-mapbox-gl'
+  import { MapboxMap, MapboxNavigationControl, MapboxLayer } from '@studiometa/vue-mapbox-gl'
   import MapSelectTool from '@/components/MapSelectTool.vue'
+  import MapControlsZoom from '@/components/MapControlsZoom.vue'
+
+  defineProps({
+    drawMode: {
+      type: Boolean,
+      default: true, 
+    },
+    center: {
+      type: Array,
+      default: () => [0, 0],
+    },
+    layerOptions: {
+      type: [Object, Array],
+      default: null,
+    },
+    zoomBounds: {
+      type: Array,
+      default: () => [],
+    }
+  })
 
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
   const mapSelectToolRef = ref(null)
 
-  // Default center (Netherlands)
-  const center = ref([5.1, 52.07])
-  const zoom = ref(10.5)
+  const zoom = ref(1)
 
   // Provide map to child components
   provide('map', mapInstance)
 
   function onMapCreated(map) {
     mapInstance.value = map
-    console.log('Map created:', map)
   }
-
-  function onToolChange({ tool, feature, active }) {
-    console.log('Tool change:', { tool, feature, active })
-    // Handle tool changes as needed
-  }
-
   function onError(err) {
     console.error('Map tool error:', err)
   }
@@ -58,7 +93,6 @@
       mapSelectToolRef.value.clear()
     }
   }
-
   // Expose methods if needed
   defineExpose({
     clearAll,

@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-  import { watch, onBeforeUnmount, ref, unref } from 'vue'
+  import { watch, onBeforeUnmount, ref, unref, computed } from 'vue'
   import { useMap } from '@studiometa/vue-mapbox-gl'
   import MapboxDraw from '@mapbox/mapbox-gl-draw'
   import DrawRectangle from 'mapbox-gl-draw-rectangle-mode'
@@ -16,6 +16,21 @@
   import MapboxButtonControl from '@/utils/MapboxButtonControl'
 
   const props = defineProps({
+    // Map can be provided as prop OR via useMap composable
+    map: {
+      type: Object,
+      default: null,
+    },
+    // Control mode - true = normal/internal control, false = external control (disabled)
+    drawMode: {
+      type: Boolean,
+      default: true, // true = normal mode (internal control with buttons)
+    },
+    // Show/hide the UI buttons (hide when externally controlled)
+    showButtons: {
+      type: Boolean,
+      default: true,
+    },
     position: {
       type: String,
       default: 'top-left',
@@ -32,8 +47,14 @@
 
   const emit = defineEmits(['change', 'error'])
 
-  // Get map from useMap composable
-  const { map } = useMap()
+  // Get map from composable if not provided as prop
+  const { map: mapFromComposable } = useMap()
+  
+  // Use provided map or composable map
+  const map = computed(() => props.map || mapFromComposable.value)
+  
+  // Determine if we're in external control mode
+  const isExternalControl = computed(() => props.drawMode === false)
 
   // Internal state
   const currentTool = ref(null) // 'polygon', 'rectangle', or 'marker'
@@ -46,15 +67,18 @@
   const deleteButton = ref(null)
   let staticMode = false
 
+  // Remove the entire watch block for drawMode (lines 75-94)
+  // No longer needed since drawMode is just a boolean
+
   // Initialize when map is available
   watch(
-    () => map,
+    () => map.value,
     (mapRef) => {
       const mapInstance = unref(mapRef)
       if (!mapInstance || mbDraw.value) return
       
       // Wait for map to be fully loaded before adding controls
-      if (mapInstance.loaded()) {
+      if (mapInstance.loaded && mapInstance.loaded()) {
         initializeControls(mapInstance)
       } else {
         mapInstance.once('load', () => {
@@ -84,6 +108,18 @@
 
     mapInstance.addControl(mbDraw.value, props.position)
     mapInstance.__draw = mbDraw.value
+
+    // Only create buttons if showButtons is true and not in external control mode
+    if (!props.showButtons || isExternalControl.value) {
+      // Listen to draw events only
+      mapInstance
+        .on('draw.create', handleDrawChange)
+        .on('draw.delete', handleDrawChange)
+        .on('draw.update', handleDrawChange)
+        .on('draw.selectionchange', handleDrawChange)
+        .on('draw.modechange', handleModeChange)
+      return
+    }
 
     // Create polygon button if enabled
     if (props.enabledTools.includes('polygon')) {
@@ -144,8 +180,39 @@
       .on('draw.modechange', handleModeChange)
   }
 
+  // Handle marker click in external control mode
+  function handleExternalMarkerClick(event) {
+    const mapInstance = unref(map.value)
+    if (props.drawMode === true || !mapInstance) return // Only works in external mode (false)
+
+    const { lng, lat } = event.lngLat
+
+    // Remove existing marker if any
+    if (marker.value && marker.value._lngLat) {
+      marker.value.remove()
+    }
+
+    // Set marker coordinates
+    marker.value.setLngLat([lng, lat]).addTo(mapInstance)
+
+    // Emit change event
+    const feature = {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [lng, lat],
+      },
+      properties: {
+        lng,
+        lat,
+      },
+    }
+
+    emit('change', { tool: 'marker', feature, active: false })
+  }
+
   function handleToolClick(tool) {
-    if (staticMode) return
+    if (staticMode || isExternalControl.value) return
 
     // If clicking the same tool, deactivate it
     if (currentTool.value === tool) {
@@ -163,7 +230,8 @@
   }
 
   function activateTool(tool) {
-    const mapInstance = unref(map)
+    if (isExternalControl.value) return
+    const mapInstance = unref(map.value)
     if (!mapInstance || !mbDraw.value) return
     
     currentTool.value = tool
@@ -215,7 +283,8 @@
   }
 
   function deactivateTool() {
-    const mapInstance = unref(map)
+    if (isExternalControl.value) return
+    const mapInstance = unref(map.value)
     if (!currentTool.value || !mapInstance) return
 
     const previousTool = currentTool.value
@@ -242,7 +311,8 @@
   }
 
   function handleMapClick(event) {
-    const mapInstance = unref(map)
+    if (isExternalControl.value) return
+    const mapInstance = unref(map.value)
     if (currentTool.value !== 'marker' || staticMode || !mapInstance) return
 
     const { lng, lat } = event.lngLat
@@ -275,10 +345,22 @@
   }
 
   function handleModeChange() {
-    const mapInstance = unref(map)
+    const mapInstance = unref(map.value)
     if (!mbDraw.value || !mapInstance) return
 
     const currentMode = mbDraw.value.getMode()
+    
+    // In external control mode, emit change when drawing completes
+    if (isExternalControl.value) {
+      if (currentMode === 'simple_select') {
+        const { features } = mbDraw.value.getAll()
+        const feature = features[0] || null
+        if (feature) {
+          emit('change', { tool: 'draw', feature, active: false })
+        }
+      }
+      return
+    }
     
     // If mode changed from drawing to simple_select, drawing was completed
     if (currentMode === 'simple_select' && (currentTool.value === 'polygon' || currentTool.value === 'rectangle')) {
@@ -314,11 +396,17 @@
   }
 
   function handleDrawChange() {
-    const mapInstance = unref(map)
+    const mapInstance = unref(map.value)
     if (!mbDraw.value || !mapInstance) return
 
     const { features } = mbDraw.value.getAll()
     const feature = features[0] || null
+
+    // In external control mode, emit change directly
+    if (isExternalControl.value) {
+      emit('change', { tool: 'draw', feature, active: false })
+      return
+    }
 
     if (feature) {
       // Feature was created/selected - keep it highlighted
@@ -423,11 +511,12 @@
   }
 
   onBeforeUnmount(() => {
-    const mapInstance = unref(map)
+    const mapInstance = unref(map.value)
     if (!mapInstance) return
 
     // Remove event listeners
     mapInstance.off('click', handleMapClick)
+    mapInstance.off('click', handleExternalMarkerClick)
     mapInstance.off('draw.create', handleDrawChange)
     mapInstance.off('draw.delete', handleDrawChange)
     mapInstance.off('draw.update', handleDrawChange)

@@ -52,7 +52,7 @@ export function geometryFilter(bbox, { includeEmptyGeometry = false } = {}) {
   const bboxValue = bbox && typeof bbox === 'object' && 'value' in bbox ? bbox.value : bbox
   
   // Check if bbox is a valid array with 4 elements (not the default whole-world bbox)
-  const defaultBbox = [180, 90, -180, -90]
+  const defaultBbox = [ 180, 90, -180, -90 ]
   const isValidBbox = Array.isArray(bboxValue) && 
     bboxValue.length === 4 &&
     (bboxValue[0] !== defaultBbox[0] || 

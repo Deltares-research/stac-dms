@@ -44,7 +44,7 @@
           </v-card-text>
         </v-card>
 
-        <!-- Item content -->
+      
         <div v-else-if="item">
           <h1 class="text-h4 font-weight-bold mb-4">
             {{ item.properties?.title || 'Untitled Item' }}
@@ -81,19 +81,21 @@
           </v-card>
 
           <!-- Map if geometry available -->
-          <!--  <v-card v-if="item.geometry || item.bbox" class="mb-4">
+          <v-card v-if="item.geometry" class="mb-4">
             <v-card-title class="text-h6">
               Geometry
             </v-card-title>
             <v-card-text style="min-height: 300px;">
               <div class="map-wrapper">
                 <item-map-component
-                  :static-mode="true"
-                  :initial-geometry="item.geometry"
+                  :draw-mode="false"
+                  :center="mapCenter"
+                  :layer-options="layerOptions"
+                  :zoom-bounds="bounds"
                 />
               </div>
             </v-card-text>
-          </v-card> -->
+          </v-card>
 
           <!-- Assets Section -->
           <v-card class="mb-4">
@@ -322,11 +324,13 @@
 <script setup>
   import { ref, computed, onMounted } from 'vue'
   import { useRoute } from 'vue-router'
+  import { center } from '@turf/turf'
   import { fetchItemById } from '~/requests/items'
   import { formatDate } from '~/utils/helpers'
+  import buildGeoJsonLayer from '~/utils/build-geojson-layer'
 
   const route = useRoute()
-  const itemId = route.params['itemid']
+  const itemId = route.params['id']
  
   const item = ref(null)
   const isLoading = ref(true)
@@ -378,7 +382,7 @@
   const providers = computed(() => {
     return item.value?.properties?.providers || []
   })
-
+  
   // Methods
   function formatPropertyKey(key) {
     return key
@@ -421,6 +425,24 @@
       console.error('Failed to copy text:', err)
     }
   }
+  const bounds = computed(() => {
+    if (!item.value || !item.value.geometry || !item.value.bbox) return []
+    return Array.isArray(item.value.bbox) ? item.value.bbox : []
+  })
+
+  // Build layer options from the item
+  const layerOptions = computed(() => {
+    if (!item.value || !item.value.geometry) return null
+    
+    // Convert single item to featureCollection format
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: [item.value],
+    }
+    return buildGeoJsonLayer(featureCollection)
+  })
+
+
 
   // Fetch item on mount
   onMounted(async () => {

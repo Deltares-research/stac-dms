@@ -261,29 +261,131 @@ async function createCollection(collectionId, title, description) {
   }
 }
 
-// Generate a dummy STAC item
-function generateDummyItem(index, collectionId) {
+// Generate a random date within the last 5 years
+function generateRandomDate() {
   const now = new Date();
+  const fiveYearsAgo = new Date(now.getTime() - (5 * 365 * 24 * 60 * 60 * 1000));
+  const randomTime = fiveYearsAgo.getTime() + Math.random() * (now.getTime() - fiveYearsAgo.getTime());
+  return new Date(randomTime);
+}
+
+// Generate random assets
+function generateRandomAssets() {
+  const assetTypes = ['data', 'metadata', 'thumbnail', 'preview', 'documentation'];
+  const assetFormats = ['application/json', 'application/xml', 'image/png', 'image/jpeg', 'text/csv', 'application/pdf'];
+  const numAssets = Math.floor(Math.random() * 3) + 1; // 1-3 assets
+  
+  const assets = {};
+  for (let i = 0; i < numAssets; i++) {
+    const assetType = assetTypes[Math.floor(Math.random() * assetTypes.length)];
+    const format = assetFormats[Math.floor(Math.random() * assetFormats.length)];
+    const assetName = `${assetType}-${i + 1}`;
+    
+    assets[assetName] = {
+      href: `https://example.com/assets/${assetName}.${format.split('/')[1] || 'bin'}`,
+      type: format,
+      title: `${assetType.charAt(0).toUpperCase() + assetType.slice(1)} Asset ${i + 1}`,
+      roles: [assetType],
+    };
+  }
+  
+  return assets;
+}
+
+// Generate a dummy STAC item
+function generateDummyItem(index, collectionId, collectionName, geometryType = 'point') {
   const timestamp = Date.now();
   const random = Math.floor(Math.random() * 10000);
   const itemId = `dummy-item-${collectionId}-${index}-${timestamp}-${random}`;
   
-  // Generate a random point geometry in the Netherlands
-  const longitude = 4.5 + (Math.random() * 2); // ~4.5 to 6.5
-  const latitude = 51.5 + (Math.random() * 1); // ~51.5 to 52.5
+  // Generate different dates for each item
+  const publicationDate = generateRandomDate();
+  const datetime = generateRandomDate();
   
-  return {
+  let geometry = null;
+  let bbox = null;
+  
+  if (geometryType === 'world') {
+    // Whole world geometry
+    geometry = {
+      type: 'Polygon',
+      coordinates: [[
+        [-180, -90],
+        [180, -90],
+        [180, 90],
+        [-180, 90],
+        [-180, -90]
+      ]],
+    };
+    bbox = [-180, -90, 180, 90];
+  } else if (geometryType === 'polygon') {
+    // Random polygon geometry in the Netherlands
+    const centerLon = 4.5 + (Math.random() * 2); // ~4.5 to 6.5
+    const centerLat = 51.5 + (Math.random() * 1); // ~51.5 to 52.5
+    const size = 0.1 + (Math.random() * 0.2); // Random size between 0.1 and 0.3 degrees
+    
+    // Create a rectangular polygon
+    const minLon = centerLon - size;
+    const maxLon = centerLon + size;
+    const minLat = centerLat - size;
+    const maxLat = centerLat + size;
+    
+    geometry = {
+      type: 'Polygon',
+      coordinates: [[
+        [minLon, minLat],
+        [maxLon, minLat],
+        [maxLon, maxLat],
+        [minLon, maxLat],
+        [minLon, minLat]
+      ]],
+    };
+    bbox = [minLon, minLat, maxLon, maxLat];
+  } else if (geometryType === 'none') {
+    // No geometry
+    geometry = null;
+    bbox = null;
+  } else {
+    // Default: random point geometry in the Netherlands
+    const longitude = 4.5 + (Math.random() * 2); // ~4.5 to 6.5
+    const latitude = 51.5 + (Math.random() * 1); // ~51.5 to 52.5
+    geometry = {
+      type: 'Point',
+      coordinates: [longitude, latitude],
+    };
+    bbox = [
+      longitude - 0.01,
+      latitude - 0.01,
+      longitude + 0.01,
+      latitude + 0.01,
+    ];
+  }
+  
+  // Build title with geometry information
+  let titleSuffix = '';
+  if (geometry) {
+    if (geometryType === 'polygon' || geometryType === 'world') {
+      titleSuffix = ' [Polygon]';
+    } else if (geometryType === 'point') {
+      titleSuffix = ' [Point/Marker]';
+    }
+  } else {
+    titleSuffix = ' [No Geometry]';
+  }
+  
+  const item = {
     type: 'Feature',
     stac_version: '1.0.0',
     stac_extensions: [],
     id: itemId,
     collection: collectionId,
     properties: {
-      title: `Dummy Dataset ${index}`,
+      title: `Dummy Dataset ${index}${titleSuffix}`,
       projectNumber: `PROJ-${String(index).padStart(3, '0')}`,
-      description: `Test description for dummy dataset ${index}. This is a sample dataset created for testing purposes.`,
-      publication_datetime: now.toISOString(),
-      spatialReferenceSystem: 'EPSG:4326',
+      description: `Test description for dummy dataset ${index} from collection "${collectionName}". This is a sample dataset created for testing purposes.`,
+      collectionName: collectionName,
+      publication_datetime: publicationDate.toISOString(),
+      spatialReferenceSystem: geometry ? 'EPSG:4326' : null,
       dataQualityInfoStatement: 'Test data - generated automatically',
       dataQualityInfoScore: 'dataSet',
       dateType: 'publication',
@@ -301,23 +403,17 @@ function generateDummyItem(index, collectionId) {
       originatorMetaDataEmail: 'test@deltares.nl',
       originatorMetaDataRoleCode: 'originator',
       metaDataLanguage: 'eng',
-      datetime: now.toISOString(),
+      datetime: datetime.toISOString(),
       facility_type: 'test',
       license: 'proprietary',
     },
-    geometry: {
-      type: 'Point',
-      coordinates: [longitude, latitude],
-    },
-    bbox: [
-      longitude - 0.01,
-      latitude - 0.01,
-      longitude + 0.01,
-      latitude + 0.01,
-    ],
+    geometry: geometry,
+    bbox: bbox,
     links: [],
-    assets: {},
+    assets: generateRandomAssets(),
   };
+  
+  return item;
 }
 
 // Create a single item
@@ -334,6 +430,101 @@ async function createItem(item, collectionId) {
     console.error(`  ✗ Failed to create item ${item.id}: ${result.error}`);
     return false;
   }
+}
+
+// Get all collections
+async function getAllCollections() {
+  const result = await apiRequest('/collections');
+  
+  if (result.success) {
+    return result.data.collections || [];
+  } else {
+    console.warn(`Warning: Failed to fetch collections: ${result.error}`);
+    return [];
+  }
+}
+
+// Delete all items from a collection
+async function deleteAllItemsFromCollection(collectionId) {
+  // Get all items in the collection
+  const itemsResult = await apiRequest(`/collections/${collectionId}/items`);
+  
+  if (!itemsResult.success) {
+    console.warn(`  Warning: Failed to fetch items for collection '${collectionId}': ${itemsResult.error}`);
+    return 0;
+  }
+  
+  const items = itemsResult.data.features || [];
+  let deletedCount = 0;
+  
+  for (const item of items) {
+    const deleteResult = await apiRequest(`/collections/${collectionId}/items/${item.id}`, {
+      method: 'DELETE',
+    });
+    
+    if (deleteResult.success) {
+      deletedCount++;
+    } else {
+      console.warn(`  Warning: Failed to delete item '${item.id}': ${deleteResult.error}`);
+    }
+    
+    // Small delay to avoid overwhelming the API
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  
+  return deletedCount;
+}
+
+// Delete a collection
+async function deleteCollection(collectionId) {
+  // First, delete all items in the collection
+  const deletedItems = await deleteAllItemsFromCollection(collectionId);
+  if (deletedItems > 0) {
+    console.log(`  Deleted ${deletedItems} item(s) from collection '${collectionId}'`);
+  }
+  
+  // Then delete the collection itself
+  const result = await apiRequest(`/collections/${collectionId}`, {
+    method: 'DELETE',
+  });
+  
+  if (result.success) {
+    console.log(`  ✓ Deleted collection: ${collectionId}`);
+    return true;
+  } else {
+    console.warn(`  Warning: Failed to delete collection '${collectionId}': ${result.error}`);
+    return false;
+  }
+}
+
+// Delete all existing collections
+async function deleteAllCollections() {
+  console.log('='.repeat(60));
+  console.log('Deleting existing collections and data');
+  console.log('='.repeat(60));
+  
+  const collections = await getAllCollections();
+  
+  if (collections.length === 0) {
+    console.log('No existing collections found.');
+    console.log('');
+    return;
+  }
+  
+  console.log(`Found ${collections.length} existing collection(s).`);
+  console.log('');
+  
+  let deletedCount = 0;
+  for (const collection of collections) {
+    console.log(`Deleting collection '${collection.id}'...`);
+    if (await deleteCollection(collection.id)) {
+      deletedCount++;
+    }
+    console.log('');
+  }
+  
+  console.log(`✓ Deleted ${deletedCount} out of ${collections.length} collection(s).`);
+  console.log('');
 }
 
 // Main function
@@ -379,6 +570,9 @@ async function main() {
       console.log('⚠ Skipping authentication steps (no DMS_TOKEN provided)');
       console.log('');
     }
+
+    // Step 1: Delete all existing collections and their data
+    await deleteAllCollections();
 
     // Step 2: Create dummy collections
     console.log('='.repeat(60));
@@ -439,11 +633,39 @@ async function main() {
     
     let totalSuccess = 0;
     let totalFailed = 0;
+    let globalDatasetNumber = 0; // Track unique dataset numbers across all collections
 
-    for (const collectionId of createdCollections) {
+    for (let collectionIndex = 0; collectionIndex < collections.length; collectionIndex++) {
+      const collectionInfo = collections[collectionIndex];
+      const collectionId = collectionInfo.id;
+      const collectionName = collectionInfo.title;
+      
+      if (!createdCollections.includes(collectionId)) {
+        continue; // Skip if collection wasn't created
+      }
+      
       console.log(`\nUploading items to collection '${collectionId}':`);
       for (let i = 1; i <= NUM_ITEMS_PER_COLLECTION; i++) {
-        const item = generateDummyItem(i, collectionId);
+        // Calculate unique dataset number across all collections
+        globalDatasetNumber++;
+        const uniqueDatasetNumber = globalDatasetNumber;
+        
+        // Determine geometry type based on item index
+        // - First item: normal point geometry
+        // - Second item: whole world geometry (polygon)
+        // - Third item: no geometry
+        // - Fourth item: polygon geometry (smaller polygon)
+        // - Remaining items: normal point geometry
+        let geometryType = 'point';
+        if (i === 2) {
+          geometryType = 'world';
+        } else if (i === 3) {
+          geometryType = 'none';
+        } else if (i === 4) {
+          geometryType = 'polygon';
+        }
+        
+        const item = generateDummyItem(uniqueDatasetNumber, collectionId, collectionName, geometryType);
         if (await createItem(item, collectionId)) {
           totalSuccess++;
         } else {

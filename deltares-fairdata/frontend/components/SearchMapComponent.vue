@@ -3,7 +3,7 @@
     <mapbox-map
       v-model:map="mapInstance"
       :access-token="accessToken"
-      map-style="mapbox://styles/mapbox/streets-v12"
+      map-style="mapbox://styles/mapbox/light-v11"
       :center="[5.1, 52.07]"
       :zoom="10.5"
       @mb-created="onMapCreated"
@@ -25,8 +25,9 @@
         @mb-feature-click="onFeatureClicked"
         @mb-cluster-click="onClusterClicked"
       />
+    
       <MapControlsZoom
-        v-if="bounds.length >= 4"
+        v-if="bounds.length >= 4 && !hasActivePolygonFilter"
         :bounds="bounds"
       />
       <MapCustomImage
@@ -35,8 +36,6 @@
         @image-loaded="imageLoaded = true"
       />
       <MapboxNavigationControl position="bottom-right" :show-compass="false" />
-      
-      <!-- Zoom to feature when bbox changes -->
       <MapControlsZoom
         v-if="mapInstance && store.selectedFeatureBbox"
         :bounds="store.selectedFeatureBbox"
@@ -44,17 +43,15 @@
         :duration="1000"
         :zoom-on-mount="false"
       />
-      
-      <!-- Draw control for area selection -->
-      <MapboxDrawControl
+      <MapSelectTool
         v-if="mapInstance"
         ref="drawControlRef"
         :map="mapInstance"
-        :draw-mode="drawMode"
+        :show-buttons="true"
+        :enabled-tools="['polygon']"
         @change="onDrawChange"
       />
       
-      <!-- Popup for selected feature -->
       <MapboxPopup
         v-if="selectedFeature && popupCoordinates && Array.isArray(popupCoordinates) && popupCoordinates.length === 2"
         :key="`popup-${selectedFeature?.id || 'unknown'}`"
@@ -67,45 +64,7 @@
         max-width="420px"
         @mb-close="onPopupClose"
       >
-        <v-card style="min-width: 300px; max-width: 420px; box-shadow: none;">
-          <v-card-title class="text-h6 text-wrap">
-            {{ selectedFeature.properties?.title || selectedFeature.id }}
-          </v-card-title>
-          <v-card-text>
-            <p class="text-body-2 mb-3">
-              {{ selectedFeature.properties?.description || 'No description.' }}
-            </p>
-            
-            <!-- View details section (same as index.vue) -->
-            <div class="d-flex align-center mb-3">
-              <v-icon class="mr-2" size="small">
-                mdi-link-variant
-              </v-icon>
-              <span v-if="firstAssetHref(selectedFeature)">
-                {{ firstAssetHref(selectedFeature) }}
-              </span>
-              <span v-else>—</span>
-            </div>
-            
-            <div class="mb-3">
-              <v-btn
-                v-if="firstAssetHref(selectedFeature)"
-                :href="firstAssetHref(selectedFeature)"
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="tonal"
-                density="comfortable"
-                prepend-icon="mdi-open-in-new"
-              >
-                View details
-              </v-btn>
-            </div>
-            
-            <div class="text-body-2">
-              {{ formatDate(selectedFeature) }}
-            </div>
-          </v-card-text>
-        </v-card>
+        <PopupContent :feature="selectedFeature" />
       </MapboxPopup>
     </mapbox-map>
   </div>
@@ -114,13 +73,21 @@
 <script setup>
   import { ref, computed, watch, nextTick } from 'vue'
   import { MapboxMap, MapboxCluster, MapboxNavigationControl, MapboxPopup } from '@studiometa/vue-mapbox-gl'
-  import { center } from '@turf/turf'
+  import { center, bbox } from '@turf/turf'
+  import { isEqual } from 'lodash'
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
-  import MapboxDrawControl from '@/components/MapboxDrawControl.vue'
-  import { formatDate } from '~/utils/helpers'
+  import MapSelectTool from '@/components/MapSelectTool.vue'
+  import PopupContent from '@/components/PopupContent.vue'
   import * as geojsonBounds from 'geojson-bounds'
+  import {
+    unclusteredPointLayout,
+    unclusteredPointPaint,
+    clustersPaint,
+    clusterCountLayout,
+    clusterCountPaint
+  } from '~/utils/mapbox-cluster-config'
 
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
@@ -137,20 +104,47 @@
   // Default bbox (whole world)
   const DEFAULT_BBOX = [180, 90, -180, -90]
   
-  // Draw mode for area selection
-  const drawMode = computed(() => {
-    return store.areaDrawMode ? 'rectangle' : null
+  // Flag to prevent recursive updates
+  const isClearingPolygon = ref(false)
+  
+  // Check if polygon filter is active (bbox is not default)
+  const hasActivePolygonFilter = computed(() => {
+    if (!store.bboxFilter || store.bboxFilter.length !== 4) return false
+    return !isEqual(store.bboxFilter, DEFAULT_BBOX)
   })
   
-  // Watch for areaDrawMode changes to clear draw when disabled
+  // Watch for bboxFilter changes to clear polygon when reset to default
   watch(
-    () => store.areaDrawMode,
-    (isActive) => {
-      if (!isActive && drawControlRef.value) {
-        // Clear the drawn rectangle when draw mode is disabled
-        drawControlRef.value.clear()
-        // Reset bbox filter to default
-        store.bboxFilter = [...DEFAULT_BBOX]
+    () => store.bboxFilter,
+    (newBbox, oldBbox) => {
+      // Skip if we're already clearing (prevent recursion)
+      if (isClearingPolygon.value) return
+      
+      // Only clear if bboxFilter was changed from non-default to default
+      // (i.e., not when it's already default)
+      const wasNonDefault = oldBbox && oldBbox.length === 4 && !isEqual(oldBbox, DEFAULT_BBOX)
+      
+      // If bboxFilter is reset to default (and it wasn't already default), clear the polygon on map
+      if (wasNonDefault &&
+        newBbox &&
+        newBbox.length === 4 &&
+        isEqual(newBbox, DEFAULT_BBOX) &&
+        drawControlRef.value) {
+        // Check if polygon actually exists before clearing
+        const draw = drawControlRef.value.getDraw()
+        if (draw) {
+          const { features } = draw.getAll()
+          if (features && features.length > 0) {
+            isClearingPolygon.value = true
+            drawControlRef.value.clear()
+            // Reset flag after a short delay to allow the clear to complete
+            nextTick(() => {
+              setTimeout(() => {
+                isClearingPolygon.value = false
+              }, 100)
+            })
+          }
+        }
       }
     }
   )
@@ -218,38 +212,6 @@
     return `cluster-${layerTimestamp.value}`
   })
   
-  // Configuration for unclustered points (your custom marker)
-  const unclusteredPointLayout = computed(() => ({
-    'icon-image': 'custom-marker',
-    'icon-size': 0.04,
-    'icon-allow-overlap': true,
-    'icon-anchor': 'bottom',
-  }))
-  
-  const unclusteredPointPaint = computed(() => ({}))
-  
-  // Configuration for cluster circles
-  const clustersPaint = computed(() => ({
-    'circle-color': '#51bbd6',
-    'circle-radius': [
-      'step',
-      ['get', 'point_count'],
-      20,  // radius for clusters with < 100 points
-      30,  // radius for clusters with < 750 points
-      40   // radius for clusters >= 750 points
-    ],
-  }))
-  
-  // Configuration for cluster count text
-  const clusterCountLayout = computed(() => ({
-    'text-field': ['get', 'point_count_abbreviated'],
-    'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
-    'text-size': 12,
-  }))
-  
-  const clusterCountPaint = computed(() => ({
-    'text-color': '#fff',
-  }))
   
   // Popup coordinates computed property
   const popupCoordinates = computed(() => {
@@ -259,7 +221,6 @@
     
     const geometry = selectedFeature.value.geometry
     
-    // For Point geometry, coordinates are directly [lng, lat]
     if (geometry.type === 'Point') {
       const coords = geometry.coordinates
       if (Array.isArray(coords) && coords.length >= 2) {
@@ -268,7 +229,6 @@
       return null
     }
     
-    // For other geometries, calculate center using @turf/center
     try {
       const centerPoint = center(selectedFeature.value)
       const coords = centerPoint.geometry.coordinates
@@ -276,37 +236,17 @@
         return [coords[0], coords[1]]
       }
       return null
-    } catch (error) {
+    } catch {
       return null
     }
   })
-  
-  // Helper function to get first asset href (same as index.vue)
-  function firstAssetHref(feature) {
-    const assets = feature?.assets
-    if (!assets) return null
-    const firstKey = Object.keys(assets)[0]
-    return firstKey ? assets[firstKey]?.href : null
-  }
-  
-  
-  // Calculate bounds from featureCollectionWithGeometry using geojson-bounds
+
   const bounds = computed(() => {
     if (!store.featureCollectionWithGeometry) {
       return []
     }
     const extent = geojsonBounds.extent(store.featureCollectionWithGeometry)
     if (!extent || extent.length < 4) {
-      return []
-    }
-    // Validate that all values are valid numbers
-    const [minLng, minLat, maxLng, maxLat] = extent
-    if (
-      typeof minLng !== 'number' || isNaN(minLng) ||
-      typeof minLat !== 'number' || isNaN(minLat) ||
-      typeof maxLng !== 'number' || isNaN(maxLng) ||
-      typeof maxLat !== 'number' || isNaN(maxLat)
-    ) {
       return []
     }
     return extent
@@ -318,7 +258,6 @@
   }
   
   async function onFeatureClicked(feature, event) {
-    console.log('onFeatureClicked', JSON.stringify(feature))
    
     // Cancel any pending map click handlers
     if (mapClickTimeout) {
@@ -340,7 +279,6 @@
       }
     }
     
-    // Get the feature ID from properties (normalized in store)
     const featureId = feature.properties?.id || feature.id
     
     if (!featureId) {
@@ -383,30 +321,26 @@
     }, 400)
   }
   
-  function onClusterClicked(clusterId, event) {
-    // Handle cluster click - clear selection and let default zoom behavior happen
+  function onClusterClicked() {
     selectedFeature.value = null
     store.clearSelectedFeature()
   }
   
-  function onMapClick(event) {
-    // Only clear selection if clicking empty map area (not on a feature)
-    // Cancel any previous pending map click handler
+  function onMapClick() {
     if (mapClickTimeout) {
       clearTimeout(mapClickTimeout)
     }
     
-    // Check the flag with a small delay to account for async feature click handler
     mapClickTimeout = setTimeout(() => {
       mapClickTimeout = null
       if (justClickedFeature.value) {
         return
       }
-      
       selectedFeature.value = null
       store.clearSelectedFeature()
     }, 150)
   }
+
   function onPopupClose() {
     if (!justClickedFeature.value && !store.selectedFeatureId) {
       selectedFeature.value = null
@@ -414,39 +348,18 @@
     }
   }
 
-  
-  // Handle draw control changes (when user draws a rectangle)
-  function onDrawChange(feature) {
+  function onDrawChange({ feature }) {
+    if (isClearingPolygon.value) return
     if (!feature || !feature.geometry) {
-      // Draw was cleared - reset bbox filter to default
-      store.bboxFilter = [...DEFAULT_BBOX]
+      const currentBbox = store.bboxFilter
+      if (!currentBbox || !isEqual(currentBbox, DEFAULT_BBOX)) {
+        store.bboxFilter = [...DEFAULT_BBOX]
+      }
       return
     }
     
-    // Extract bbox from polygon
-    if (feature.geometry.type === 'Polygon' && feature.geometry.coordinates && feature.geometry.coordinates.length > 0) {
-      const coordinates = feature.geometry.coordinates[0] // First ring of polygon
-      
-      // Find min/max lng and lat
-      let minLng = Infinity
-      let minLat = Infinity
-      let maxLng = -Infinity
-      let maxLat = -Infinity
-      
-      coordinates.forEach(coord => {
-        const [lng, lat] = coord
-        minLng = Math.min(minLng, lng)
-        minLat = Math.min(minLat, lat)
-        maxLng = Math.max(maxLng, lng)
-        maxLat = Math.max(maxLat, lat)
-      })
-      
-      const bbox = [minLng, minLat, maxLng, maxLat]
-      
-      // Update the bbox filter in the store
-      // This will trigger the watcher in index.vue which will call store.search()
-      store.bboxFilter = bbox
-    }
+    const featureBbox = bbox(feature)
+    store.bboxFilter = featureBbox
   }
 </script>
 

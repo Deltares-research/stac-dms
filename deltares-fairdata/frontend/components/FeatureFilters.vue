@@ -33,28 +33,31 @@
       <v-spacer />
 
       <!-- Active selection chips -->
-      <div v-if="activeChips.length" class="d-flex flex-wrap ga-2 mr-2">
+      <div
+        v-if="activeChips.length"
+        class="active-chips-container"
+      >
         <v-chip
           v-for="chip in activeChips"
           :key="chip.key"
-          size="small"
+          size="x-small"
           variant="flat"
           closable
-          class="mb-1"
+          class="mb-1 filter-chip"
           @click:close="clearOne(chip.key)"
         >
-          {{ chip.label }}: {{ chip.value }}
+          <span class="filter-chip-text">{{ chip.label }}: {{ chip.value }}</span>
         </v-chip>
       </div>
     </v-toolbar>
 
-    <!-- Floating expanded content (overlays the rest) -->
+    <!-- Expanded content (pushes content down) -->
     <v-expand-transition>
-      <div v-show="expanded" class="filters-popover elevation-8 rounded-b-lg">
+      <div v-show="expanded" class="filters-expanded rounded-b-lg">
         <v-divider />
 
         <v-container fluid class="py-4">
-          <v-row>
+          <v-row class="filter-row">
             <!-- Domain (collection) -->
             
             <v-col
@@ -77,37 +80,12 @@
                 density="compact"
                 clearable
                 hide-details
+                class="filter-autocomplete"
                 @update:model-value="handleCollectionChange"
-              >
-                <template #item="{ props: itemProps, item }">
-                  <v-list-item v-bind="itemProps">
-                    <template #prepend>
-                      <v-list-item-action>
-                        <v-icon v-if="item.raw.selected" color="primary">
-                          mdi-check
-                        </v-icon>
-                      </v-list-item-action>
-                    </template>
-                    <v-list-item-title>
-                      <div class="d-flex flex-column">
-                        <div class="text-caption text-grey-darken-1">
-                          {{ item.raw.description || '' }}
-                        </div>
-                        <div class="text-body-2 font-weight-medium">
-                          {{ item.raw.title }}
-                        </div>
-                      </div>
-                    </v-list-item-title>
-                  </v-list-item>
-                </template>
-                <template #selection="{ item }">
-                  {{ item.raw.title }}
-                </template>
-              </v-autocomplete>
+              />
             </v-col>
 
             <!-- Topic -->
-
             <v-col
               cols="12"
               md="4"
@@ -130,6 +108,7 @@
                 density="compact"
                 clearable
                 hide-details
+                class="filter-autocomplete"
                 @update:model-value="handleTopicChange"
               >
                 <template #item="{ props: itemProps, item }">
@@ -174,156 +153,133 @@
                 density="compact"
                 clearable
                 hide-details
+                class="filter-autocomplete"
               />
             </v-col>
 
             <!-- Start & End date (buttons open date pickers) -->
             <v-col
               cols="12"
-              md="4"
+              md="12"
               class="filter-col"
             >
-              <!-- Start date -->
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-subtitle-2">
-                  Start date
-                </div>
-                <v-btn
-                  v-if="store.startDate"
-                  size="x-small"
-                  variant="text"
-                  @click="store.startDate = undefined"
-                >
-                  Clear
-                </v-btn>
-              </div>
+              <v-row>
+                <!-- Start date -->
+                <v-col cols="6">
+                  <div class="text-subtitle-2 mb-2">
+                    Start date
+                  </div>
 
-              <v-menu
-                v-model="startMenu"
-                :close-on-content-click="false"
-                content-class="filters-portal"
-                location="bottom start"
-                :offset="8"
-              >
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    variant="outlined"
-                    block
+                  <v-menu
+                    v-model="startMenu"
+                    :close-on-content-click="false"
+                    content-class="filters-portal"
+                    location="bottom start"
+                    :offset="8"
                   >
-                    <v-icon start>
-                      mdi-calendar
-                    </v-icon>
-                    {{ store.startDate ? labelFor('startDate', store.startDate) : 'Pick a date' }}
-                  </v-btn>
-                </template>
+                    <template #activator="{ props }">
+                      <div class="d-flex align-center ga-2">
+                        <v-btn
+                          v-bind="props"
+                          variant="outlined"
+                          block
+                          class="flex-grow-1"
+                        >
+                          <v-icon start>
+                            mdi-calendar
+                          </v-icon>
+                          <span class="filter-date-text">{{ store.startDate ? labelFor('startDate', store.startDate) : 'Pick a date' }}</span>
+                        </v-btn>
+                        <v-btn
+                          v-if="store.startDate"
+                          size="x-small"
+                          variant="text"
+                          icon
+                          @click="store.startDate = undefined"
+                        >
+                          <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                      </div>
+                    </template>
 
-                <v-card>
-                  <v-date-picker
-                    v-model="tempStart"
-                    show-adjacent-months
-                    elevation="0"
-                  />
-                  <v-divider />
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="text" @click="startMenu = false">
-                      Cancel
-                    </v-btn>
-                    <v-btn variant="flat" @click="applyStart">
-                      Apply
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-menu>
+                    <v-card>
+                      <v-date-picker
+                        v-model="tempStart"
+                        show-adjacent-months
+                        elevation="0"
+                      />
+                      <v-divider />
+                      <v-card-actions>
+                        <v-spacer />
+                        <v-btn variant="text" @click="startMenu = false">
+                          Cancel
+                        </v-btn>
+                        <v-btn variant="flat" @click="applyStart">
+                          Apply
+                        </v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-menu>
+                </v-col>
 
-              <!-- End date -->
-              <div class="d-flex align-center justify-space-between mt-6 mb-2">
-                <div class="text-subtitle-2">
-                  End date
-                </div>
-                <v-btn
-                  v-if="store.endDate"
-                  size="x-small"
-                  variant="text"
-                  @click="store.endDate = undefined"
-                >
-                  Clear
-                </v-btn>
-              </div>
+                <!-- End date -->
+                <v-col cols="6">
+                  <div class="text-subtitle-2 mb-2">
+                    End date
+                  </div>
 
-              <v-menu
-                v-model="endMenu"
-                :close-on-content-click="false"
-                content-class="filters-portal"
-                location="bottom start"
-                :offset="8"
-              >
-                <template #activator="{ props }">
-                  <v-btn
-                    v-bind="props"
-                    variant="outlined"
-                    block
+                  <v-menu
+                    v-model="endMenu"
+                    :close-on-content-click="false"
+                    content-class="filters-portal"
+                    location="bottom start"
+                    :offset="8"
                   >
-                    <v-icon start>
-                      mdi-calendar
-                    </v-icon>
-                    {{ store.endDate ? labelFor('endDate', store.endDate) : 'Pick a date' }}
-                  </v-btn>
-                </template>
+                    <template #activator="{ props }">
+                      <div class="d-flex align-center ga-2">
+                        <v-btn
+                          v-bind="props"
+                          variant="outlined"
+                          block
+                          class="flex-grow-1"
+                        >
+                          <v-icon start>
+                            mdi-calendar
+                          </v-icon>
+                          <span class="filter-date-text">{{ store.endDate ? labelFor('endDate', store.endDate) : 'Pick a date' }}</span>
+                        </v-btn>
+                        <v-btn
+                          v-if="store.endDate"
+                          size="x-small"
+                          variant="text"
+                          icon
+                          @click="store.endDate = undefined"
+                        >
+                          <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                      </div>
+                    </template>
 
-                <v-card>
-                  <v-date-picker
-                    v-model="tempEnd"
-                    show-adjacent-months
-                    elevation="0"
-                  />
-                  <v-divider />
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn variant="text" @click="endMenu = false">
-                      Cancel
-                    </v-btn>
-                    <v-btn variant="flat" @click="applyEnd">
-                      Apply
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-menu>
-            </v-col>
-          </v-row>
-
-          <!-- Area Filter -->
-          <v-row>
-            <v-col
-              cols="12"
-              md="4"
-              class="filter-col"
-            >
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-subtitle-2">
-                  Area
-                </div>
-                <v-btn
-                  v-if="hasActiveAreaFilter"
-                  size="x-small"
-                  variant="text"
-                  @click="clearAreaFilter"
-                >
-                  Clear
-                </v-btn>
-              </div>
-              <v-btn
-                variant="outlined"
-                block
-                :color="store.areaDrawMode ? 'primary' : undefined"
-                @click="toggleAreaDraw"
-              >
-                <v-icon start>
-                  mdi-selection-drag
-                </v-icon>
-                {{ store.areaDrawMode ? 'Drawing...' : 'Draw area on map' }}
-              </v-btn>
+                    <v-card>
+                      <v-date-picker
+                        v-model="tempEnd"
+                        show-adjacent-months
+                        elevation="0"
+                      />
+                      <v-divider />
+                      <v-card-actions>
+                        <v-spacer />
+                        <v-btn variant="text" @click="endMenu = false">
+                          Cancel
+                        </v-btn>
+                        <v-btn variant="flat" @click="applyEnd">
+                          Apply
+                        </v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-menu>
+                </v-col>
+              </v-row>
             </v-col>
           </v-row>
 
@@ -348,32 +304,15 @@
 </template>
 
 <script setup>
-  import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+  import { ref, watch, computed} from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
 
-  // const props = defineProps({
-  //   options: {
-  //     type: Object,
-  //     default: () => ({
-  //       collection: [],
-  //       keyword: [],
-  //     }),
-  //   },
-  // })
+
 
   const store = useSearchPageStore()
   const expanded = ref(false)
   const rootEl = ref(null)
   
-  // Check if area filter is active (bbox is not default)
-  const defaultBbox = [180, 90, -180, -90]
-  const hasActiveAreaFilter = computed(() => {
-    if (!store.bboxFilter) return false
-    return store.bboxFilter[0] !== defaultBbox[0] || 
-      store.bboxFilter[1] !== defaultBbox[1] || 
-      store.bboxFilter[2] !== defaultBbox[2] || 
-      store.bboxFilter[3] !== defaultBbox[3]
-  })
 
   /* --- Convert store arrays to single values for display --- */
   const selectedCollection = computed({
@@ -463,17 +402,6 @@
     endMenu.value = false
   }
 
-  function toggleAreaDraw() {
-    store.areaDrawMode = !store.areaDrawMode
-  }
-  
-  function clearAreaFilter() {
-    store.areaDrawMode = false
-    // Reset bbox filter to default (whole world)
-    // This will be handled by the watcher in MapComponent, but we set it here too for consistency
-    store.bboxFilter = [180, 90, -180, -90]
-  }
-  
   function clear () {
     store.q = ''
     store.collections = store.collections.map(c => ({ ...c, selected: false }))
@@ -482,7 +410,6 @@
     store.endDate = undefined
     store.includeEmptyGeometry = false
     store.topics = store.topics.map(t => ({ ...t, selected: false }))
-    store.areaDrawMode = false
     store.bboxFilter = [180, 90, -180, -90]
   }
   function clearOne (key) {
@@ -504,7 +431,8 @@
         t.id === topicId ? { ...t, selected: false } : t
       )
     } else if (key === 'area') {
-      clearAreaFilter()
+      // Clear area filter by resetting bbox to default
+      store.bboxFilter = [180, 90, -180, -90]
     }
   }
 
@@ -568,49 +496,119 @@
       chips.push({ key: 'includeEmptyGeometry', label: FIELD_LABEL.includeEmptyGeometry, value: 'Yes' })
     }
     
-    // Show area chip if bbox filter is active
-    if (hasActiveAreaFilter.value) {
+    // Show area chip if bbox filter is active (not default)
+    const defaultBbox = [180, 90, -180, -90]
+    if (store.bboxFilter &&
+      (store.bboxFilter[0] !== defaultBbox[0] ||
+        store.bboxFilter[1] !== defaultBbox[1] ||
+        store.bboxFilter[2] !== defaultBbox[2] ||
+        store.bboxFilter[3] !== defaultBbox[3])) {
       chips.push({ key: 'area', label: FIELD_LABEL.area, value: 'Selected' })
     }
     
     return chips
   })
 
-  /* ---- Click outside to collapse ---- */
-  function onDocPointerDown (e) {
-    if (!expanded.value) return
-    const root = rootEl.value?.$el ?? rootEl.value
-    const target = e.target
-    if (root && root.contains(target)) return
-    // Ignore clicks inside teleported menus (sort + date pickers)
-    if (target?.closest && target.closest('.filters-portal')) return
-    expanded.value = false
-  }
-
-  onMounted(() => {
-    document.addEventListener('pointerdown', onDocPointerDown, true)
-  })
-  onBeforeUnmount(() => {
-    document.removeEventListener('pointerdown', onDocPointerDown, true)
-  })
 </script>
 
 <style scoped>
 .filters-root {
   position: relative;
-  z-index: 10;
-  overflow: visible;
+  border: 1px solid var(--v-theme-outline-variant);
 }
-.filters-popover {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+.filters-expanded {
   background: #fff;
   border: 1px solid var(--v-theme-outline-variant);
   border-top: none;
-  z-index: 1000;
 }
+
+/* Ensure toolbar handles overflow properly */
+.filters-root :deep(.v-toolbar) {
+  overflow: visible;
+  flex-wrap: wrap;
+  min-height: auto;
+}
+
+.filters-root :deep(.v-toolbar__content) {
+  overflow: visible;
+  min-width: 0;
+  max-width: 100%;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.filters-root :deep(.v-spacer) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Simple styling for all autocomplete fields - keep them consistent */
+.filter-autocomplete {
+  width: 100%;
+}
+
+.filter-selection-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  max-width: 100%;
+}
+
+/* Date button text overflow */
+.filter-date-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Ensure date buttons handle text overflow properly */
+.filters-expanded :deep(.v-btn) {
+  min-width: 0;
+}
+
+.filters-expanded :deep(.v-btn__content) {
+  overflow: hidden;
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+/* Fix text overflow in active filter chips - flexible sizing */
+.active-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-right: 8px;
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+}
+
+.filter-chip {
+  flex: 1 1 0;
+  min-width: 55px;
+  max-width: 100%;
+}
+
+.filter-chip :deep(.v-chip__content) {
+  overflow: hidden;
+  min-width: 0;
+  flex: 1;
+  max-width: 100%;
+}
+
+.filter-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+}
+
 @media (min-width: 960px) {
   .filter-col {
     position: relative;

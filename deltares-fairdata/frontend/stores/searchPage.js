@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { center } from '@turf/turf'
+import { isEqual } from 'lodash'
 import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
+
+// Global bounding box constant (covers entire world)
+const GLOBAL_BBOX = [ -180, -90, 180, 90 ]
 
 export const useSearchPageStore = defineStore('searchPage', () => {
   //State
@@ -31,19 +36,45 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     // Filter out features with null or missing geometry and normalize properties.id
     const validFeatures = featureCollection.value.features
       .filter(feature => feature.geometry && feature.geometry.type)
+      .filter(feature => {
+        // Exclude features marked as global dataset
+        return !feature.properties?.globaldataset
+      })
       .map(feature => {
+        let processedFeature = { ...feature }
+        
+        // Convert Polygon and MultiPolygon to Point using center
+        if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+          try {
+            const centerPoint = center(feature)
+            processedFeature = {
+              ...feature,
+              geometry: {
+                type: 'Point',
+                coordinates: centerPoint.geometry.coordinates,
+              },
+            }
+          } catch (error) {
+            console.error('Error calculating center for polygon feature:', error)
+            // If center calculation fails, skip this feature
+            return null
+          }
+        }
+        
         // Ensure properties.id is set to feature.id if it exists
-        if (feature.id) {
-          return {
-            ...feature,
+        if (processedFeature.id) {
+          processedFeature = {
+            ...processedFeature,
             properties: {
-              ...feature.properties,
-              id: feature.properties?.id || feature.id,
+              ...processedFeature.properties,
+              id: processedFeature.properties?.id || processedFeature.id,
             },
           }
         }
-        return feature
+        
+        return processedFeature
       })
+      .filter(feature => feature !== null) // Remove any features that failed center calculation
     
     // Return null if no valid features, otherwise return filtered collection
     if (validFeatures.length === 0) {
@@ -58,7 +89,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
 
 
   //Functions
-  async function search() {
+  async function search(limit = 1000) {
     // Get selected collections (collections that are marked as selected)
     const selected = (collections.value || []).filter(c => c.selected)
     const selectedIds = selected.map(c => c.id)
@@ -71,7 +102,6 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     searchError.value = null
   
     try {
-      console.log('topics', selectedTopicIds)
       const data = await searchItems({
         q: q.value,
         startDate: startDate.value,
@@ -81,9 +111,28 @@ export const useSearchPageStore = defineStore('searchPage', () => {
         topics: selectedTopicIds,
         includeEmptyGeometry: includeEmptyGeometry.value,
         bbox: bboxFilter.value,
-        limit: 1000,
+        limit: limit,
       })
-  
+
+      // Mark features with global bounding box
+      if (data && data.features && Array.isArray(data.features)) {
+        data.features = data.features.map(feature => {
+          // Check if feature has global bbox
+          if (feature.bbox && Array.isArray(feature.bbox) && feature.bbox.length === 4) {
+            if (isEqual(feature.bbox, GLOBAL_BBOX)) {
+              return {
+                ...feature,
+                properties: {
+                  ...feature.properties,
+                  globaldataset: true,
+                },
+              }
+            }
+          }
+          return feature
+        })
+      }
+
       featureCollection.value = data
       searchStatus.value = 'success'
       

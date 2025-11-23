@@ -69,8 +69,16 @@
                   variant="elevated"
                   :class="{ 'selected-feature': f.id === store.selectedFeatureId }"
                 >
-                  <v-card-title class="text-wrap">
-                    {{ f.properties?.title || 'Untitled' }}
+                  <v-card-title class="text-wrap d-flex align-center">
+                    <span class="flex-grow-1">{{ f.properties?.title || 'Untitled' }}</span>
+                    <v-chip
+                      v-if="f.properties?.globaldataset"
+                      color="primary"
+                      size="small"
+                      class="ml-2"
+                    >
+                      Global Dataset
+                    </v-chip>
                   </v-card-title>
 
                   <v-card-text>
@@ -88,29 +96,15 @@
                       <span v-else>—</span>
                     </div>
 
-                    <div class="mb-3">
-                      <v-btn
-                        v-if="firstAssetHref(f)"
-                        :href="firstAssetHref(f)"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        variant="tonal"
-                        density="comfortable"
-                        prepend-icon="mdi-open-in-new"
-                      >
-                        View details
-                      </v-btn>
-                    </div>
-
                     <!-- Add this new paragraph for view details -->
                     <div class="mb-3">
-                      <p 
-                        class="text-body-2 text-primary cursor-pointer"
-                        style="text-decoration: underline;"
-                        @click="navigateToView(f.id)"
+                      <NuxtLink
+                        :to="`/register/${f.id}/view`"
+                        class="text-body-2 text-primary"
+                        style="text-decoration: underline; cursor: pointer;"
                       >
                         View details
-                      </p>
+                      </NuxtLink>
                     </div>
 
                     <div class="text-body-2">
@@ -143,14 +137,11 @@
   import { useRoute } from 'vue-router'
   import { useAuth } from '~/composables/useAuth'
   import { useConfigStore } from '~/stores/config'
-  import { useNuxtApp } from '#app'
   import FeatureFilters from '@/components/FeatureFilters.vue'
   import { formatDate } from '~/utils/helpers'
-  import { useRouter } from 'vue-router'
 
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const configStore = useConfigStore()
-  const nuxtApp = useNuxtApp()
   
   // When auth is disabled, allow access without authentication
   const canAccess = computed(() => {
@@ -163,7 +154,6 @@
 
   const store = useSearchPageStore()
   const route = useRoute()
-  const router = useRouter()
   
   const q = route.query
   
@@ -198,7 +188,7 @@
   // Perform initial search during SSR if access is allowed
   // This runs on both server and client, preserving SSR benefits
   if (canAccess.value) {
-    await store.search()
+    await store.search(100)
   }
 
   const queryInput = ref(store.q || '')
@@ -210,7 +200,7 @@
     () => [store.q, store.startDate, store.endDate,store.topics, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
     () => {
       if (canAccess.value) {
-        store.search()
+        store.search(1000)
       }
     },
     { deep: true }
@@ -264,9 +254,11 @@
     }
   })
 
-  function navigateToView(itemId) {
-    router.push(`/register/${itemId}/view`)
-  }
+/*   function navigateToView(itemId) {
+    navigateTo(`/register/${itemId}/view`).catch(() => {
+      // Handle navigation errors silently
+    })
+  } */
 </script>
 
 <style scoped>

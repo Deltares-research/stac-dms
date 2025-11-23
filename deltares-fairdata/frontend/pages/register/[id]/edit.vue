@@ -8,12 +8,12 @@
         xl="6"
       >
         <h1 class="text-h4 font-weight-bold mb-4">
-          Register a new item
+          Edit WIP
         </h1>
-
+  
         <form @submit.prevent="handleSubmit">
           <!-- Loading state -->
-          <v-card v-if="isLoadingCollections" class="mb-4">
+          <v-card v-if="isLoading" class="mb-4">
             <v-card-text class="d-flex flex-column align-center justify-center py-12">
               <v-progress-circular
                 indeterminate
@@ -22,42 +22,20 @@
                 class="mb-4"
               />
               <p class="text-body-2 text-grey-darken-1">
-                Loading collections...
+                Loading item...
               </p>
             </v-card-text>
           </v-card>
-
-          <!-- Empty state when no collections are available (only after loading completes) -->
-          <v-card v-else-if="!isLoadingCollections && collections.length === 0" class="mb-4">
-            <v-card-text class="d-flex flex-column align-center justify-center py-12 text-center">
-              <v-icon
-                size="64"
-                color="grey"
-                class="mb-4"
-              >
-                mdi-database-off
-              </v-icon>
-              <h3 class="text-h6 mb-2">
-                No collections available
-              </h3>
-              <p class="text-body-2 text-grey-darken-1 max-width-md mb-4">
-                There are no collections you have permission to add items to.
-                Please contact your administrator to get access.
-              </p>
-              <v-btn variant="outlined" to="/register">
-                Return to items
-              </v-btn>
-            </v-card-text>
-          </v-card>
-
+  
+  
           <!-- Domain Selection -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
-              Select a domain to register your data set in
+              Domain that dataset belongs
             </v-card-title>
             <v-card-text>
               <v-select
-                v-model="formData.collectionId"
+                v-model="formData.collection"
                 :items="collectionOptions"
                 label="Domain"
                 variant="outlined"
@@ -65,9 +43,9 @@
               />
             </v-card-text>
           </v-card>
-
+  
           <!-- General Information - Always visible but disabled until domain selected -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
               General information
             </v-card-title>
@@ -78,7 +56,7 @@
                     v-model="formData.properties.projectNumber"
                     label="Project number"
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                   />
                 </v-col>
                 <v-col cols="12">
@@ -86,7 +64,7 @@
                     v-model="formData.properties.title"
                     label="Project title"
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                     required
                   />
                 </v-col>
@@ -103,7 +81,7 @@
                         v-model="publicationDateDisplay"
                         label="Publication date"
                         variant="outlined"
-                        :disabled="!formData.collectionId"
+                        :disabled="!formData.collection"
                         readonly
                         prepend-inner-icon="mdi-calendar"
                       />
@@ -132,7 +110,7 @@
                     v-model="formData.properties.description"
                     label="Description"
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                     rows="3"
                     required
                   />
@@ -143,7 +121,7 @@
                     :items="languageOptions"
                     label="Language"
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                   />
                 </v-col>
                 <v-col cols="12">
@@ -152,7 +130,7 @@
                     :items="legalRestrictionsOptions"
                     label="Legal restrictions"
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                   />
                 </v-col>
                 <v-col cols="12">
@@ -160,7 +138,7 @@
                     v-model="formData.properties.restrictionsOfUse"
                     label="Applications for which this data set is not suitable"
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                     rows="2"
                   />
                 </v-col>
@@ -174,7 +152,7 @@
                       :items="spatialReferenceSystemOptions"
                       label="Select..."
                       variant="outlined"
-                      :disabled="!formData.collectionId"
+                      :disabled="!formData.collection"
                       class="flex-grow-0"
                       style="min-width: 300px;"
                     />
@@ -182,7 +160,7 @@
                       v-model="formData.properties.spatialReferenceSystemCustom"
                       label="Or define a custom spatial reference system"
                       variant="outlined"
-                      :disabled="!formData.collectionId"
+                      :disabled="!formData.collection"
                       placeholder="e.g., EPSG:4326"
                       class="flex-grow-1"
                     />
@@ -191,9 +169,9 @@
               </v-row>
             </v-card-text>
           </v-card>
-
+  
           <!-- Data Quality - Always visible but disabled until domain selected -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
               Data quality
             </v-card-title>
@@ -202,14 +180,14 @@
                 v-model="formData.properties.dataQualityInfoStatement"
                 label="Description of the origin of this data set"
                 variant="outlined"
-                :disabled="!formData.collectionId"
+                :disabled="!formData.collection"
                 rows="3"
               />
             </v-card-text>
           </v-card>
-
+  
           <!-- Originator Data Set - Always visible but disabled until domain selected -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
               Originator data set
             </v-card-title>
@@ -220,7 +198,7 @@
                     v-model="formData.properties.originatorDataOrganisation"
                     label="Organisation"
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                   />
                 </v-col>
                 <v-col cols="12">
@@ -229,15 +207,15 @@
                     label="E-mail"
                     variant="outlined"
                     type="email"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                   />
                 </v-col>
               </v-row>
             </v-card-text>
           </v-card>
-
+  
           <!-- Originator Meta Data -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId" class="mb-4">
+          <v-card v-if="!isLoading && formData.collection" class="mb-4">
             <v-card-title class="text-h6">
               Originator meta data
             </v-card-title>
@@ -261,9 +239,9 @@
               </v-row>
             </v-card-text>
           </v-card>
-
+  
           <!-- Date Range - Always visible but disabled until domain selected -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
               Date Range
             </v-card-title>
@@ -282,7 +260,7 @@
                         v-model="startDateDisplay"
                         label="Start date"
                         variant="outlined"
-                        :disabled="!formData.collectionId"
+                        :disabled="!formData.collection"
                         readonly
                         prepend-inner-icon="mdi-calendar"
                       />
@@ -319,7 +297,7 @@
                         v-model="endDateDisplay"
                         label="End date (optional)"
                         variant="outlined"
-                        :disabled="!formData.collectionId"
+                        :disabled="!formData.collection"
                         readonly
                         prepend-inner-icon="mdi-calendar"
                       />
@@ -349,9 +327,9 @@
               </p>
             </v-card-text>
           </v-card>
-
+  
           <!-- Type of Origin - Always visible but disabled until domain selected -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
               Type of Origin
             </v-card-title>
@@ -361,14 +339,14 @@
                 :items="facilityTypeOptions"
                 label="Filter by Type of Origin"
                 variant="outlined"
-                :disabled="!formData.collectionId"
+                :disabled="!formData.collection"
                 @update:model-value="handleFacilityTypeChange"
               />
             </v-card-text>
           </v-card>
-
+  
           <!-- Keywords -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0 && formData.collectionId && filteredKeywordsGroups.length > 0" class="mb-4">
+          <v-card v-if="!isLoading && formData.collection && filteredKeywordsGroups.length > 0" class="mb-4">
             <v-card-title class="text-h6">
               Keywords
             </v-card-title>
@@ -401,9 +379,9 @@
               </v-row>
             </v-card-text>
           </v-card>
-
+  
           <!-- Storage Location Data Set - Always visible but disabled until domain selected -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
               Storage location data set
             </v-card-title>
@@ -419,7 +397,7 @@
                       v-model="asset.title"
                       label="Title of the dataset"
                       variant="outlined"
-                      :disabled="!formData.collectionId"
+                      :disabled="!formData.collection"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -427,7 +405,7 @@
                       v-model="asset.description"
                       label="Description of the dataset"
                       variant="outlined"
-                      :disabled="!formData.collectionId"
+                      :disabled="!formData.collection"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -435,7 +413,7 @@
                       v-model="asset.href"
                       label="Link to the dataset"
                       variant="outlined"
-                      :disabled="!formData.collectionId"
+                      :disabled="!formData.collection"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -443,7 +421,7 @@
                       v-model="asset.type"
                       label="Type of dataset (e.g. file type)"
                       variant="outlined"
-                      :disabled="!formData.collectionId"
+                      :disabled="!formData.collection"
                     />
                   </v-col>
                   <v-col cols="12">
@@ -451,7 +429,7 @@
                       variant="outlined"
                       color="error"
                       prepend-icon="mdi-delete"
-                      :disabled="!formData.collectionId"
+                      :disabled="!formData.collection"
                       @click="removeAsset(assetId)"
                     >
                       Remove
@@ -462,16 +440,16 @@
               <v-btn
                 variant="outlined"
                 prepend-icon="mdi-plus"
-                :disabled="!formData.collectionId"
+                :disabled="!formData.collection"
                 @click="addAsset"
               >
                 Add
               </v-btn>
             </v-card-text>
           </v-card>
-
+  
           <!-- Geometry - Always visible but disabled until domain selected -->
-          <v-card v-if="!isLoadingCollections && collections.length > 0" class="mb-4">
+          <v-card v-if="!isLoading" class="mb-4">
             <v-card-title class="text-h6">
               Geometry
             </v-card-title>
@@ -479,7 +457,8 @@
               <div class="mb-4 map-wrapper">
                 <item-map-component
                   :enabled-tools="['polygon', 'marker']"
-                  :center="[5.1, 52.07]"
+                  :center="[0,0]"
+                  :zoom="2"
                 />
               </div>
             </v-card-text>
@@ -487,7 +466,7 @@
               <p v-if="!formData.geometry" class="text-body-2 text-grey-darken-1 mb-4">
                 No geometry set. Use the coordinate input below or draw on the map.
               </p>
-              
+                
               <div class="pa-4 border rounded-lg bg-grey-lighten-5">
                 <div class="d-flex justify-space-between align-center mb-4">
                   <h3 class="text-subtitle-2 font-weight-medium">
@@ -529,26 +508,26 @@
                     </div>
                   </v-tooltip>
                 </div>
-
+  
                 <v-textarea
                   v-model="coordinateInput"
                   placeholder="40.7128, -74.0060"
                   variant="outlined"
-                  :disabled="!formData.collectionId"
+                  :disabled="!formData.collection"
                   rows="4"
                   class="mb-3"
                 />
-
+  
                 <div class="mb-3">
                   <v-checkbox
                     v-model="latLongOrder"
                     label="Lat/Lng order (uncheck for Lng/Lat)"
                     density="compact"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                     hide-details
                   />
                 </div>
-
+  
                 <div
                   v-if="geometryValidationMessage"
                   class="text-caption pa-2 rounded mb-3"
@@ -556,18 +535,18 @@
                 >
                   {{ geometryValidationMessage }}
                 </div>
-
+  
                 <div class="d-flex ga-2">
                   <v-btn
                     variant="outlined"
-                    :disabled="!formData.collectionId || !geometryInputValid"
+                    :disabled="!formData.collection || !geometryInputValid"
                     @click="createGeometryFromCoordinates"
                   >
                     Create Geometry
                   </v-btn>
                   <v-btn
                     variant="outlined"
-                    :disabled="!formData.collectionId"
+                    :disabled="!formData.collection"
                     @click="clearCoordinateInput"
                   >
                     Clear
@@ -576,7 +555,7 @@
               </div>
             </v-card-text>
           </v-card>
-
+  
           <!-- Form Actions -->
           <div class="d-flex justify-space-between mt-4">
             <v-btn variant="outlined" to="/register">
@@ -586,7 +565,7 @@
               type="submit"
               color="primary"
               :loading="isSubmitting"
-              :disabled="!formData.collectionId || !formData.properties.title"
+              :disabled="!formData.collection || !formData.properties.title"
             >
               Publish project data
             </v-btn>
@@ -596,11 +575,14 @@
     </v-row>
   </v-container>
 </template>
-
-<script setup>
+  
+  <script setup>
   import { ref, computed, onMounted, watch } from 'vue'
   import { nanoid } from 'nanoid'
   import { useRouter } from '#app'
+  import { useRoute } from 'vue-router'
+  
+
   import { bbox } from '@turf/turf'
   import dateFormat from 'dateformat'
   import languageOptions from '~/configuration/languageOptions.json'
@@ -608,63 +590,48 @@
   import spatialReferenceSystemOptions from '~/configuration/spatialReferenceSystemOptions.json'
   import facilityTypeOptions from '~/configuration/facilityTypeOptions.json'
   import { fetchCollectionsWithCreatePermission, fetchCollectionById, fetchKeywordsByFacilityId } from '~/requests'
-  import { createItem } from '~/requests/items'
-
+  import { createItem, fetchItemById } from '~/requests/items'
+  
   defineOptions({
     name: 'RegisterCreatePage'
   })
-
+  
   // State
   const collections = ref([])
   const collectionPermissions = ref([])
   const keywordsGroups = ref([])
-  const isLoadingCollections = ref(false)
+
   const isSubmitting = ref(false)
   const selectedKeywords = ref([])
   const selectedFacilityType = ref('')
 
+  // New State
+
+  const route = useRoute()
+  const itemId = route.params['id']
+
+  const isLoading = ref(true)
+  /* const item = ref(null) */
+  const formData = ref(null)
+  const error = ref(null)
+  
   // Date picker menus
   const publicationDateMenu = ref(false)
   const startDateMenu = ref(false)
   const endDateMenu = ref(false)
   const tempStartDate = ref(null)
   const tempEndDate = ref(null)
-
+  
   // Geometry coordinate input state
   const coordinateInput = ref('')
   const latLongOrder = ref(true)
   const geometryInputValid = ref(false)
   const geometryValidationMessage = ref('')
+  
 
-  // Form data
-  const formData = ref({
-    collectionId: null,
-    properties: {
-      projectNumber: '',
-      title: '',
-      publication_datetime: null,
-      description: '',
-      language: 'eng',
-      legalRestrictions: 'license',
-      restrictionsOfUse: '',
-      spatialReferenceSystem: 'not applicable',
-      spatialReferenceSystemCustom: '',
-      dataQualityInfoStatement: '',
-      originatorDataOrganisation: 'Deltares',
-      originatorDataEmail: '',
-      originatorMetaDataOrganisation: 'Deltares',
-      originatorMetaDataEmail: '',
-      facility_type: '',
-      datetime: null,
-      start_datetime: null,
-      end_datetime: null,
-    },
-    assets: {},
-    geometry: null,
-  })
-
+  
   // Options are imported from configuration files
-
+  
   // Computed
   const collectionOptions = computed(() => {
     return collections.value.map(collection => ({
@@ -672,17 +639,17 @@
       title: collection.title || collection.id,
     }))
   })
-
+  
   const filteredKeywordsGroups = computed(() => {
     if (!keywordsGroups.value || keywordsGroups.value.length === 0) return []
     if (!selectedFacilityType.value) return []
-
+  
     return keywordsGroups.value.filter(group => {
       return group.facility_type === selectedFacilityType.value ||
         group.facility_type === 'general'
     })
   })
-
+  
   const publicationDateDisplay = computed(() => {
     if (!formData.value.properties.publication_datetime) return ''
     try {
@@ -693,19 +660,19 @@
       return formData.value.properties.publication_datetime
     }
   })
-
+  
   const startDateDisplay = computed(() => {
     if (!tempStartDate.value) return ''
     return dateFormat(tempStartDate.value, 'dd-mm-yyyy')
   })
-
+  
   const endDateDisplay = computed(() => {
     if (!tempEndDate.value) return ''
     return dateFormat(tempEndDate.value, 'dd-mm-yyyy')
   })
-
-  // Methods
-  async function fetchCollections() {
+  
+  // Methods 
+  /*   async function fetchCollections() {
     isLoadingCollections.value = true
     try {
       const result = await fetchCollectionsWithCreatePermission({ includeHeaders: true })
@@ -717,47 +684,47 @@
     } finally {
       isLoadingCollections.value = false
     }
-  }
-
+  } */
+  
   async function fetchKeywords() {
-    if (!formData.value.collectionId) {
+    if (!formData.value.collection) {
       keywordsGroups.value = []
       return
     }
-
+  
     try {
-      const collection = await fetchCollectionById(formData.value.collectionId)
-
+      const collection = await fetchCollectionById(formData.value.collection)
+  
       const keywordsLink = collection.links?.find(
         item => item.rel === 'keywords' && item.id
       )
-
+  
       if (!keywordsLink?.id) {
         keywordsGroups.value = []
         return
       }
-
+  
       keywordsGroups.value = await fetchKeywordsByFacilityId(keywordsLink.id)
     } catch (error) {
       console.error('Error loading keywords:', error)
       keywordsGroups.value = []
     }
   }
-
+  
   function handleCollectionChange() {
-    if (formData.value.collectionId) {
+    if (formData.value.collection) {
       fetchKeywords()
     } else {
       keywordsGroups.value = []
     }
   }
-
+  
   function handleFacilityTypeChange(value) {
     selectedFacilityType.value = value
     formData.value.properties.facility_type = value
     selectedKeywords.value = []
   }
-
+  
   function applyPublicationDate() {
     if (formData.value.properties.publication_datetime) {
       // Convert date to ISO string format
@@ -766,19 +733,19 @@
       publicationDateMenu.value = false
     }
   }
-
+  
   function applyStartDate() {
     if (tempStartDate.value) {
       startDateMenu.value = false
     }
   }
-
+  
   function applyEndDate() {
     if (tempEndDate.value) {
       endDateMenu.value = false
     }
   }
-
+  
   function addAsset() {
     const assetId = nanoid()
     formData.value.assets[assetId] = {
@@ -788,61 +755,61 @@
       type: '',
     }
   }
-
+  
   function removeAsset(assetId) {
     delete formData.value.assets[assetId]
   }
-
+  
   function clearCoordinateInput() {
     coordinateInput.value = ''
     geometryInputValid.value = false
     geometryValidationMessage.value = ''
     formData.value.geometry = null
   }
-
+  
   function parseAndValidateCoordinates(input) {
     if (!input.trim()) {
       geometryInputValid.value = false
       geometryValidationMessage.value = ''
       return null
     }
-
+  
     try {
       const cleaned = input.trim()
       const lines = cleaned.split(/\n/).filter(line => line.trim())
       const coordinates = []
-
+  
       for (const line of lines) {
         const parts = line.split(',').map(p => p.trim())
         if (parts.length !== 2) {
           throw new Error(`Invalid coordinate format: "${line}"`)
         }
-
+  
         const coord1 = parseFloat(parts[0])
         const coord2 = parseFloat(parts[1])
-
+  
         if (isNaN(coord1) || isNaN(coord2)) {
           throw new Error(`Invalid numbers in: "${line}"`)
         }
-
+  
         if (latLongOrder.value) {
           coordinates.push([coord2, coord1]) // [lng, lat] for GeoJSON
         } else {
           coordinates.push([coord1, coord2]) // [lng, lat] for GeoJSON
         }
       }
-
+  
       if (coordinates.length === 0) {
         throw new Error('No valid coordinates found')
       }
-
+  
       let detectedType = 'Point'
       if (coordinates.length === 2) {
         detectedType = 'Rectangle'
       } else if (coordinates.length > 2) {
         detectedType = 'Polygon'
       }
-
+  
       geometryInputValid.value = true
       geometryValidationMessage.value = `Detected: ${detectedType} with ${coordinates.length} point${coordinates.length > 1 ? 's' : ''}`
       return coordinates
@@ -852,13 +819,13 @@
       return null
     }
   }
-
+  //TODO: check if there is already a nice package that is doing that. 
   function createGeometryFromCoordinates() {
     const coordinates = parseAndValidateCoordinates(coordinateInput.value)
     if (!coordinates || !geometryInputValid.value) return
-
+  
     let geometry
-
+  
     if (coordinates.length === 1) {
       // Point
       geometry = {
@@ -887,10 +854,10 @@
         coordinates: [coords],
       }
     }
-
+  
     formData.value.geometry = geometry
   }
-
+  
   // Watch coordinate input for validation
   watch(coordinateInput, (newValue) => {
     if (newValue) {
@@ -900,29 +867,30 @@
       geometryValidationMessage.value = ''
     }
   })
-
+  
   async function handleSubmit() {
-    if (!formData.value.collectionId || !formData.value.properties.title) {
+    if (!formData.value.collection || !formData.value.properties.title) {
       return
     }
-
+  
     if (!tempStartDate.value) {
       alert('Please select a date or date range.')
       return
     }
-
+  
     isSubmitting.value = true
-
+  
     try {
       // Generate unique ID
       const itemId = nanoid()
-
+      
+  
       // Build the new item
       const newItem = {
         id: itemId,
         type: 'Feature',
         stac_version: '1.0.0',
-        collection: formData.value.collectionId,
+        collection: formData.value.collection,
         links: [],
         properties: {
           ...formData.value.properties,
@@ -930,7 +898,7 @@
         },
         assets: formData.value.assets,
       }
-
+  
       // Handle datetime fields from date pickers
       if (tempStartDate.value && tempEndDate.value) {
         // Both dates selected - save as start_datetime and end_datetime
@@ -943,21 +911,21 @@
         newItem.properties.start_datetime = undefined
         newItem.properties.end_datetime = undefined
       }
-
+  
       // Handle spatial reference system
       if (formData.value.properties.spatialReferenceSystemCustom) {
         newItem.properties.spatialReferenceSystem = formData.value.properties.spatialReferenceSystemCustom
       }
-
+  
       // Handle geometry if available
       if (formData.value.geometry) {
         newItem.geometry = formData.value.geometry
         newItem.bbox = bbox(formData.value.geometry)
       }
-
+  
       // Submit to API
-      await createItem(formData.value.collectionId, newItem)
-
+      await createItem(formData.value.collection, newItem)
+  
       // Success - navigate to register page
       const router = useRouter()
       await router.push('/register')
@@ -968,19 +936,34 @@
       isSubmitting.value = false
     }
   }
-
+  
   // Initialize
-  onMounted(async () => {
+  /*   onMounted(async () => {
     await fetchCollections()
     // Initialize with one empty asset
     addAsset()
+  }) */
+  // Fetch item on mount
+  onMounted(async () => {
+    isLoading.value = true
+    error.value = null
+    try {
+      formData.value = await fetchItemById(itemId)
+      console.log('formData', formData.value.collection)
+    } catch (err) {
+      error.value = err.message || 'Failed to load item'
+      console.error('Error loading item:', err)
+    } finally {
+      isLoading.value = false
+    }
   })
-</script>
-
-<style scoped>
-  .border-b {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  }
-  .map-wrapper, .map-wrapper .mapboxgl-map { width: 100%; height: 100%; }
-</style>
-
+  </script>
+  
+  <style scoped>
+    .border-b {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+    }
+    .map-wrapper, .map-wrapper .mapboxgl-map { width: 100%; height: 100%; }
+  </style>
+  
+  
