@@ -82,11 +82,7 @@
                 hide-details
                 class="filter-autocomplete"
                 @update:model-value="handleCollectionChange"
-              >
-                <template #selection="{ item }">
-                  <span class="filter-selection-text">{{ item.raw.title }}</span>
-                </template>
-              </v-autocomplete>
+              />
             </v-col>
 
             <!-- Topic -->
@@ -308,18 +304,10 @@
 </template>
 
 <script setup>
-  import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
+  import { ref, watch, computed} from 'vue'
   import { useSearchPageStore } from '~/stores/searchPage'
 
-  // const props = defineProps({
-  //   options: {
-  //     type: Object,
-  //     default: () => ({
-  //       collection: [],
-  //       keyword: [],
-  //     }),
-  //   },
-  // })
+
 
   const store = useSearchPageStore()
   const expanded = ref(false)
@@ -521,23 +509,6 @@
     return chips
   })
 
-  /* ---- Click outside to collapse ---- */
-  function onDocPointerDown (e) {
-    if (!expanded.value) return
-    const root = rootEl.value?.$el ?? rootEl.value
-    const target = e.target
-    if (root && root.contains(target)) return
-    // Ignore clicks inside teleported menus (sort + date pickers)
-    if (target?.closest && target.closest('.filters-portal')) return
-    expanded.value = false
-  }
-
-  onMounted(() => {
-    document.addEventListener('pointerdown', onDocPointerDown, true)
-  })
-  onBeforeUnmount(() => {
-    document.removeEventListener('pointerdown', onDocPointerDown, true)
-  })
 </script>
 
 <style scoped>
