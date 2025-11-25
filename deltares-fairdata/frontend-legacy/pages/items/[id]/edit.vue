@@ -517,9 +517,20 @@ let onSubmit = form.handleSubmit(async (values) => {
 
 let publicationDatetimeValue = computed({
   get: () => {
-    return form.values.requestBody?.properties?.publication_datetime
-      ? parseDate(form.values.requestBody?.properties?.publication_datetime)
-      : undefined
+    const dateValue = form.values.requestBody?.properties?.publication_datetime
+    if (!dateValue) return undefined
+    
+    // Extract just the date part (YYYY-MM-DD) from ISO datetime string
+    const dateOnly = typeof dateValue === 'string' 
+      ? dateValue.split('T')[0] 
+      : dateValue
+    
+    try {
+      return parseDate(dateOnly)
+    } catch (error) {
+      console.error('Error parsing publication date:', error, dateValue)
+      return undefined
+    }
   },
   set: (val) => val,
 })

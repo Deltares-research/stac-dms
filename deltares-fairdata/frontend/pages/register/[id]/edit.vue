@@ -590,17 +590,18 @@
   import spatialReferenceSystemOptions from '~/configuration/spatialReferenceSystemOptions.json'
   import facilityTypeOptions from '~/configuration/facilityTypeOptions.json'
   import { fetchCollectionsWithCreatePermission, fetchCollectionById, fetchKeywordsByFacilityId } from '~/requests'
-  import { createItem, fetchItemById } from '~/requests/items'
+  import { fetchItemById, updateItem } from '~/requests/items'
   
   defineOptions({
-    name: 'RegisterCreatePage'
+    name: 'RegisterEditPage'
   })
   
   // State
   const collections = ref([])
   const collectionPermissions = ref([])
   const keywordsGroups = ref([])
-
+ 
+  
   const isSubmitting = ref(false)
   const selectedKeywords = ref([])
   const selectedFacilityType = ref('')
@@ -611,8 +612,33 @@
   const itemId = route.params['id']
 
   const isLoading = ref(true)
-  /* const item = ref(null) */
-  const formData = ref(null)
+ 
+  // Initialize formData with proper structure to avoid reactivity issues
+  const formData = ref({
+    collection: null,
+    properties: {
+      projectNumber: '',
+      title: '',
+      publication_datetime: null,
+      description: '',
+      language: 'eng',
+      legalRestrictions: 'license',
+      restrictionsOfUse: '',
+      spatialReferenceSystem: 'not applicable',
+      spatialReferenceSystemCustom: '',
+      dataQualityInfoStatement: '',
+      originatorDataOrganisation: 'Deltares',
+      originatorDataEmail: '',
+      originatorMetaDataOrganisation: 'Deltares',
+      originatorMetaDataEmail: '',
+      facility_type: '',
+      datetime: null,
+      start_datetime: null,
+      end_datetime: null,
+    },
+    assets: {},
+    geometry: null,
+  })
   const error = ref(null)
   
   // Date picker menus
@@ -634,7 +660,26 @@
   
   // Computed
   const collectionOptions = computed(() => {
-    return collections.value.map(collection => ({
+    const allCollections = collections.value || []
+    const permissions = collectionPermissions.value || []
+    const currentCollectionId = formData.value?.collection
+    
+    // Filter collections by item:create permission (needed to move items to new collections)
+    // Also always include the current collection (where the item already exists)
+    const filteredCollections = allCollections.filter(collection => {
+      // Always include the current collection
+      if (collection.id === currentCollectionId) {
+        return true
+      }
+      
+      // For other collections, check if user has item:create permission
+      return permissions.some(permission =>
+        permission.collection_id === collection.id &&
+        permission.permissions?.includes('item:create')
+      )
+    })
+    
+    return filteredCollections.map(collection => ({
       value: collection.id,
       title: collection.title || collection.id,
     }))
@@ -651,13 +696,13 @@
   })
   
   const publicationDateDisplay = computed(() => {
-    if (!formData.value.properties.publication_datetime) return ''
+    if (!formData.value?.properties?.publication_datetime) return ''
     try {
       const date = new Date(formData.value.properties.publication_datetime)
       if (isNaN(date.getTime())) return formData.value.properties.publication_datetime
       return dateFormat(date, 'dd-mm-yyyy')
     } catch {
-      return formData.value.properties.publication_datetime
+      return formData.value.properties.publication_datetime || ''
     }
   })
   
@@ -672,8 +717,8 @@
   })
   
   // Methods 
-  /*   async function fetchCollections() {
-    isLoadingCollections.value = true
+  async function fetchCollections() {
+   
     try {
       const result = await fetchCollectionsWithCreatePermission({ includeHeaders: true })
       collections.value = result.collections
@@ -681,13 +726,12 @@
     } catch (error) {
       console.error('Failed to fetch collections:', error)
       collections.value = []
-    } finally {
-      isLoadingCollections.value = false
-    }
-  } */
+      collectionPermissions.value = []
+    } 
+  }
   
   async function fetchKeywords() {
-    if (!formData.value.collection) {
+    if (!formData.value?.collection) {
       keywordsGroups.value = []
       return
     }
@@ -712,7 +756,7 @@
   }
   
   function handleCollectionChange() {
-    if (formData.value.collection) {
+    if (formData.value?.collection) {
       fetchKeywords()
     } else {
       keywordsGroups.value = []
@@ -721,12 +765,14 @@
   
   function handleFacilityTypeChange(value) {
     selectedFacilityType.value = value
-    formData.value.properties.facility_type = value
+    if (formData.value?.properties) {
+      formData.value.properties.facility_type = value
+    }
     selectedKeywords.value = []
   }
   
   function applyPublicationDate() {
-    if (formData.value.properties.publication_datetime) {
+    if (formData.value?.properties?.publication_datetime) {
       // Convert date to ISO string format
       const date = new Date(formData.value.properties.publication_datetime)
       formData.value.properties.publication_datetime = date.toISOString().split('T')[0]
@@ -748,6 +794,9 @@
   
   function addAsset() {
     const assetId = nanoid()
+    if (!formData.value.assets) {
+      formData.value.assets = {}
+    }
     formData.value.assets[assetId] = {
       title: '',
       description: '',
@@ -757,14 +806,18 @@
   }
   
   function removeAsset(assetId) {
-    delete formData.value.assets[assetId]
+    if (formData.value?.assets) {
+      delete formData.value.assets[assetId]
+    }
   }
   
   function clearCoordinateInput() {
     coordinateInput.value = ''
     geometryInputValid.value = false
     geometryValidationMessage.value = ''
-    formData.value.geometry = null
+    if (formData.value) {
+      formData.value.geometry = null
+    }
   }
   
   function parseAndValidateCoordinates(input) {
@@ -855,7 +908,9 @@
       }
     }
   
-    formData.value.geometry = geometry
+    if (formData.value) {
+      formData.value.geometry = geometry
+    }
   }
   
   // Watch coordinate input for validation
@@ -869,7 +924,7 @@
   })
   
   async function handleSubmit() {
-    if (!formData.value.collection || !formData.value.properties.title) {
+    if (!formData.value?.collection || !formData.value?.properties?.title) {
       return
     }
   
@@ -881,13 +936,12 @@
     isSubmitting.value = true
   
     try {
-      // Generate unique ID
-      const itemId = nanoid()
+      // Use existing item ID, don't generate new one
+      const existingItemId = itemId
       
-  
-      // Build the new item
-      const newItem = {
-        id: itemId,
+      // Build the updated item
+      const updatedItem = {
+        id: existingItemId,
         type: 'Feature',
         stac_version: '1.0.0',
         collection: formData.value.collection,
@@ -896,41 +950,41 @@
           ...formData.value.properties,
           keywords: selectedKeywords.value,
         },
-        assets: formData.value.assets,
+        assets: formData.value.assets || {},
       }
   
       // Handle datetime fields from date pickers
       if (tempStartDate.value && tempEndDate.value) {
         // Both dates selected - save as start_datetime and end_datetime
-        newItem.properties.datetime = null
-        newItem.properties.start_datetime = new Date(tempStartDate.value).toISOString()
-        newItem.properties.end_datetime = new Date(tempEndDate.value).toISOString()
+        updatedItem.properties.datetime = null
+        updatedItem.properties.start_datetime = new Date(tempStartDate.value).toISOString()
+        updatedItem.properties.end_datetime = new Date(tempEndDate.value).toISOString()
       } else if (tempStartDate.value && !tempEndDate.value) {
         // Only start date - save as datetime
-        newItem.properties.datetime = new Date(tempStartDate.value).toISOString()
-        newItem.properties.start_datetime = undefined
-        newItem.properties.end_datetime = undefined
+        updatedItem.properties.datetime = new Date(tempStartDate.value).toISOString()
+        updatedItem.properties.start_datetime = undefined
+        updatedItem.properties.end_datetime = undefined
       }
   
       // Handle spatial reference system
       if (formData.value.properties.spatialReferenceSystemCustom) {
-        newItem.properties.spatialReferenceSystem = formData.value.properties.spatialReferenceSystemCustom
+        updatedItem.properties.spatialReferenceSystem = formData.value.properties.spatialReferenceSystemCustom
       }
   
       // Handle geometry if available
       if (formData.value.geometry) {
-        newItem.geometry = formData.value.geometry
-        newItem.bbox = bbox(formData.value.geometry)
+        updatedItem.geometry = formData.value.geometry
+        updatedItem.bbox = bbox(formData.value.geometry)
       }
   
-      // Submit to API
-      await createItem(formData.value.collection, newItem)
+      // Submit to API - update existing item
+      await updateItem(formData.value.collection, existingItemId, updatedItem)
   
       // Success - navigate to register page
       const router = useRouter()
       await router.push('/register')
     } catch (error) {
-      console.error('Failed to register dataset:', error)
+      console.error('Failed to update dataset:', error)
       alert('Something went wrong! Please try again.')
     } finally {
       isSubmitting.value = false
@@ -938,18 +992,72 @@
   }
   
   // Initialize
-  /*   onMounted(async () => {
-    await fetchCollections()
-    // Initialize with one empty asset
-    addAsset()
-  }) */
   // Fetch item on mount
   onMounted(async () => {
     isLoading.value = true
     error.value = null
+    
     try {
-      formData.value = await fetchItemById(itemId)
-      console.log('formData', formData.value.collection)
+      // Fetch collections and item in parallel
+      const [item] = await Promise.all([
+        fetchItemById(itemId),
+        fetchCollections(), // Fetch collections for the dropdown
+      ])
+      
+      // Transform fetched item to formData structure
+      formData.value = {
+        collection: item.collection || null,
+        properties: {
+          projectNumber: item.properties?.projectNumber || '',
+          title: item.properties?.title || '',
+          publication_datetime: item.properties?.publication_datetime || null,
+          description: item.properties?.description || '',
+          language: item.properties?.language || 'eng',
+          legalRestrictions: item.properties?.legalRestrictions || 'license',
+          restrictionsOfUse: item.properties?.restrictionsOfUse || '',
+          spatialReferenceSystem: item.properties?.spatialReferenceSystem || 'not applicable',
+          spatialReferenceSystemCustom: item.properties?.spatialReferenceSystemCustom || '',
+          dataQualityInfoStatement: item.properties?.dataQualityInfoStatement || '',
+          originatorDataOrganisation: item.properties?.originatorDataOrganisation || 'Deltares',
+          originatorDataEmail: item.properties?.originatorDataEmail || '',
+          originatorMetaDataOrganisation: item.properties?.originatorMetaDataOrganisation || 'Deltares',
+          originatorMetaDataEmail: item.properties?.originatorMetaDataEmail || '',
+          facility_type: item.properties?.facility_type || '',
+          datetime: item.properties?.datetime || null,
+          start_datetime: item.properties?.start_datetime || null,
+          end_datetime: item.properties?.end_datetime || null,
+        },
+        assets: item.assets ? { ...item.assets } : {},
+        geometry: item.geometry || null,
+      }
+      
+      // Initialize dates from item
+      if (item.properties?.start_datetime && item.properties?.end_datetime) {
+        // Date range
+        tempStartDate.value = item.properties.start_datetime.split('T')[0]
+        tempEndDate.value = item.properties.end_datetime.split('T')[0]
+      } else if (item.properties?.datetime) {
+        // Single date
+        tempStartDate.value = item.properties.datetime.split('T')[0]
+        tempEndDate.value = null
+      }
+      
+      // Initialize keywords
+      if (item.properties?.keywords && Array.isArray(item.properties.keywords)) {
+        selectedKeywords.value = [...item.properties.keywords]
+      }
+      
+      // Initialize facility type
+      if (item.properties?.facility_type) {
+        selectedFacilityType.value = item.properties.facility_type
+      }
+      
+      // Fetch keywords for the collection
+      if (formData.value.collection) {
+        await fetchKeywords()
+      }
+      
+      console.log('formData initialized', formData.value.collection)
     } catch (err) {
       error.value = err.message || 'Failed to load item'
       console.error('Error loading item:', err)
