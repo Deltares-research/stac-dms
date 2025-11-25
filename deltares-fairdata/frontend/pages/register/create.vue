@@ -108,7 +108,7 @@
                         prepend-inner-icon="mdi-calendar"
                       />
                     </template>
-                    <v-card>
+                    <v-card width="400">
                       <v-date-picker
                         v-model="formData.properties.publication_datetime"
                         show-adjacent-months
@@ -287,7 +287,7 @@
                         prepend-inner-icon="mdi-calendar"
                       />
                     </template>
-                    <v-card>
+                    <v-card width="400">
                       <v-date-picker
                         v-model="tempStartDate"
                         show-adjacent-months
@@ -324,7 +324,7 @@
                         prepend-inner-icon="mdi-calendar"
                       />
                     </template>
-                    <v-card>
+                    <v-card width="400">
                       <v-date-picker
                         v-model="tempEndDate"
                         show-adjacent-months

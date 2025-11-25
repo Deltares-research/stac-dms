@@ -38,7 +38,7 @@
         v-if="mapInstance"
         ref="mapSelectToolRef"
         position="top-left"
-        :enabled-tools="enabledTools"
+        enabled-tools="['polygon','marker']"
         :draw-mode="drawMode"
         @change="onToolChange"
         @error="onError"

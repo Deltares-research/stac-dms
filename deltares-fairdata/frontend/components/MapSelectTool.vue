@@ -127,7 +127,7 @@
         className: 'mapbox-gl-draw-polygon-control',
         icon: 'mdi-vector-polygon',
         eventHandler: () => handleToolClick('polygon'),
-        title: 'Teken een polygoon',
+        title: 'Create a polygon on the map',
       })
       mapInstance.addControl(polygonButton.value, props.position)
     }
@@ -138,7 +138,7 @@
         className: 'mapbox-gl-draw-rectangle-control',
         icon: 'mdi-rectangle-outline',
         eventHandler: () => handleToolClick('rectangle'),
-        title: 'Teken een rechthoek',
+        title: 'Create a rectangle on the map',
       })
       mapInstance.addControl(rectangleButton.value, props.position)
     }
@@ -153,7 +153,7 @@
         className: 'mapbox-gl-marker-control',
         icon: 'mdi-map-marker',
         eventHandler: () => handleToolClick('marker'),
-        title: 'Plaats een speld op de kaart',
+        title: 'Place a marker on the map',
       })
       mapInstance.addControl(markerButton.value, props.position)
       mapInstance.__markerControl = {
@@ -167,7 +167,7 @@
       className: 'mapbox-gl-draw-trash-control',
       icon: 'mdi-delete',
       eventHandler: handleDelete,
-      title: 'Wis alles',
+      title: 'Clear all features',
     })
     mapInstance.addControl(deleteButton.value, props.position)
 
