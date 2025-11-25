@@ -481,6 +481,8 @@
                   :enabled-tools="['polygon', 'marker']"
                   :center="mode === 'create' ? [5.1, 52.07] : [0, 0]"
                   :zoom="mode === 'create' ? undefined : 2"
+                  :layer-options="layerOptions"
+                  :zoom-bounds="zoomBounds"
                 />
               </div>
             </v-card-text>
@@ -611,6 +613,7 @@
   import { fetchCollectionsWithCreatePermission, fetchCollectionById, fetchKeywordsByFacilityId } from '~/requests'
   import { fetchItemById, createItem, updateItem } from '~/requests/items'
   import { parseAndValidateCoordinates, createGeometryFromCoordinates as createGeometry } from '~/utils/helpers'
+  import buildGeoJsonLayer from '~/utils/build-geojson-layer'
 
   const props = defineProps({
     mode: {
@@ -736,6 +739,38 @@
   const endDateDisplay = computed(() => {
     if (!tempEndDate.value) return ''
     return dateFormat(tempEndDate.value, 'dd-mm-yyyy')
+  })
+
+  // Build layer options from formData geometry (similar to view.vue)
+  const layerOptions = computed(() => {
+    if (!formData.value?.geometry) return null
+    
+    // Convert geometry to feature format, then to featureCollection
+    const feature = {
+      type: 'Feature',
+      geometry: formData.value.geometry,
+      properties: {},
+    }
+    
+    const featureCollection = {
+      type: 'FeatureCollection',
+      features: [feature],
+    }
+    
+    return buildGeoJsonLayer(featureCollection)
+  })
+
+  // Calculate zoom bounds from geometry
+  const zoomBounds = computed(() => {
+    if (!formData.value?.geometry) return []
+    
+    try {
+      const calculatedBbox = bbox(formData.value.geometry)
+      return Array.isArray(calculatedBbox) && calculatedBbox.length >= 4 ? calculatedBbox : []
+    } catch (error) {
+      console.error('Error calculating bbox:', error)
+      return []
+    }
   })
 
   // Methods
