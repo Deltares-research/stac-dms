@@ -483,6 +483,7 @@
                   :zoom="mode === 'create' ? undefined : 2"
                   :layer-options="layerOptions"
                   :zoom-bounds="zoomBounds"
+                  @change="handleMapChange"
                 />
               </div>
             </v-card-text>
@@ -760,18 +761,8 @@
     return buildGeoJsonLayer(featureCollection)
   })
 
-  // Calculate zoom bounds from geometry
-  const zoomBounds = computed(() => {
-    if (!formData.value?.geometry) return []
-    
-    try {
-      const calculatedBbox = bbox(formData.value.geometry)
-      return Array.isArray(calculatedBbox) && calculatedBbox.length >= 4 ? calculatedBbox : []
-    } catch (error) {
-      console.error('Error calculating bbox:', error)
-      return []
-    }
-  })
+  // Calculate zoom bounds from geometry (only once at mount)
+  const zoomBounds = ref([])
 
   // Methods
   async function fetchCollections() {
@@ -871,6 +862,30 @@
     geometryValidationMessage.value = ''
     if (formData.value) {
       formData.value.geometry = null
+    }
+  }
+
+  function handleMapChange(event) {
+    // If there are existing layerOptions (geometry exists)
+    if (formData.value?.geometry) {
+      const { tool, active } = event
+      
+      // Clear geometry when:
+      // 1. Delete is clicked (tool is null)
+      // 2. User tries to create a polygon (tool is 'polygon' and active is true)
+      // 3. User tries to create a marker (tool is 'marker' and active is true)
+      if (
+        tool === null || 
+        (tool === 'polygon' && active === true) || 
+        (tool === 'marker' && active === true)
+      ) {
+        formData.value.geometry = null
+      }
+    }
+    
+    // Update geometry when a feature is created (not just attempted)
+    if (event.feature && event.active === false) {
+      formData.value.geometry = event.feature.geometry
     }
   }
 
@@ -1005,6 +1020,17 @@
           },
           assets: item.assets ? { ...item.assets } : {},
           geometry: item.geometry || null,
+        }
+      
+        // Calculate zoom bounds once from initial geometry
+        if (formData.value.geometry) {
+          try {
+            const calculatedBbox = bbox(formData.value.geometry)
+            zoomBounds.value = Array.isArray(calculatedBbox) && calculatedBbox.length >= 4 ? calculatedBbox : []
+          } catch (error) {
+            console.error('Error calculating bbox:', error)
+            zoomBounds.value = []
+          }
         }
       
         // Initialize dates
