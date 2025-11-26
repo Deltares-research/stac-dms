@@ -38,7 +38,7 @@
         v-if="mapInstance"
         ref="mapSelectToolRef"
         position="top-left"
-        :enabled-tools="enabledTools"
+        enabled-tools="['polygon','marker']"
         :draw-mode="drawMode"
         @change="onToolChange"
         @error="onError"
@@ -72,6 +72,8 @@
     }
   })
 
+  const emit = defineEmits(['change'])
+
   const mapInstance = ref(null)
   const accessToken = import.meta.env.VITE_MAPBOX_TOKEN
   const mapSelectToolRef = ref(null)
@@ -86,6 +88,10 @@
   }
   function onError(err) {
     console.error('Map tool error:', err)
+  }
+
+  function onToolChange(event) {
+    emit('change', event)
   }
 
   function clearAll() {

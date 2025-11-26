@@ -133,7 +133,8 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
   import dateFormat from 'dateformat'
   import { useRegisterStore } from '~/stores/register'
 
@@ -141,6 +142,10 @@
   defineOptions({
     name: 'RegisterIndexPage'
   })
+
+  // Router
+  const router = useRouter()
+  const route = useRoute()  // Add this
 
   // Store
   const store = useRegisterStore()
@@ -235,19 +240,32 @@
   }
 
   function handleEdit(item) {
-    console.log('Edit item:', item)
-    // TODO: Navigate to edit page using item.id or item._original
+    // Navigate to edit page using item.id
+    router.push(`/register/${item.id}/edit`)
   }
 
   function handleDelete(item) {
-    console.log('Delete item:', item)
-    // TODO: Implement delete functionality using item.id or item._original
+    // Navigate to delete confirmation page
+    router.push(`/register/${item.id}/delete`)
   }
 
   // Fetch items on mount
   onMounted(async () => {
     await store.fetchItems()
+    console.log('Component mounted, current path:', route.path)
   })
+
+  // Watch the route path directly (more reliable)
+  watch(
+    () => route.path,
+    (newPath, oldPath) => {
+      if (newPath === '/register' && oldPath && oldPath !== '/register') {
+        console.log('Navigated to /register, refreshing data')
+        store.fetchItems()
+      }
+    },
+    { immediate: false }  // Don't run on initial mount
+  )
 </script>
 
 <style scoped>

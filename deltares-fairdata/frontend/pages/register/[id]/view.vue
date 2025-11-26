@@ -72,7 +72,7 @@
           </div>
 
           <!-- Description -->
-          <v-card class="mb-4">
+          <v-card class="mb-4" elevation="0">
             <v-card-text>
               <p class="text-body-1" style="white-space: pre-line;">
                 {{ item.properties?.description || 'No description available' }}
@@ -233,7 +233,7 @@
                           {{ prop.value }}
                           <v-icon size="small" class="ml-1">mdi-open-in-new</v-icon>
                         </a>
-                        <span v-else>{{ formatValue(prop.key, prop.value) }}</span>
+                        <span v-else class="text-grey-darken-1">{{ formatValue(prop.key, prop.value) }}</span>
                       </td>
                     </tr>
                   </tbody>
