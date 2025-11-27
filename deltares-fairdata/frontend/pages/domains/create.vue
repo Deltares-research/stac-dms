@@ -39,6 +39,68 @@
                 class="mb-4"
               />
 
+              <v-autocomplete
+                v-model="formData.selectedGroups"
+                :items="groupOptions"
+                item-title="name"
+                item-value="id"
+                label="Add groups to this domain (optional)"
+                placeholder="Search groups"
+                variant="outlined"
+                multiple
+                chips
+                closable-chips
+                class="mb-4"
+                :loading="isLoadingGroups"
+              />
+
+              <!-- Permissions section for selected groups -->
+              <div v-if="formData.selectedGroups && formData.selectedGroups.length > 0" class="mb-4">
+                <p class="text-body-2 text-grey-darken-1 mb-3">
+                  Permissions (optional)
+                </p>
+                <v-table>
+                  <thead>
+                    <tr>
+                      <th class="text-left">
+                        Group
+                      </th>
+                      <th class="text-center">
+                        Data Producer
+                      </th>
+                      <th class="text-center">
+                        Domain Data Steward
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="groupId in formData.selectedGroups" :key="groupId">
+                      <td>{{ getGroupName(groupId) }}</td>
+                      <td class="text-center">
+                        <div class="d-flex justify-center align-center">
+                          <v-checkbox
+                            :model-value="hasRole(groupId, 'data_producer')"
+                            hide-details
+                            density="compact"
+                            @update:model-value="(v) => toggleRole(groupId, 'data_producer', v)"
+                          />
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <div class="d-flex justify-center align-center">
+                          <v-checkbox
+                            :model-value="hasRole(groupId, 'collection_data_steward')"
+                            hide-details
+                            density="compact"
+                            @update:model-value="(v) => toggleRole(groupId, 'collection_data_steward', v)"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </div>
+
               <v-alert
                 v-if="error"
                 type="error"
@@ -72,22 +134,29 @@
 <script setup>
   import { ref, computed, onMounted } from 'vue'
   import { useRouter } from 'vue-router'
+  import { useNuxtApp } from '#app'
   import { createCollection, fetchFacilities } from '~/requests/collections'
+  import { fetchGroups } from '~/requests/groups'
 
   defineOptions({
     name: 'DomainsCreatePage'
   })
 
   const router = useRouter()
+  const { $api } = useNuxtApp()
 
   // State
   const formData = ref({
     title: '',
     description: '',
-    keywordsFacility: 'No keywords'
+    keywordsFacility: 'No keywords',
+    selectedGroups: [],
+    groupRoles: {} // { groupId: ['role1', 'role2'] }
   })
 
   const facilities = ref([])
+  const groups = ref([])
+  const isLoadingGroups = ref(false)
   const isSubmitting = ref(false)
   const error = ref(null)
 
@@ -102,7 +171,53 @@
     return [{ value: 'No keywords', title: 'No keywords' }, ...options]
   })
 
+  const groupOptions = computed(() => {
+    return groups.value.map(group => ({
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      ...group
+    }))
+  })
+
   // Methods
+  function getGroupName(groupId) {
+    const group = groups.value.find(g => g.id === groupId)
+    return group?.name || groupId
+  }
+
+  function hasRole(groupId, role) {
+    if (!groupId) return false
+    const roles = formData.value.groupRoles[groupId] || []
+    return roles.includes(role)
+  }
+
+  function toggleRole(groupId, role, checked) {
+    if (!formData.value.groupRoles[groupId]) {
+      formData.value.groupRoles[groupId] = []
+    }
+    
+    if (checked) {
+      if (!formData.value.groupRoles[groupId].includes(role)) {
+        formData.value.groupRoles[groupId].push(role)
+      }
+    } else {
+      formData.value.groupRoles[groupId] = formData.value.groupRoles[groupId].filter(r => r !== role)
+    }
+  }
+
+  async function loadGroups() {
+    isLoadingGroups.value = true
+    try {
+      groups.value = await fetchGroups() || []
+    } catch (err) {
+      console.error('Error loading groups:', err)
+      groups.value = []
+    } finally {
+      isLoadingGroups.value = false
+    }
+  }
+
   async function handleSubmit() {
     if (!formData.value.title) {
       return
@@ -141,7 +256,32 @@
           : [],
       }
 
-      await createCollection(collectionData)
+      const result = await createCollection(collectionData)
+      const collectionId = result.id || formData.value.title
+
+      // Assign roles to groups if any selected
+      if (formData.value.selectedGroups && formData.value.selectedGroups.length > 0) {
+        for (const groupId of formData.value.selectedGroups) {
+          const roles = formData.value.groupRoles[groupId] || []
+          if (roles && roles.length > 0) {
+            // Add roles sequentially for this group
+            for (const role of roles) {
+              try {
+                await $api('/group-role/{collection_id}', {
+                  method: 'POST',
+                  path: { collection_id: collectionId },
+                  body: { group_id: groupId, role },
+                  credentials: 'include',
+                })
+              } catch (err) {
+                console.error(`Error adding role ${role} to group ${groupId}:`, err)
+                // Continue with other roles even if one fails
+              }
+            }
+          }
+        }
+      }
+
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       await router.push('/domains')
@@ -157,7 +297,11 @@
   // Initialize
   onMounted(async () => {
     try {
-      facilities.value = await fetchFacilities()
+      const [facilitiesData] = await Promise.all([
+        fetchFacilities(),
+        loadGroups()
+      ])
+      facilities.value = facilitiesData || []
     } catch (err) {
       console.error('Failed to fetch facilities:', err)
       facilities.value = []
