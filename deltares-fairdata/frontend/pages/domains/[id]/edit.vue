@@ -48,59 +48,152 @@
           </v-card-text>
         </v-card>
 
-        <!-- Edit form -->
+        <!-- Edit form with tabs -->
         <v-card v-else-if="collection">
-          <v-card-text>
-            <v-form @submit.prevent="handleSubmit">
-              <v-text-field
-                v-model="formData.title"
-                label="Name"
-                placeholder="Name of your domain"
-                variant="outlined"
-                required
-                class="mb-4"
-              />
+          <v-tabs
+            v-model="activeTab"
+            class="mb-4"
+          >
+            <v-tab value="collection">
+              Collection
+            </v-tab>
+            <v-tab value="permissions">
+              Permissions
+            </v-tab>
+          </v-tabs>
 
-              <v-textarea
-                v-model="formData.description"
-                label="Description"
-                variant="outlined"
-                rows="3"
-                class="mb-4"
-              />
+          <v-window v-model="activeTab">
+            <!-- Collection Tab -->
+            <v-window-item value="collection">
+              <v-card-text>
+                <v-form @submit.prevent="handleSubmit">
+                  <v-text-field
+                    v-model="formData.title"
+                    label="Name"
+                    placeholder="Name of your domain"
+                    variant="outlined"
+                    required
+                    class="mb-4"
+                  />
 
-              <v-select
-                v-model="formData.keywordsFacility"
-                :items="facilityOptions"
-                label="Keyword domains"
-                variant="outlined"
-                class="mb-4"
-              />
+                  <v-textarea
+                    v-model="formData.description"
+                    label="Description"
+                    variant="outlined"
+                    rows="3"
+                    class="mb-4"
+                  />
 
-              <v-alert
-                v-if="submitError"
-                type="error"
-                variant="tonal"
-                class="mb-4"
-              >
-                {{ submitError }}
-              </v-alert>
+                  <v-select
+                    v-model="formData.keywordsFacility"
+                    :items="facilityOptions"
+                    label="Keyword domains"
+                    variant="outlined"
+                    class="mb-4"
+                  />
 
-              <div class="d-flex justify-space-between mt-4">
-                <v-btn variant="outlined" to="/domains">
-                  Cancel
-                </v-btn>
-                <v-btn
-                  type="submit"
-                  color="primary"
-                  :loading="isSubmitting"
-                  :disabled="!formData.title"
+                  <v-alert
+                    v-if="submitError"
+                    type="error"
+                    variant="tonal"
+                    class="mb-4"
+                  >
+                    {{ submitError }}
+                  </v-alert>
+
+                  <div class="d-flex justify-space-between mt-4">
+                    <v-btn variant="outlined" to="/domains">
+                      Cancel
+                    </v-btn>
+                    <v-btn
+                      type="submit"
+                      color="primary"
+                      :loading="isSubmitting"
+                      :disabled="!formData.title"
+                    >
+                      Update
+                    </v-btn>
+                  </div>
+                </v-form>
+              </v-card-text>
+            </v-window-item>
+
+            <!-- Permissions Tab -->
+            <v-window-item value="permissions">
+              <v-card-text>
+                <v-table v-if="groups.length > 0">
+                  <thead>
+                    <tr>
+                      <th class="text-left">
+                        Group
+                      </th>
+                      <th class="text-center">
+                        Data Producer
+                      </th>
+                      <th class="text-center">
+                        Domain Data Steward
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="group in groups" :key="group.id">
+                      <td>{{ group.name }}</td>
+                      <td class="text-center">
+                        <div class="d-flex justify-center align-center position-relative">
+                          <v-progress-circular
+                            v-if="pendingRoleChanges.includes(`${group.id}-data_producer`)"
+                            indeterminate
+                            size="16"
+                            width="2"
+                            class="position-absolute"
+                          />
+                          <v-checkbox
+                            :model-value="hasRole(group.id, 'data_producer')"
+                            :disabled="pendingRoleChanges.includes(`${group.id}-data_producer`)"
+                            hide-details
+                            density="compact"
+                            @update:model-value="(v) => toggleRole(group.id, 'data_producer', v)"
+                          />
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <div class="d-flex justify-center align-center position-relative">
+                          <v-progress-circular
+                            v-if="pendingRoleChanges.includes(`${group.id}-collection_data_steward`)"
+                            indeterminate
+                            size="16"
+                            width="2"
+                            class="position-absolute"
+                          />
+                          <v-checkbox
+                            :model-value="hasRole(group.id, 'collection_data_steward')"
+                            :disabled="pendingRoleChanges.includes(`${group.id}-collection_data_steward`)"
+                            hide-details
+                            density="compact"
+                            @update:model-value="(v) => toggleRole(group.id, 'collection_data_steward', v)"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+                <v-alert
+                  v-else-if="!isLoadingPermissions"
+                  type="info"
+                  variant="tonal"
+                  class="mt-4"
                 >
-                  Update
-                </v-btn>
-              </div>
-            </v-form>
-          </v-card-text>
+                  No groups available
+                </v-alert>
+                <div v-else class="d-flex justify-center py-8">
+                  <v-progress-circular
+                    indeterminate
+                    color="primary"
+                  />
+                </div>
+              </v-card-text>
+            </v-window-item>
+          </v-window>
         </v-card>
       </v-col>
     </v-row>
@@ -110,7 +203,9 @@
 <script setup>
   import { ref, computed, onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { useNuxtApp } from '#app'
   import { fetchCollectionById, updateCollection, fetchFacilities } from '~/requests/collections'
+  import { fetchGroups } from '~/requests/groups'
 
   defineOptions({
     name: 'DomainsEditPage'
@@ -118,6 +213,7 @@
 
   const route = useRoute()
   const router = useRouter()
+  const { $api } = useNuxtApp()
   const domainId = route.params.id
 
   // State
@@ -128,10 +224,18 @@
     keywordsFacility: 'No keywords'
   })
   const facilities = ref([])
+  const groups = ref([])
+  const permissions = ref([])
   const isLoading = ref(true)
+  const isLoadingPermissions = ref(false)
   const error = ref(null)
   const isSubmitting = ref(false)
   const submitError = ref(null)
+  const activeTab = ref('collection')
+  const pendingRoleChanges = ref([])
+
+  // Roles
+  const roles = ['collection_data_steward', 'data_producer']
 
   // Computed
   const facilityOptions = computed(() => {
@@ -145,6 +249,70 @@
   })
 
   // Methods
+  function hasRole(groupId, role) {
+    if (!groupId) return false
+    return permissions.value?.some(
+      (p) => p.group_id === groupId && p.role === role
+    ) ?? false
+  }
+
+  async function toggleRole(groupId, role, checked) {
+    const changeKey = `${groupId}-${role}`
+    pendingRoleChanges.value.push(changeKey)
+
+    try {
+      if (checked) {
+        await $api('/group-role/{collection_id}', {
+          method: 'POST',
+          path: { collection_id: domainId },
+          body: { group_id: groupId, role },
+          credentials: 'include',
+        })
+      } else {
+        await $api('/group-role/{collection_id}', {
+          method: 'DELETE',
+          path: { collection_id: domainId },
+          query: { group_id: groupId, role },
+          credentials: 'include',
+        })
+      }
+
+      await loadPermissions()
+    } catch (err) {
+      console.error('Error toggling role:', err)
+    } finally {
+      pendingRoleChanges.value = pendingRoleChanges.value.filter(
+        (p) => p !== changeKey
+      )
+    }
+  }
+
+  async function loadPermissions() {
+    isLoadingPermissions.value = true
+    try {
+      const data = await $api('/group-role/{collection_id}', {
+        method: 'GET',
+        path: { collection_id: domainId },
+        credentials: 'include',
+      })
+      permissions.value = data || []
+    } catch (err) {
+      console.error('Error loading permissions:', err)
+      permissions.value = []
+    } finally {
+      isLoadingPermissions.value = false
+    }
+  }
+
+  async function loadGroups() {
+    try {
+      groups.value = await fetchGroups() || []
+    } catch (err) {
+      console.error('Error loading groups:', err)
+      groups.value = []
+    }
+  }
+
   async function handleSubmit() {
     if (!formData.value.title) {
       return
@@ -215,6 +383,12 @@
         description: collectionData.description || '',
         keywordsFacility: collectionData.links?.find(item => item.rel === 'keywords')?.id || 'No keywords'
       }
+
+      // Load groups and permissions for permissions tab
+      await Promise.all([
+        loadGroups(),
+        loadPermissions()
+      ])
     } catch (err) {
       error.value = err?.message || 'Failed to load domain'
       console.error('Error loading domain:', err)
