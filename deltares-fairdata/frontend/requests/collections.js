@@ -116,3 +116,112 @@ export async function fetchCollectionsWithCreatePermission(options = {}) {
   }
 }
 
+/**
+ * Create a new collection
+ * @param {Object} collectionData - Collection data to create
+ * @returns {Promise<Object>} Created collection
+ */
+export async function createCollection(collectionData) {
+  const { $api } = useNuxtApp()
+  const headers = process.server ? useRequestHeaders() : {}
+  
+  try {
+    const result = await $api('/collections', {
+      method: 'POST',
+      body: collectionData,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    })
+    
+    return result
+  } catch (error) {
+    console.error('Failed to create collection:', error?.message || error?.toString() || 'Unknown error')
+    throw error
+  }
+}
+
+/**
+ * Update an existing collection
+ * @param {string} collectionId - Collection ID
+ * @param {Object} collectionData - Updated collection data
+ * @returns {Promise<Object>} Updated collection
+ */
+export async function updateCollection(collectionId, collectionData) {
+  const { $api } = useNuxtApp()
+  const headers = process.server ? useRequestHeaders() : {}
+  
+  try {
+    const result = await $api('/collections/{collection_id}', {
+      method: 'PUT',
+      body: collectionData,
+      path: {
+        collection_id: collectionId,
+      },
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    })
+    
+    return result
+  } catch (error) {
+    console.error('Failed to update collection:', error?.message || error?.toString() || 'Unknown error')
+    throw error
+  }
+}
+
+/**
+ * Delete a collection
+ * @param {string} collectionId - Collection ID
+ * @returns {Promise<void>}
+ */
+export async function deleteCollection(collectionId) {
+  const { $api } = useNuxtApp()
+  const headers = process.server ? useRequestHeaders() : {}
+  
+  try {
+    await $api('/collections/{collection_id}', {
+      method: 'DELETE',
+      path: {
+        collection_id: collectionId,
+      },
+      credentials: 'include',
+      headers: {
+        ...headers,
+      },
+    })
+  } catch (error) {
+    console.error('Failed to delete collection:', error?.message || error?.toString() || 'Unknown error')
+    throw error
+  }
+}
+
+/**
+ * Fetch facilities (for keywords dropdown)
+ * @returns {Promise<Array>} Facilities array
+ */
+export async function fetchFacilities() {
+  const { $api } = useNuxtApp()
+  const headers = process.server ? useRequestHeaders() : {}
+  
+  try {
+    const facilities = await $api('/facilities', {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    })
+    
+    return facilities || []
+  } catch (error) {
+    console.error('Failed to fetch facilities:', error?.message || error?.toString() || 'Unknown error')
+    throw error
+  }
+}
+
