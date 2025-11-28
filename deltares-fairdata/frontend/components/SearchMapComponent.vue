@@ -74,7 +74,7 @@
   import { ref, computed, watch, nextTick } from 'vue'
   import { MapboxMap, MapboxCluster, MapboxNavigationControl, MapboxPopup } from '@studiometa/vue-mapbox-gl'
   import { center, bbox } from '@turf/turf'
-  import { isEqual } from 'lodash'
+  import { isEqual } from 'lodash-es'
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
