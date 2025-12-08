@@ -444,3 +444,32 @@ export async function unlinkKeywordGroupFromFacility(linkData) {
   }
 }
 
+/**
+ * Fetch keywords with their counts (similar to topics)
+ * @returns {Promise<Object>} Object containing keywords array with id and count
+ */
+export async function fetchKeywords() {
+  const { $api } = useNuxtApp()
+  const headers = process.server ? useRequestHeaders() : {}
+  
+  try {
+    // Adjust endpoint based on your API
+    // This might need to be /keywords without parameters, or a new endpoint
+    const result = await $api('/keywords', {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    })
+    
+    // Transform the result to match topics structure if needed
+    // Assuming the API returns keywords with id and count
+    return result || { keywords: [] }
+  } catch (error) {
+    console.error('Error loading keywords:', error?.message || error?.toString() || 'Unknown error')
+    throw error
+  }
+}
+

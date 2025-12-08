@@ -71,9 +71,10 @@
               <v-autocomplete
                 v-model="selectedCollection"
                 :items="store.collections"
-                item-title="title"
                 item-value="id"
                 return-object
+                multiple
+                chips
                 prepend-inner-icon="mdi-magnify"
                 placeholder="Search domain..."
                 variant="outlined"
@@ -82,7 +83,23 @@
                 hide-details
                 class="filter-autocomplete"
                 @update:model-value="handleCollectionChange"
-              />
+              >
+                <template #item="{ props: itemProps, item }">
+                  <v-list-item v-bind="itemProps">
+                    <template #prepend>
+                      <v-list-item-action>
+                        <v-icon v-if="item.raw.selected" color="primary">
+                          mdi-check
+                        </v-icon>
+                      </v-list-item-action>
+                    </template>
+                    <!-- Remove the v-list-item-title since item-title="title" already handles it -->
+                  </v-list-item>
+                </template>
+                <template #selection="{ item }">
+                  {{ item.raw.title }}
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <!-- Topic -->
@@ -146,7 +163,12 @@
               </div>
               <v-autocomplete
                 v-model="selectedKeyword"
-                :items="[]"
+                :items="store.keywords"
+                item-title="id"
+                item-value="id"
+                return-object
+                multiple
+                chips
                 prepend-inner-icon="mdi-magnify"
                 placeholder="Search keyword..."
                 variant="outlined"
@@ -154,7 +176,30 @@
                 clearable
                 hide-details
                 class="filter-autocomplete"
-              />
+                @update:model-value="handleKeywordChange"
+              >
+                <template #item="{ props: itemProps, item }">
+                  <v-list-item v-bind="itemProps">
+                    <template #prepend>
+                      <v-list-item-action>
+                        <v-icon v-if="item.raw.selected" color="primary">
+                          mdi-check
+                        </v-icon>
+                      </v-list-item-action>
+                    </template>
+                    <v-list-item-title>
+                      <div class="d-flex justify-space-between align-center">
+                        <div class="text-caption text-grey-darken-1">
+                          {{ item.raw.count }} items
+                        </div>
+                      </div>
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+                <template #selection="{ item }">
+                  {{ item.raw.id }}
+                </template>
+              </v-autocomplete>
             </v-col>
 
             <!-- Start & End date (buttons open date pickers) -->
@@ -317,28 +362,30 @@
   /* --- Convert store arrays to single values for display --- */
   const selectedCollection = computed({
     get: () => {
-      const selected = store.collections.find(c => c.selected)
-      return selected || null
+      const selected = store.collections.filter(c => c.selected)
+      return selected
     },
     set: (value) => {
-      if (!value || value === 'any') {
+      if (!value || value.length === 0) {
         store.collections = store.collections.map(c => ({ ...c, selected: false }))
       } else {
+        const selectedIds = value.map(v => v.id)
         store.collections = store.collections.map(c => ({
           ...c,
-          selected: c.id === value.id
+          selected: selectedIds.includes(c.id)
         }))
       }
     },
   })
 
   function handleCollectionChange(value) {
-    if (!value || value === 'any') {
+    if (!value || value.length === 0) {
       store.collections = store.collections.map(c => ({ ...c, selected: false }))
     } else {
+      const selectedIds = value.map(v => v.id)
       store.collections = store.collections.map(c => ({
         ...c,
-        selected: c.id === value.id
+        selected: selectedIds.includes(c.id)
       }))
     }
   }
@@ -374,15 +421,34 @@
   }
 
   const selectedKeyword = computed({
-    get: () => store.keywords?.length ? store.keywords[0] : null,
+    get: () => {
+      const selected = store.keywords.filter(k => k.selected)
+      return selected
+    },
     set: (value) => {
-      if (!value || value === 'any') {
-        store.keywords = []
+      if (!value || value.length === 0) {
+        store.keywords = store.keywords.map(k => ({ ...k, selected: false }))
       } else {
-        store.keywords = [value]
+        const selectedIds = value.map(v => v.id)
+        store.keywords = store.keywords.map(k => ({
+          ...k,
+          selected: selectedIds.includes(k.id)
+        }))
       }
     },
   })
+
+  function handleKeywordChange(value) {
+    if (!value || value.length === 0) {
+      store.keywords = store.keywords.map(k => ({ ...k, selected: false }))
+    } else {
+      const selectedIds = value.map(v => v.id)
+      store.keywords = store.keywords.map(k => ({
+        ...k,
+        selected: selectedIds.includes(k.id)
+      }))
+    }
+  }
 
   /* --- Date menus state --- */
   const startMenu = ref(false)
@@ -405,7 +471,7 @@
   function clear () {
     store.q = ''
     store.collections = store.collections.map(c => ({ ...c, selected: false }))
-    store.keywords = []
+    store.keywords = store.keywords.map(k => ({ ...k, selected: false }))
     store.startDate = undefined
     store.endDate = undefined
     store.includeEmptyGeometry = false
@@ -419,10 +485,16 @@
       store.endDate = undefined
     } else if (key === 'query') {
       store.q = ''
-    } else if (key === 'collection') {
-      store.collections = store.collections.map(c => ({ ...c, selected: false }))
-    } else if (key === 'keyword') {
-      store.keywords = []
+    } else if (key.startsWith('collection-')) {
+      const collectionId = key.replace('collection-', '')
+      store.collections = store.collections.map(c => 
+        c.id === collectionId ? { ...c, selected: false } : c
+      )
+    } else if (key.startsWith('keyword-')) {
+      const keywordId = key.replace('keyword-', '')
+      store.keywords = store.keywords.map(k => 
+        k.id === keywordId ? { ...k, selected: false } : k
+      )
     } else if (key === 'includeEmptyGeometry') {
       store.includeEmptyGeometry = false
     } else if (key.startsWith('topic-')) {
@@ -475,14 +547,17 @@
     }
     
     if (store.collections && store.collections.length > 0) {
-      const selected = store.collections.find(c => c.selected)
-      if (selected) {
-        chips.push({ key: 'collection', label: FIELD_LABEL.collection, value: selected.title })
-      }
+      const selected = store.collections.filter(c => c.selected)
+      selected.forEach(collection => {
+        chips.push({ key: `collection-${collection.id}`, label: FIELD_LABEL.collection, value: collection.title })
+      })
     }
     
     if (store.keywords && store.keywords.length > 0) {
-      chips.push({ key: 'keyword', label: FIELD_LABEL.keyword, value: store.keywords[0] })
+      const selectedKeywords = store.keywords.filter(k => k.selected)
+      selectedKeywords.forEach(keyword => {
+        chips.push({ key: `keyword-${keyword.id}`, label: FIELD_LABEL.keyword, value: keyword.id })
+      })
     }
 
     if (store.topics && store.topics.length > 0) {

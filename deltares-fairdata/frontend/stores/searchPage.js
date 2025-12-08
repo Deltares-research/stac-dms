@@ -13,11 +13,11 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const q = ref('')
   const startDate = ref(undefined)
   const endDate = ref(undefined)
-  const keywords = ref([])
-  const collections = ref([]) // Stores all available collection objects, selected ones are filtered from this
+  const keywords = ref([]) // Change from array of IDs to array of objects with {id, count, selected}
+  const collections = ref([]) // Already has selected property
   const includeEmptyGeometry = ref(false)
-  const bbox = ref([ 180, 90, -180, -90 ]) //live TODO: check if both are needed.
-  const bboxFilter = ref([ 180, 90, -180, -90 ]) // send in the request. 
+  const bbox = ref([ 180, 90, -180, -90 ])
+  const bboxFilter = ref([ 180, 90, -180, -90 ])
   const topics = ref([])
   
   const featureCollection = ref(null)
@@ -98,6 +98,10 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     const selectedTopics = (topics.value || []).filter(t => t.selected)
     const selectedTopicIds = selectedTopics.map(t => t.id)
     
+    // Get selected keywords
+    const selectedKeywords = (keywords.value || []).filter(k => k.selected)
+    const selectedKeywordIds = selectedKeywords.map(k => k.id)
+    
     searchStatus.value = 'pending'
     searchError.value = null
   
@@ -106,7 +110,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
         q: q.value,
         startDate: startDate.value,
         endDate: endDate.value,
-        keywords: keywords.value,
+        keywords: selectedKeywordIds, // Pass array of selected keyword IDs
         collections: selectedIds,
         topics: selectedTopicIds,
         includeEmptyGeometry: includeEmptyGeometry.value,
@@ -174,7 +178,19 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     }
   }
 
-  return { q, startDate, endDate, keywords, collections, topics, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature, fetchTopics }
+  async function fetchKeywords() {
+    try {
+      // You'll need to create this endpoint or use existing one
+      // For now, assuming similar structure to topics
+      const data = await fetchKeywordsApi() // You'll need to create this function
+      keywords.value = (data?.keywords || []).map(k => ({ ...k, selected: false }))
+    } catch (e) {
+      console.error('Failed to fetch keywords:', e?.message || e?.toString() || 'Unknown error')
+      keywords.value = []
+    }
+  }
+
+  return { q, startDate, endDate, keywords, collections, topics, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature, fetchTopics, fetchKeywords }
 
 })
 

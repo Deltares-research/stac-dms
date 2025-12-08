@@ -178,12 +178,23 @@
 
   // Fetch topics during SSR
   await store.fetchTopics()
-  const topicId = q.topic
-  if (topicId) {
+  const topicIds = toArr(q.topics) // Update to handle multiple topics
+  if (topicIds.length > 0) {
     store.topics = store.topics.map(t => ({
       ...t,
-      selected: t.id === topicId
-    }))}
+      selected: topicIds.includes(t.id)
+    }))
+  }
+
+  // Fetch keywords during SSR
+  await store.fetchKeywords()
+  const keywordIds = toArr(q.keywords)
+  if (keywordIds.length > 0) {
+    store.keywords = store.keywords.map(k => ({
+      ...k,
+      selected: keywordIds.includes(k.id)
+    }))
+  }
 
   // Perform initial search during SSR if access is allowed
   // This runs on both server and client, preserving SSR benefits
