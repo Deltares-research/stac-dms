@@ -1,18 +1,42 @@
-<script setup lang="ts">
-import type { Keyword } from "~/lib/types"
-import DeleteKeyword from "./DeleteKeyword.vue"
-import UpdateKeyword from "./UpdateKeyword.vue"
-
-let { onDelete } = defineProps<{
-  keyword: Keyword
-  onDelete?(): void
-  onUpdate?(): void
-}>()
-</script>
-
 <template>
-  <div class="flex items-center gap-1.5 group">
-    <UpdateKeyword :keyword @update="onUpdate" />
-    <DeleteKeyword :keyword="keyword" @delete="onDelete" />
+  <div class="d-flex align-center gap-2 group">
+    <UpdateKeyword
+      :keyword="keyword"
+      @updated="$emit('updated')"
+    />
+    <DeleteKeyword
+      :keyword="keyword"
+      @deleted="$emit('deleted')"
+    />
   </div>
 </template>
+
+<script setup>
+  import UpdateKeyword from './UpdateKeyword.vue'
+  import DeleteKeyword from './DeleteKeyword.vue'
+
+  defineOptions({
+    name: 'Keyword'
+  })
+
+  defineProps({
+    keyword: {
+      type: Object,
+      required: true
+    }
+  })
+
+  defineEmits(['updated', 'deleted'])
+</script>
+
+<style scoped>
+  .group :deep(.delete-btn) {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  
+  .group:hover :deep(.delete-btn) {
+    opacity: 1;
+  }
+</style>
+

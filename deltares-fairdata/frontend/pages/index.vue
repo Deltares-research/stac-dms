@@ -1,372 +1,308 @@
-<script setup lang="ts">
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { ref, reactive } from "vue"
-import dateFormat from "dateformat"
-import type { DateRange } from "radix-vue"
-import Input from "~/components/ui/input/Input.vue"
-import MapBrowser from "~/components/MapBrowser.vue"
-import type { Extent } from "ol/extent"
-import { bboxPolygon } from "@turf/turf"
-import type { LocationQueryRaw, LocationQueryValue } from "vue-router"
-import FilterSystem from "~/components/FilterSystem.vue"
-import { CalendarDate, parseDate } from "@internationalized/date"
-import { LinkIcon } from "lucide-vue-next"
+<template>
+  <v-container fluid class="pa-0 ma-0 two-col-page">
+    <v-row no-gutters class="two-col-row">
+      <!-- LEFT: Results list (its own scroll) -->
+      <v-col
+        :cols="12"
+        :md="6"
+        class="left-col"
+      >
+        <v-sheet class="left-scroll pa-4">
+          <!-- Not authenticated state -->
+          <div
+            v-if="!canAccess && configStore.authEnabled && !authLoading"
+            class="d-flex flex-column justify-center align-center text-center"
+            style="height: 200px;"
+          >
+            <v-icon
+              size="64"
+              color="grey-lighten-1"
+              class="mb-4"
+            >
+              mdi-account-circle
+            </v-icon>
+            <h3 class="text-h6 mb-2">
+              Please log in to search data
+            </h3>
+            <p class="text-body-2 text-grey">
+              Use the login button in the top right to access the FAIR data finder
+            </p>
+          </div>
 
-const route = useRoute()
-const router = useRouter()
+          <!-- Authenticated state with features -->
+          <div v-else-if="canAccess">
+            <feature-filters
+              :options="filterOptions"
+              class="mb-4"
+            />
 
-let selectedItemId = ref<string>()
-let activeItemId = ref<string>()
+            <!-- Search input -->
+            <v-row class="mb-4">
+              <v-col cols="12">
+                <form @submit.prevent="applyQuery">
+                  <div class="d-flex align-center ga-2">
+                    <v-text-field
+                      v-model="queryInput"
+                      variant="outlined"
+                      placeholder="Search title or description"
+                      hide-details
+                      clearable
+                      class="flex-grow-1"
+                      @click:clear="queryInput = ''; applyQuery()"
+                    />
+                    <v-btn type="submit">
+                      Search
+                    </v-btn>
+                  </div>
+                </form>
+              </v-col>
+            </v-row>
 
-let bbox = ref<Extent>([180, 90, -180, -90])
-let bboxFilter = ref<Extent>([180, 90, -180, -90])
+            <v-row>
+              <v-col
+                v-for="f in features"
+                :key="f.id"
+                cols="12"
+              >
+                <v-card 
+                  class="mb-4" 
+                  variant="elevated"
+                  :class="{ 'selected-feature': f.id === store.selectedFeatureId }"
+                >
+                  <v-card-title class="text-wrap d-flex align-center">
+                    <span class="flex-grow-1">{{ f.properties?.title || 'Untitled' }}</span>
+                    <v-chip
+                      v-if="f.properties?.globaldataset"
+                      color="primary"
+                      size="small"
+                      class="ml-2"
+                    >
+                      Global Dataset
+                    </v-chip>
+                  </v-card-title>
 
-// Reactive filter state
-const filterState = reactive({
-  q: (route.query?.q as string) || "",
-  date: undefined as DateRange | undefined,
-  keywords: [] as string[],
-  collections: getCollectionIdsFromQuery(route.query?.collections),
-  includeEmptyGeometry: route.query?.includeEmptyGeometry === "on",
-})
+                  <v-card-text>
+                    <p class="mb-3 line-clamp-3">
+                      {{ f.properties?.description || 'No description.' }}
+                    </p>
 
-// Initialize filter state from route query
-filterState.date = {
-  start: route.query?.start
-    ? parseDate(route.query.start as string)
-    : undefined,
-  end: route.query?.end ? parseDate(route.query.end as string) : undefined,
-}
+                    <div class="d-flex align-center mb-3">
+                      <v-icon class="mr-2" size="small">
+                        mdi-link-variant
+                      </v-icon>
+                      <span v-if="firstAssetHref(f)">
+                        {{ firstAssetHref(f) }}
+                      </span>
+                      <span v-else>—</span>
+                    </div>
 
-if (route.query?.keywords) {
-  const keywords = route.query.keywords
-  filterState.keywords = (Array.isArray(keywords) ? keywords : [keywords])
-    .map((id) => id?.toString())
-    .filter(Boolean) as string[]
-}
+                    <!-- Add this new paragraph for view details -->
+                    <div class="mb-3">
+                      <NuxtLink
+                        :to="`/register/${f.id}/view`"
+                        class="text-body-2 text-primary"
+                        style="text-decoration: underline; cursor: pointer;"
+                      >
+                        View details
+                      </NuxtLink>
+                    </div>
 
-function getCollectionIdsFromQuery(
-  query: LocationQueryValue | LocationQueryValue[],
-) {
-  if (!query) return []
+                    <div class="text-body-2">
+                      {{ formatDate(f) }}
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </div>
+        </v-sheet>
+      </v-col>
+      <!-- RIGHT: Map (fixed to visible viewport below app bar) -->
+      <v-col
+        :cols="12"
+        :md="6"
+        class="right-col"
+      >
+        <v-sheet class="right-map">
+          <search-map-component />
+        </v-sheet>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
 
-  return (Array.isArray(query) ? query : [query])
-    .map((id) => id?.toString())
-    .filter(Boolean) as string[]
-}
+<script setup>
+  import { computed, watch, ref } from 'vue'
+  import { useSearchPageStore } from '~/stores/searchPage'
+  import { useRoute } from 'vue-router'
+  import { useAuth } from '~/composables/useAuth'
+  import { useConfigStore } from '~/stores/config'
+  import FeatureFilters from '@/components/FeatureFilters.vue'
+  import { formatDate } from '~/utils/helpers'
 
-function onChangeBbox(newBox: Extent) {
-  bbox.value = newBox
-}
-
-function searchBboxArea() {
-  bboxFilter.value = bbox.value
-}
-
-watch(filterState, onSubmit)
-
-const searchTermProperties = [
-  "properties.title",
-  "properties.description",
-  "properties.projectNumber",
-  "properties.spatialReferenceSystem",
-  "properties.dataQualityInfoStatement",
-  "properties.legalRestrictions",
-  "properties.metadataStandardName",
-  "properties.progressCode",
-  "properties.language",
-  "properties.originatorDataEmail",
-  "properties.originatorDataOrganisation",
-  "properties.originatorMetaDataOrganisation",
-  "properties.originatorMetaDataEmail",
-  "properties.license",
-]
-
-let filter = computed(() => {
-  let geometry = bboxFilter.value
-    ? bboxPolygon(bboxFilter.value as [number, number, number, number]).geometry
-    : undefined
-
-  // Create datetime filter conditions
-  let datetimeFilter = undefined
-  if (filterState.date?.start || filterState.date?.end) {
-    const startDate = filterState.date?.start
-      ? dateFormat(
-          new Date(filterState.date.start as unknown as string),
-          "isoUtcDateTime",
-        )
-      : dateFormat(
-          new Date(new CalendarDate(1900, 1, 1) as unknown as string),
-          "isoUtcDateTime",
-        )
-
-    const endDate = filterState.date?.end
-      ? dateFormat(
-          new Date(filterState.date.end as unknown as string),
-          "isoUtcDateTime",
-        )
-      : dateFormat(
-          new Date(new CalendarDate(9999, 12, 31) as unknown as string),
-          "isoUtcDateTime",
-        )
-
-    datetimeFilter = {
-      op: "or",
-      args: [
-        // datetime should be within the dateRange selected
-        {
-          op: "and",
-          args: [
-            {
-              op: ">=",
-              args: [{ property: "properties.datetime" }, startDate],
-            },
-            {
-              op: "<=",
-              args: [{ property: "properties.datetime" }, endDate],
-            },
-          ],
-        },
-        // OR (start_datetime should be gte to daterange start AND end_datetime should be lte to daterange end)
-        {
-          op: "and",
-          args: [
-            {
-              op: ">=",
-              args: [{ property: "properties.start_datetime" }, startDate],
-            },
-            {
-              op: "<=",
-              args: [{ property: "properties.end_datetime" }, endDate],
-            },
-          ],
-        },
-      ],
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const configStore = useConfigStore()
+  
+  // When auth is disabled, allow access without authentication
+  const canAccess = computed(() => {
+    // Wait for config to be loaded
+    if (configStore.authEnabled === null) {
+      return false
     }
+    return !configStore.authEnabled || isAuthenticated.value
+  })
+
+  const store = useSearchPageStore()
+  const route = useRoute()
+  
+  const q = route.query
+  
+  store.q = q.q || ''
+  store.startDate = q.start || undefined
+  store.endDate = q.end || undefined
+  store.keywords = toArr(q.keywords)
+  // If URL has includeEmptyGeometry parameter, use it; otherwise keep default (false)
+  if (q.includeEmptyGeometry !== undefined) {
+    store.includeEmptyGeometry = q.includeEmptyGeometry === 'on'
   }
 
-  return {
-    op: "and",
-    args: [
-      {
-        op: "or",
-        args: [
-          geometry
-            ? {
-                op: "s_intersects",
-                args: [
-                  {
-                    property: "geometry",
-                  },
-                  geometry,
-                ],
-              }
-            : undefined,
-          // The isNull operator does not work. The below is a workaround. It includes items that have no geometry by intersecting with a Polygon that covers the entire world.
-          filterState.includeEmptyGeometry
-            ? {
-                op: "not",
-                args: [
-                  {
-                    op: "s_intersects",
-                    args: [
-                      {
-                        property: "geometry",
-                      },
-                      {
-                        type: "Polygon",
-                        coordinates: [
-                          [
-                            [-180, -90],
-                            [180, -90],
-                            [180, 90],
-                            [-180, 90],
-                            [-180, -90],
-                          ],
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              }
-            : undefined,
-        ].filter(Boolean),
-      },
-      {
-        op: "or",
-        args: searchTermProperties.map((property) => ({
-          op: "like",
-          args: [
-            {
-              property,
-            },
-            `%${filterState.q}%`,
-          ],
-        })),
-      },
-      filterState.keywords.length > 0
-        ? {
-            op: "in",
-            args: [
-              {
-                property: "properties.keywords.id",
-              },
-              filterState.keywords,
-            ],
-          }
-        : undefined,
-      datetimeFilter,
-    ].filter(Boolean),
-  }
-})
-
-let collections = computed(() =>
-  filterState.collections.length > 0 ? filterState.collections : undefined,
-)
-
-let apiBody = computed(() => ({
-  collections,
-  // datetime,
-  filter,
-  "filter-lang": "cql2-json",
-}))
-
-let { data: searchResults, status } = await useApi("/search", {
-  method: "post",
-  body: apiBody.value as any,
-})
-
-function onSubmit() {
-  const query: LocationQueryRaw = { q: filterState.q }
-
-  if (filterState.date?.start) {
-    query.start = filterState.date.start as unknown as string
+  // Fetch collections during SSR
+  await store.fetchCollections()
+  const ids = toArr(q.collections)
+  if (ids.length > 0) {
+    store.collections = store.collections.map(c => ({
+      ...c,
+      selected: ids.includes(c.id)
+    }))
   }
 
-  if (filterState.date?.end) {
-    query.end = filterState.date.end as unknown as string
+  // Fetch topics during SSR
+  await store.fetchTopics()
+  const topicId = q.topic
+  if (topicId) {
+    store.topics = store.topics.map(t => ({
+      ...t,
+      selected: t.id === topicId
+    }))}
+
+  // Perform initial search during SSR if access is allowed
+  // This runs on both server and client, preserving SSR benefits
+  if (canAccess.value) {
+    await store.search(100)
   }
 
-  if (filterState.keywords.length > 0) {
-    query.keywords = filterState.keywords
+  const queryInput = ref(store.q || '')
+  function applyQuery() {
+    store.q = (queryInput.value || '').trim()
   }
 
-  if (filterState.collections.length > 0) {
-    query.collections = filterState.collections
+  watch(
+    () => [store.q, store.startDate, store.endDate,store.topics, store.keywords, store.collections, store.includeEmptyGeometry, store.bboxFilter, canAccess.value],
+    () => {
+      if (canAccess.value) {
+        store.search(1000)
+      }
+    },
+    { deep: true }
+  )
+
+  const features = computed(() => {
+    if (!canAccess.value) {
+      return []
+    }
+    const collection = store.featureCollection
+    return Array.isArray(collection?.features) ? collection.features : []
+  })
+
+  // Helper functions
+  function toArr(val) {
+    if (!val) return []
+    return Array.isArray(val) ? val : [val]
   }
 
-  if (filterState.includeEmptyGeometry) {
-    query.includeEmptyGeometry = "on"
+  function norm(str) {
+    return (str || '').toString().trim().toLowerCase()
   }
 
-  router.push({ query })
-}
+  function sortAsc(a, b) {
+    return norm(a).localeCompare(norm(b))
+  }
+
+  function firstAssetHref(feature) {
+    const assets = feature?.assets
+    if (!assets) return null
+    const firstKey = Object.keys(assets)[0]
+    return firstKey ? assets[firstKey]?.href : null
+  }
+
+  // Filter options
+  const filterOptions = computed(() => {
+    const col = new Set()
+    const kw = new Set()
+
+    features.value.forEach(f => {
+      if (f.collection) col.add(f.collection)
+      const keywords = f.properties?.keywords || []
+      keywords.forEach(k => {
+        if (k?.en_keyword) kw.add(k.en_keyword)
+      })
+    })
+
+    return {
+      collection: [...col].sort(sortAsc),
+      keyword: [...kw].sort(sortAsc),
+    }
+  })
+
+/*   function navigateToView(itemId) {
+    navigateTo(`/register/${itemId}/view`).catch(() => {
+      // Handle navigation errors silently
+    })
+  } */
 </script>
 
-<template>
-  <div class="grid grid-cols-2 justify-center h-[calc(100vh-57px)]">
-    <div class="relative h-full overflow-hidden">
-      <div
-        v-if="status === 'pending'"
-        class="z-10 absolute inset-0 flex items-center justify-center bg-white/80"
-      >
-        <Loader2 class="w-4 h-4 animate-spin" />
-      </div>
-      <div class="p-5 h-full overflow-y-auto">
-        <div class="flex flex-col gap-4">
-          <!-- Filter System -->
-          <FilterSystem
-            :model-value="filterState as any"
-            @update:model-value="(val: any) => Object.assign(filterState, val)"
-          />
+<style scoped>
+/* Two-column layout with scrolling */
+.two-col-page {
+  height: calc(100vh - 64px); /* Adjust based on app bar height */
+}
 
-          <div class="flex gap-2">
-            <Input
-              v-model="filterState.q"
-              placeholder="Search on project number, title, description and more"
-              class="flex-1"
-            />
-            <Button @click="onSubmit">Search</Button>
-          </div>
-        </div>
+.two-col-row {
+  height: 100%;
+}
 
-        <div class="mt-5 flex flex-col gap-5">
-          <Card
-            v-for="item of searchResults?.features"
-            :key="item.id"
-            :class="
-              selectedItemId === item.id
-                ? 'border-amber-500 bg-amber-50'
-                : activeItemId === item.id
-                  ? 'border-green-500 bg-green-50'
-                  : ''
-            "
-          >
-            <CardHeader>
-              <CardTitle class="text-xl">
-                {{ item.properties.title ?? item.id }}
-              </CardTitle>
-              <CardDescription class="line-clamp-3 text-ellipsis">{{
-                item.properties.description
-              }}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                class="text-xs text-muted-foreground flex items-center gap-1 mb-3"
-                v-if="Object.values(item.assets)[0]?.href"
-              >
-                <LinkIcon class="size-3" />
-                {{ Object.values(item.assets)[0]?.href }}
-              </div>
+.left-col {
+  height: 100%;
+  overflow: hidden;
+}
 
-              <NuxtLink :to="'/items/' + item.id + '/view'"
-                >View details</NuxtLink
-              >
-              <div class="text-xs text-muted-foreground">
-                {{
-                  item.properties.datetime
-                    ? dateFormat(
-                        new Date(item.properties.datetime),
-                        "mmmm dS, yyyy",
-                      )
-                    : `${dateFormat(
-                        new Date(item.properties?.start_datetime ?? ""),
-                        "mmmm dS, yyyy",
-                      )} - ${dateFormat(
-                        new Date(item.properties?.end_datetime ?? ""),
-                        "mmmm dS, yyyy",
-                      )}`
-                }}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+.left-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 
-    <div class="relative h-full flex justify-center">
-      <Button
-        size="sm"
-        @click="searchBboxArea"
-        v-if="bboxFilter !== bbox"
-        class="absolute top-4 z-10 animate-in fade-in-0 duration-200"
-      >
-        Search this area
-      </Button>
-      <ClientOnly>
-        <MapBrowser
-          :feature-collection="searchResults as any"
-          @change-bbox="onChangeBbox"
-          @hover-item="selectedItemId = $event"
-          @active-item="activeItemId = $event"
-        />
-      </ClientOnly>
-    </div>
-  </div>
-</template>
+.right-col {
+  height: 100%;
+}
+
+.right-map {
+  height: 100%;
+}
+
+/* Clamp long descriptions to 3 lines */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Selected feature highlighting */
+.selected-feature {
+  border: 2px solid rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.05);
+}
+</style>
+

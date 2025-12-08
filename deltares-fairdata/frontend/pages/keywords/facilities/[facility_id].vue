@@ -1,53 +1,96 @@
-<script setup lang="ts">
-import DeleteFacility from "~/components/keywords/DeleteFacility.vue"
-import FacilityGroupLink from "~/components/keywords/FacilityGroupLink.vue"
-import LinkKeywordGroup from "~/components/keywords/LinkKeywordGroup.vue"
-import UpdateFacility from "~/components/keywords/UpdateFacility.vue"
-
-let route = useRoute()
-
-let facility_id = route.params.facility_id as string
-
-let { data: facility } = await useApi(`/facility/{facility_id}`, {
-  path: {
-    facility_id: route.params.facility_id as string,
-  },
-})
-
-let { data: keywordgroups, refresh } = await useApi("/keywords", {
-  query: {
-    facility_id: route.params.facility_id as string,
-  },
-})
-</script>
-
 <template>
   <div v-if="facility">
-    <div
-      class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
-    >
+    <div class="text-uppercase text-caption text-grey-darken-1 font-weight-bold mb-3">
       Domain
     </div>
-    <div class="mt-3 flex items-center justify-between gap-1.5">
-      <UpdateFacility :facility="facility" />
-      <DeleteFacility :facility_id="facility_id" />
+    
+    <div class="d-flex align-center justify-space-between mb-4 gap-2">
+      <UpdateFacility
+        :facility="facility"
+        @updated="handleUpdate"
+      />
+      <DeleteFacility
+        :facility-id="facilityId"
+      />
     </div>
 
-    <ul class="mt-5 flex flex-col gap-1">
-      <li v-for="group in keywordgroups" :key="group.id">
+    <v-list class="mt-5" density="compact">
+      <v-list-item
+        v-for="group in keywordGroups"
+        :key="group.id"
+        class="mb-1"
+      >
         <FacilityGroupLink
           :group="group"
-          :facility_id="facility_id"
-          @unlink="refresh"
+          :facility-id="facilityId"
+          @unlinked="handleUnlink"
         />
-      </li>
-    </ul>
+      </v-list-item>
+    </v-list>
 
-    <hr class="my-8" />
+    <v-divider class="my-8" />
 
     <LinkKeywordGroup
-      :facility_id="route.params.facility_id as string"
-      @link="refresh"
+      :facility-id="facilityId"
+      @linked="handleLink"
     />
   </div>
 </template>
+
+<script setup>
+  import { ref, onMounted, watch } from 'vue'
+  import { useRoute } from 'vue-router'
+  import { fetchFacilityById, fetchKeywordsByFacilityId } from '~/requests/keywords'
+  import UpdateFacility from '~/components/keywords/UpdateFacility.vue'
+  import DeleteFacility from '~/components/keywords/DeleteFacility.vue'
+  import FacilityGroupLink from '~/components/keywords/FacilityGroupLink.vue'
+  import LinkKeywordGroup from '~/components/keywords/LinkKeywordGroup.vue'
+
+  defineOptions({
+    name: 'KeywordsFacilityDetailPage'
+  })
+
+  const route = useRoute()
+  const facilityId = route.params.facility_id
+  const facility = ref(null)
+  const keywordGroups = ref([])
+
+  async function loadData() {
+    try {
+      const [facilityData, groupsData] = await Promise.all([
+        fetchFacilityById(facilityId),
+        fetchKeywordsByFacilityId(facilityId)
+      ])
+      facility.value = facilityData
+      keywordGroups.value = groupsData || []
+    } catch (error) {
+      console.error('Error loading facility data:', error)
+    }
+  }
+
+  function handleUpdate() {
+    loadData()
+  }
+
+  function handleLink() {
+    loadData()
+  }
+
+  function handleUnlink() {
+    loadData()
+  }
+
+  onMounted(async () => {
+    await loadData()
+  })
+
+  watch(
+    () => route.params.facility_id,
+    async (newId) => {
+      if (newId) {
+        await loadData()
+      }
+    }
+  )
+</script>
+

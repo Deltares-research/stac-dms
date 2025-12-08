@@ -1,36 +1,51 @@
-<script setup lang="ts">
-import { useForm } from "vee-validate"
-import { toast } from "../ui/toast"
-import { Trash2 } from "lucide-vue-next"
+<template>
+  <v-form @submit.prevent="handleSubmit">
+    <v-btn
+      type="submit"
+      icon="mdi-delete"
+      size="small"
+      variant="text"
+      color="error"
+      :loading="isSubmitting"
+    />
+  </v-form>
+</template>
 
-let { keywordgroup_id } = defineProps<{
-  keywordgroup_id: string
-}>()
+<script setup>
+  import { ref } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { deleteKeywordGroup } from '~/requests/keywords'
 
-let { $api } = useNuxtApp()
-
-let deleteForm = useForm()
-
-let onSubmit = deleteForm.handleSubmit(async () => {
-  await $api(`/keywordgroup/{keywordgroup_id}`, {
-    method: "delete",
-    path: {
-      keywordgroup_id,
-    },
+  defineOptions({
+    name: 'DeleteKeywordGroup'
   })
 
-  toast({
-    title: "Keywordgroup deleted",
+  const props = defineProps({
+    groupId: {
+      type: String,
+      required: true
+    }
   })
 
-  await navigateTo("/keywords/groups")
-})
+  const router = useRouter()
+  const isSubmitting = ref(false)
+  const error = ref(null)
+  const successMessage = ref('')
+
+  async function handleSubmit() {
+    isSubmitting.value = true
+    error.value = null
+    successMessage.value = ''
+    
+    try {
+      await deleteKeywordGroup(props.groupId)
+      successMessage.value = 'Keyword group deleted'
+      await router.push('/keywords/groups')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to delete keyword group'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 </script>
 
-<template>
-  <form @submit="onSubmit">
-    <Button variant="outline" size="icon" type="submit" class="w-8 h-8">
-      <Trash2 class="w-4 h-4" />
-    </Button>
-  </form>
-</template>

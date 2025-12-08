@@ -1,43 +1,61 @@
-<script setup lang="ts">
-import { useForm } from "vee-validate"
-import { toast } from "../ui/toast"
-import { X } from "lucide-vue-next"
+<template>
+  <v-form @submit.prevent="handleSubmit">
+    <div class="d-flex align-center justify-space-between bg-grey-lighten-4 rounded pa-3">
+      <span class="text-body-2">{{ group.group_name_nl }}</span>
+      <v-btn
+        type="submit"
+        icon="mdi-close"
+        size="small"
+        variant="text"
+        color="error"
+        :loading="isSubmitting"
+      />
+    </div>
+  </v-form>
+</template>
 
-let { facility_id, onUnlink, group } = defineProps<{
-  facility_id: string
-  onUnlink(): void
-  group: { id: string; group_name_nl: string }
-}>()
+<script setup>
+  import { ref } from 'vue'
+  import { unlinkKeywordGroupFromFacility } from '~/requests/keywords'
 
-let { $api } = useNuxtApp()
+  defineOptions({
+    name: 'FacilityGroupLink'
+  })
 
-let unlinkForm = useForm()
-
-let onSubmitUnLinkGroupForm = unlinkForm.handleSubmit(async (values) => {
-  await $api("/facility_keywordgroup_link", {
-    method: "delete",
-    body: {
-      keyword_group_id: group.id,
-      facility_id,
+  const props = defineProps({
+    group: {
+      type: Object,
+      required: true
     },
+    facilityId: {
+      type: String,
+      required: true
+    }
   })
 
-  toast({
-    title: "Keyword group unlinked",
-  })
+  const emit = defineEmits(['unlinked'])
 
-  onUnlink()
-})
+  const isSubmitting = ref(false)
+  const error = ref(null)
+  const successMessage = ref('')
+
+  async function handleSubmit() {
+    isSubmitting.value = true
+    error.value = null
+    successMessage.value = ''
+    
+    try {
+      await unlinkKeywordGroupFromFacility({
+        facility_id: props.facilityId,
+        keyword_group_id: props.group.id
+      })
+      successMessage.value = 'Keyword group unlinked'
+      emit('unlinked')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to unlink keyword group'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 </script>
 
-<template>
-  <form
-    @submit="onSubmitUnLinkGroupForm"
-    class="rounded bg-gray-100 flex items-center justify-between gap-3 px-4 py-0.5"
-  >
-    {{ group.group_name_nl }}
-    <Button variant="link" size="sm" type="submit" class="hover:text-red-500">
-      <X class="w-4 h-4" />
-    </Button>
-  </form>
-</template>

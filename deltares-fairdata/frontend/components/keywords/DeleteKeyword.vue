@@ -1,38 +1,59 @@
-<script setup lang="ts">
-import { X } from "lucide-vue-next"
-import { useForm } from "vee-validate"
-import type { Keyword } from "~/lib/types"
-import { toast } from "../ui/toast"
+<template>
+  <v-form @submit.prevent="handleSubmit">
+    <v-btn
+      type="submit"
+      icon="mdi-close"
+      size="small"
+      variant="text"
+      color="error"
+      :loading="isSubmitting"
+      class="delete-btn"
+    />
+  </v-form>
+</template>
 
-let { keyword, onDelete } = defineProps<{
-  keyword: Keyword
-  onDelete?(): void
-}>()
+<script setup>
+  import { ref } from 'vue'
+  import { deleteKeyword } from '~/requests/keywords'
 
-let { $api } = useNuxtApp()
-
-let deleteForm = useForm()
-
-let onSubmit = deleteForm.handleSubmit(async () => {
-  await $api("/keyword/{keyword_id}", {
-    method: "delete",
-    path: {
-      keyword_id: keyword.id,
-    },
+  defineOptions({
+    name: 'DeleteKeyword'
   })
 
-  toast({
-    title: "Keyword deleted",
+  const props = defineProps({
+    keyword: {
+      type: Object,
+      required: true
+    }
   })
 
-  onDelete?.()
-})
+  const emit = defineEmits(['deleted'])
+
+  const isSubmitting = ref(false)
+  const error = ref(null)
+  const successMessage = ref('')
+
+  async function handleSubmit() {
+    isSubmitting.value = true
+    error.value = null
+    successMessage.value = ''
+    
+    try {
+      await deleteKeyword(props.keyword.id)
+      successMessage.value = 'Keyword deleted'
+      emit('deleted')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to delete keyword'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 </script>
 
-<template>
-  <form @submit="onSubmit" class="opacity-0 group-hover:opacity-100">
-    <Button variant="destructive" size="icon" type="submit" class="w-8 h-8">
-      <X class="w-4 h-4" />
-    </Button>
-  </form>
-</template>
+<style scoped>
+  .delete-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+</style>
+

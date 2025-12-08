@@ -1,68 +1,81 @@
-<script setup lang="ts">
-import { toTypedSchema } from "@vee-validate/zod"
-import { useForm } from "vee-validate"
-import { z } from "zod"
-import type { Facility } from "~/lib/types"
-import { toast } from "../ui/toast"
-import { CheckIcon } from "lucide-vue-next"
+<template>
+  <v-form class="flex-grow-1" @submit.prevent="handleSubmit">
+    <div class="d-flex align-center gap-2">
+      <v-text-field
+        v-model="formData.name"
+        variant="plain"
+        density="compact"
+        hide-details
+        class="flex-grow-1"
+        style="min-width: 0; font-size: 1.5rem; font-weight: bold;"
+      />
+      <v-btn
+        v-if="isDirty"
+        type="submit"
+        icon="mdi-check"
+        size="small"
+        variant="text"
+        color="success"
+        :loading="isSubmitting"
+        class="flex-shrink-0"
+      />
+    </div>
+  </v-form>
+</template>
 
-let { facility, onUpdate } = defineProps<{
-  facility: Facility
-  onUpdate?(): void
-}>()
+<script setup>
+  import { ref, computed, watch } from 'vue'
+  import { updateFacility } from '~/requests/keywords'
 
-let { $api } = useNuxtApp()
+  defineOptions({
+    name: 'UpdateFacility'
+  })
 
-let updateSchema = toTypedSchema(
-  z.object({
-    name: z.string().min(2),
-  }),
-)
+  const props = defineProps({
+    facility: {
+      type: Object,
+      required: true
+    }
+  })
 
-let form = useForm({
-  validationSchema: updateSchema,
-  initialValues: {
-    name: facility.name ?? undefined,
-  },
-})
+  const emit = defineEmits(['updated'])
 
-let onSubmit = form.handleSubmit(async (values) => {
-  await $api(`/facility/{facility_id}`, {
-    method: "put",
-    body: values,
-    path: {
-      // TODO: Fix API spec to make id required
-      facility_id: facility.id ?? "",
+  const formData = ref({
+    name: props.facility.name || ''
+  })
+
+  const isSubmitting = ref(false)
+  const error = ref(null)
+  const successMessage = ref('')
+
+  const isDirty = computed(() => {
+    return formData.value.name !== props.facility.name
+  })
+
+  watch(
+    () => props.facility,
+    (newFacility) => {
+      formData.value.name = newFacility.name || ''
     },
-  })
+    { immediate: true }
+  )
 
-  toast({
-    title: "Domain updated",
-  })
+  async function handleSubmit() {
+    if (!isDirty.value) return
 
-  onUpdate?.()
-})
+    isSubmitting.value = true
+    error.value = null
+    successMessage.value = ''
+    
+    try {
+      await updateFacility(props.facility.id, formData.value)
+      successMessage.value = 'Domain updated'
+      emit('updated')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to update domain'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 </script>
 
-<template>
-  <form @submit="onSubmit" class="flex items-center gap-1.5 w-full">
-    <FormField v-slot="{ componentField }" name="name">
-      <FormItem class="w-full">
-        <Input
-          v-bind="componentField"
-          class="border-0 -ml-3 h-8 !ring-0 rounded-none outline-none text-2xl font-bold"
-        />
-      </FormItem>
-    </FormField>
-
-    <Button
-      v-if="form.isFieldDirty('name')"
-      type="submit"
-      variant="outline"
-      size="icon"
-      class="flex-shrink-0 w-8 h-8"
-    >
-      <CheckIcon class="w-4 h-4 text-emerald-500" />
-    </Button>
-  </form>
-</template>

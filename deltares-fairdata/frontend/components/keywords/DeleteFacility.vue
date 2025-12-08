@@ -1,36 +1,51 @@
-<script setup lang="ts">
-import { useForm } from "vee-validate"
-import { toast } from "../ui/toast"
-import { Trash2 } from "lucide-vue-next"
+<template>
+  <v-form @submit.prevent="handleSubmit">
+    <v-btn
+      type="submit"
+      icon="mdi-delete"
+      size="small"
+      variant="text"
+      color="error"
+      :loading="isSubmitting"
+    />
+  </v-form>
+</template>
 
-let { facility_id } = defineProps<{
-  facility_id: string
-}>()
+<script setup>
+  import { ref } from 'vue'
+  import { useRouter } from 'vue-router'
+  import { deleteFacility } from '~/requests/keywords'
 
-let { $api } = useNuxtApp()
-
-let deleteFacilityForm = useForm()
-
-let deleteFacility = deleteFacilityForm.handleSubmit(async () => {
-  await $api(`/facility/{facility_id}`, {
-    method: "delete",
-    path: {
-      facility_id,
-    },
+  defineOptions({
+    name: 'DeleteFacility'
   })
 
-  toast({
-    title: "Domain deleted",
+  const props = defineProps({
+    facilityId: {
+      type: String,
+      required: true
+    }
   })
 
-  await navigateTo("/keywords/facilities")
-})
+  const router = useRouter()
+  const isSubmitting = ref(false)
+  const error = ref(null)
+  const successMessage = ref('')
+
+  async function handleSubmit() {
+    isSubmitting.value = true
+    error.value = null
+    successMessage.value = ''
+    
+    try {
+      await deleteFacility(props.facilityId)
+      successMessage.value = 'Domain deleted'
+      await router.push('/keywords/facilities')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to delete domain'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 </script>
 
-<template>
-  <form @submit="deleteFacility">
-    <Button variant="outline" size="icon" type="submit" class="w-8 h-8">
-      <Trash2 class="w-4 h-4" />
-    </Button>
-  </form>
-</template>

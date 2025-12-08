@@ -1,72 +1,120 @@
-<script setup lang="ts">
-import { toTypedSchema } from "@vee-validate/zod"
-import { useForm } from "vee-validate"
-import { z } from "zod"
-import { toast } from "../ui/toast"
+<template>
+  <div>
+    <v-alert
+      v-if="successMessage"
+      type="success"
+      variant="tonal"
+      class="mb-4"
+      closable
+      @click:close="successMessage = ''"
+    >
+      {{ successMessage }}
+    </v-alert>
+    
+    <v-alert
+      v-if="error"
+      type="error"
+      variant="tonal"
+      class="mb-4"
+      closable
+      @click:close="error = null"
+    >
+      {{ error }}
+    </v-alert>
+    
+    <v-form class="d-flex align-end gap-2" @submit.prevent="handleSubmit">
+      <v-select
+        v-model="formData.keyword_group_id"
+        :items="keywordGroupOptions"
+        label="Link keyword group"
+        placeholder="Select a keyword group"
+        variant="outlined"
+        density="compact"
+        class="flex-grow-1"
+        :rules="[rules.required]"
+      />
+      <v-btn
+        type="submit"
+        color="primary"
+        :loading="isSubmitting"
+        :disabled="!formData.keyword_group_id"
+      >
+        Link
+      </v-btn>
+    </v-form>
+  </div>
+</template>
 
-let { data: allKeywordGroups } = await useApi("/keywordgroups")
+<script setup>
+  import { ref, computed, onMounted } from 'vue'
+  import { fetchKeywordGroups, linkKeywordGroupToFacility } from '~/requests/keywords'
 
-let { facility_id, onLink } = defineProps<{
-  facility_id: string
-  onLink?(): void
-}>()
-
-let { $api } = useNuxtApp()
-
-let linkGroupSchema = toTypedSchema(
-  z.object({
-    keyword_group_id: z.string(),
-  }),
-)
-
-let linkGroupForm = useForm({
-  validationSchema: linkGroupSchema,
-})
-
-let onSubmitLinkGroupForm = linkGroupForm.handleSubmit(async (values) => {
-  await $api("/facility_keywordgroup_link", {
-    method: "post",
-    body: {
-      ...values,
-      facility_id,
-    },
+  defineOptions({
+    name: 'LinkKeywordGroup'
   })
 
-  toast({
-    title: "Keyword group linked",
+  const props = defineProps({
+    facilityId: {
+      type: String,
+      required: true
+    }
   })
 
-  onLink?.()
-})
+  const emit = defineEmits(['linked'])
+
+  const allKeywordGroups = ref([])
+  const isSubmitting = ref(false)
+  const successMessage = ref('')
+  const error = ref(null)
+  
+  const formData = ref({
+    keyword_group_id: null
+  })
+
+  const rules = {
+    required: (v) => !!v || 'Please select a keyword group'
+  }
+
+  const keywordGroupOptions = computed(() => {
+    return allKeywordGroups.value.map(group => ({
+      title: group.group_name_nl,
+      value: group.id
+    }))
+  })
+
+  async function loadKeywordGroups() {
+    try {
+      allKeywordGroups.value = await fetchKeywordGroups() || []
+    } catch (err) {
+      console.error('Error loading keyword groups:', err)
+      allKeywordGroups.value = []
+    }
+  }
+
+  async function handleSubmit() {
+    if (!formData.value.keyword_group_id) return
+
+    isSubmitting.value = true
+    successMessage.value = ''
+    error.value = null
+    
+    try {
+      await linkKeywordGroupToFacility({
+        facility_id: props.facilityId,
+        keyword_group_id: formData.value.keyword_group_id
+      })
+      successMessage.value = 'Keyword group linked'
+      formData.value.keyword_group_id = null
+      emit('linked')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to link keyword group'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  onMounted(async () => {
+    await loadKeywordGroups()
+  })
 </script>
 
-<template>
-  <form @submit="onSubmitLinkGroupForm" class="flex items-end gap-1.5 w-full">
-    <FormField v-slot="{ componentField }" name="keyword_group_id">
-      <FormItem class="w-full">
-        <FormLabel>Link keyword group</FormLabel>
-        <Select v-bind="componentField">
-          <FormControl>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a keyword group" />
-            </SelectTrigger>
-          </FormControl>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem
-                v-for="group in allKeywordGroups"
-                :key="group.id"
-                :value="group.id"
-              >
-                {{ group.group_name_nl }}
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-        <FormMessage />
-      </FormItem>
-    </FormField>
-
-    <Button type="submit">Link</Button>
-  </form>
-</template>

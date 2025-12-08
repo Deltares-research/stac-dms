@@ -1,67 +1,83 @@
-<script setup lang="ts">
-import { toTypedSchema } from "@vee-validate/zod"
-import { useForm } from "vee-validate"
-import { z } from "zod"
-import type { Keyword } from "~/lib/types"
-import { toast } from "../ui/toast"
-import { CheckIcon } from "lucide-vue-next"
+<template>
+  <v-form class="flex-grow-1" @submit.prevent="handleSubmit">
+    <div class="d-flex align-center gap-2">
+      <v-text-field
+        v-model="formData.nl_keyword"
+        variant="plain"
+        density="compact"
+        hide-details
+        class="flex-grow-1"
+        style="min-width: 0;"
+      />
+      <v-btn
+        v-if="isDirty"
+        type="submit"
+        icon="mdi-check"
+        size="small"
+        variant="text"
+        color="success"
+        :loading="isSubmitting"
+        class="flex-shrink-0"
+      />
+    </div>
+  </v-form>
+</template>
 
-let { keyword, onUpdate } = defineProps<{
-  keyword: Keyword
-  onUpdate?(): void
-}>()
+<script setup>
+  import { ref, computed, watch } from 'vue'
+  import { updateKeyword } from '~/requests/keywords'
 
-let { $api } = useNuxtApp()
+  defineOptions({
+    name: 'UpdateKeyword'
+  })
 
-let updateSchema = toTypedSchema(
-  z.object({
-    nl_keyword: z.string().min(2),
-  }),
-)
+  const props = defineProps({
+    keyword: {
+      type: Object,
+      required: true
+    }
+  })
 
-let form = useForm({
-  validationSchema: updateSchema,
-  initialValues: {
-    nl_keyword: keyword.nl_keyword ?? undefined,
-  },
-})
+  const emit = defineEmits(['updated'])
 
-let onSubmit = form.handleSubmit(async (values) => {
-  await $api(`/keyword/{keyword_id}`, {
-    method: "put",
-    body: values,
-    path: {
-      keyword_id: keyword.id,
+  const formData = ref({
+    nl_keyword: props.keyword.nl_keyword || ''
+  })
+
+  const isSubmitting = ref(false)
+  const error = ref(null)
+  const successMessage = ref('')
+
+  const isDirty = computed(() => {
+    return formData.value.nl_keyword !== props.keyword.nl_keyword
+  })
+
+  watch(
+    () => props.keyword,
+    (newKeyword) => {
+      formData.value.nl_keyword = newKeyword.nl_keyword || ''
     },
-  })
+    { immediate: true }
+  )
 
-  toast({
-    title: "Keyword updated",
-  })
+  async function handleSubmit() {
+    if (!isDirty.value) return
 
-  onUpdate?.()
-})
+    isSubmitting.value = true
+    error.value = null
+    successMessage.value = ''
+    
+    try {
+      await updateKeyword(props.keyword.id, {
+        nl_keyword: formData.value.nl_keyword
+      })
+      successMessage.value = 'Keyword updated'
+      emit('updated')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to update keyword'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 </script>
 
-<template>
-  <form @submit="onSubmit" class="flex items-center gap-1.5 w-full">
-    <FormField v-slot="{ componentField }" name="nl_keyword">
-      <FormItem class="w-full">
-        <Input
-          v-bind="componentField"
-          class="border-0 -ml-3 h-8 !ring-0 rounded-none outline-none"
-        />
-      </FormItem>
-    </FormField>
-
-    <Button
-      v-if="form.isFieldDirty('nl_keyword')"
-      type="submit"
-      variant="outline"
-      size="icon"
-      class="flex-shrink-0 w-8 h-8"
-    >
-      <CheckIcon class="w-4 h-4 text-emerald-500" />
-    </Button>
-  </form>
-</template>

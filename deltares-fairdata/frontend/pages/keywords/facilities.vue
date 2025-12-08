@@ -1,93 +1,145 @@
-<script setup lang="ts">
-import { toTypedSchema } from "@vee-validate/zod"
-import { useForm } from "vee-validate"
-import { z } from "zod"
-import { Button } from "~/components/ui/button"
-import { toast } from "~/components/ui/toast"
-
-let { $api } = useNuxtApp()
-
-let createFacilityFormSchema = toTypedSchema(
-  z.object({
-    name: z.string().min(2),
-  }),
-)
-
-let createFacilityForm = useForm({
-  validationSchema: createFacilityFormSchema,
-})
-
-let onSubmitCreateFacilityForm = createFacilityForm.handleSubmit(
-  async (values) => {
-    await $api("/facility", {
-      method: "post",
-      body: values,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-
-    toast({
-      title: "Domain created",
-    })
-
-    refresh()
-
-    createFacilityForm.resetForm()
-  },
-)
-
-let { data: facilities, refresh } = await useApi("/facilities")
-
-onBeforeRouteUpdate((guard) => {
-  if (!guard.params.facility_id) {
-    refresh()
-  }
-})
-</script>
-
 <template>
-  <div class="mx-auto grid grid-cols-2 gap-12">
-    <div>
-      <div
-        class="uppercase text-muted-foreground text-xs font-semibold tracking-wider"
-      >
+  <v-row>
+    <v-col cols="12" md="6">
+      <div class="text-uppercase text-caption text-grey-darken-1 font-weight-bold mb-3">
         Domains
       </div>
-      <div class="mt-3">
-        <Lister>
-          <ListerItem
-            v-for="facility in facilities"
-            :key="facility.id"
-            :to="`/keywords/facilities/${facility.id}`"
-          >
-            {{ facility.name }}
-          </ListerItem>
-        </Lister>
-
-        <hr class="my-8" />
-
-        <form
-          @submit="onSubmitCreateFacilityForm"
-          class="flex items-end gap-1.5 w-full"
+      
+      <v-list class="bg-grey-lighten-4 pa-2 rounded mb-6" density="compact">
+        <v-list-item
+          v-for="facility in facilities"
+          :key="facility.id"
+          :to="`/keywords/facilities/${facility.id}`"
+          :active="$route.params.facility_id === facility.id"
+          class="mb-1 rounded"
+          active-class="bg-white elevation-1"
         >
-          <FormField v-slot="{ componentField }" name="name">
-            <FormItem class="w-full">
-              <FormLabel>Add domain</FormLabel>
-              <FormControl>
-                <Input type="text" v-bind="componentField" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <v-list-item-title class="text-body-2 font-weight-medium">
+            {{ facility.name }}
+          </v-list-item-title>
+        </v-list-item>
+      </v-list>
 
-          <Button type="submit" class="mt-3">Create</Button>
-        </form>
-      </div>
-    </div>
+      <v-divider class="my-8" />
 
-    <div>
+      <h2 class="text-h6 font-weight-medium mb-4">
+        Create domain
+      </h2>
+      
+      <v-alert
+        v-if="successMessage"
+        type="success"
+        variant="tonal"
+        class="mb-4"
+        closable
+        @click:close="successMessage = ''"
+      >
+        {{ successMessage }}
+      </v-alert>
+      
+      <v-alert
+        v-if="error"
+        type="error"
+        variant="tonal"
+        class="mb-4"
+        closable
+        @click:close="error = null"
+      >
+        {{ error }}
+      </v-alert>
+      
+      <v-form ref="formRef" @submit.prevent="handleSubmit">
+        <v-text-field
+          v-model="formData.name"
+          label="Add domain"
+          variant="outlined"
+          density="compact"
+          :rules="[rules.required, rules.minLength]"
+          class="mb-3"
+        />
+        
+        <v-btn
+          type="submit"
+          color="primary"
+          :loading="isSubmitting"
+          :disabled="!formData.name || formData.name.length < 2"
+        >
+          Create
+        </v-btn>
+      </v-form>
+    </v-col>
+    
+    <v-col cols="12" md="6">
       <NuxtPage />
-    </div>
-  </div>
+    </v-col>
+  </v-row>
 </template>
+
+<script setup>
+  import { ref, onMounted, watch } from 'vue'
+  import { useRoute } from 'vue-router'
+  import { fetchFacilities, createFacility } from '~/requests/keywords'
+
+  defineOptions({
+    name: 'KeywordsFacilitiesPage'
+  })
+
+  const route = useRoute()
+  const facilities = ref([])
+  const formRef = ref(null)
+  const isSubmitting = ref(false)
+  const successMessage = ref('')
+  const error = ref(null)
+  
+  const formData = ref({
+    name: ''
+  })
+
+  const rules = {
+    required: (v) => !!v || 'Name is required',
+    minLength: (v) => (v && v.length >= 2) || 'Name must be at least 2 characters'
+  }
+
+  async function loadFacilities() {
+    try {
+      facilities.value = await fetchFacilities() || []
+    } catch (err) {
+      console.error('Error loading facilities:', err)
+      facilities.value = []
+    }
+  }
+
+  async function handleSubmit() {
+    const { valid } = await formRef.value.validate()
+    if (!valid) return
+
+    isSubmitting.value = true
+    successMessage.value = ''
+    error.value = null
+    
+    try {
+      await createFacility({ name: formData.value.name })
+      successMessage.value = 'Domain created'
+      formData.value.name = ''
+      await loadFacilities()
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to create domain'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
+
+  onMounted(async () => {
+    await loadFacilities()
+  })
+
+  watch(
+    () => route.path,
+    (newPath, oldPath) => {
+      if (newPath === '/keywords/facilities' && oldPath && oldPath !== '/keywords/facilities') {
+        loadFacilities()
+      }
+    }
+  )
+</script>
+

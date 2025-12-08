@@ -1,151 +1,213 @@
-<script setup lang="ts">
-import { PlusIcon, ArrowUpDown, Pencil } from "lucide-vue-next"
-import type { ColumnDef } from "@tanstack/vue-table"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogHeader,
-} from "@/components/ui/dialog"
-import DataTable from "@/components/table/DataTable.vue"
-import type { components } from "#open-fetch-schemas/api"
-import Container from "~/components/deltares/Container.vue"
-import { toTypedSchema } from "@vee-validate/zod"
-import { z } from "zod"
-import { useForm } from "vee-validate"
-import { toast } from "~/components/ui/toast"
-import Input from "~/components/ui/input/Input.vue"
-import { usePermissions } from "@/composables/permissions"
+<template>
+  <v-sheet class="d-flex flex-column">
+    <!-- Header Section -->
+    <div class="header-container pa-4">
+      <v-row class="mb-4">
+        <v-col cols="12" class="d-flex justify-space-between align-end">
+          <div>
+            <h1 class="text-h4 font-weight-bold mb-1">
+              Groups
+            </h1>
+            <p class="text-body-2 text-grey-darken-1">
+              List of groups, which you are allowed to edit.
+            </p>
+          </div>
+          <v-btn
+            color="grey-darken-1"
+            variant="flat"
+            prepend-icon="mdi-plus"
+            class="text-white"
+            to="/groups/create"
+          >
+            Add new group
+          </v-btn>
+        </v-col>
+      </v-row>
+    </div>
 
-const { requirePermission, hasPermission } = await usePermissions()
+    <div class="flex-grow-1 d-flex flex-column py-4 px-6" style="min-height: 0;">
+      <!-- Loading state -->
+      <div
+        v-if="store.isLoading"
+        class="d-flex justify-center align-center"
+        style="min-height: 200px;"
+      >
+        <v-progress-circular
+          indeterminate
+          color="primary"
+        />
+      </div>
 
-requirePermission("group:read")
+      <!-- Error state -->
+      <div v-else-if="store.error" class="d-flex justify-center align-center pa-4">
+        <v-alert type="error" variant="tonal">
+          {{ store.error }}
+        </v-alert>
+      </div>
 
-let { data: groups, refresh } = await useApi("/groups")
+      <!-- Data table -->
+      <div v-else class="table-container">
+        <v-data-table
+          :headers="headers"
+          :items="mappedGroups"
+          :items-per-page="itemsPerPage"
+          :page="1"
+          class="elevation-0 flex-grow-1 groups-table"
+          hide-default-footer
+          :sort-by="sortByOptions"
+          @update:sort-by="handleSortUpdate"
+        >
+          <!-- Description column with truncation -->
+          <!-- eslint-disable-next-line vue/valid-v-slot -->
+          <template #[`item.description`]="{ item }">
+            <span
+              class="text-truncate"
+              style="max-width: 300px; display: inline-block;"
+              :title="item.description"
+            >
+              {{ item.description }}
+            </span>
+          </template>
 
-const columns: ColumnDef<components["schemas"]["Group"]>[] = [
-  {
-    accessorKey: "name",
-    id: "name",
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: "ghost",
-          class: "px-0",
-          onClick: () => {
-            column.toggleSorting(column.getIsSorted() === "asc")
-          },
-        },
-        () => ["Name", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
-      )
-    },
-  },
-  {
-    accessorKey: "description",
-    header: ({ column }) => {
-      return h(
-        Button,
-        {
-          variant: "ghost",
-          class: "px-0",
-          onClick: () => column.toggleSorting(column.getIsSorted() === "asc"),
-        },
-        () => ["Description", h(ArrowUpDown, { class: "ml-2 h-4 w-4" })],
-      )
-    },
-  },
-  {
-    id: "edit",
-    cell: ({ row }) => {
-      return h(
-        resolveComponent("NuxtLink"),
-        { to: `/groups/${row.original.id}`, class: "flex items-center gap-2" },
-        () => ["Edit", h(Pencil, { class: "size-4" })],
-      )
-    },
-  },
-]
+          <!-- Edit column -->
+          <!-- eslint-disable-next-line vue/valid-v-slot -->
+          <template #[`item.edit`]="{ item }">
+            <v-btn
+              variant="text"
+              size="small"
+              prepend-icon="mdi-pencil"
+              class="text-capitalize"
+              @click.stop="handleEdit(item)"
+            >
+              Edit
+            </v-btn>
+          </template>
 
-let { $api } = useNuxtApp()
+          <!-- Delete column -->
+          <!-- eslint-disable-next-line vue/valid-v-slot -->
+          <template #[`item.delete`]="{ item }">
+            <v-btn
+              variant="text"
+              size="small"
+              prepend-icon="mdi-delete"
+              class="text-capitalize"
+              @click.stop="handleDelete(item)"
+            >
+              Delete
+            </v-btn>
+          </template>
+        </v-data-table>
+      </div>
+    </div>
+  </v-sheet>
+</template>
 
-let createGroupSchema = toTypedSchema(
-  z.object({
-    name: z.string(),
-    description: z.string(),
-  }),
-)
+<script setup>
+  import { ref, computed, onMounted, watch } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
+  import { useGroupsStore } from '~/stores/groups'
 
-let createGroupForm = useForm({
-  validationSchema: createGroupSchema,
-})
-
-let onSubmitCreateGroupForm = createGroupForm.handleSubmit(async (values) => {
-  let result = await $api("/groups", {
-    method: "post",
-    body: values,
+  // Component name for Vue linting
+  defineOptions({
+    name: 'GroupsIndexPage'
   })
 
-  toast({
-    title: `Group "${values.name}" created`,
+  // Router
+  const router = useRouter()
+  const route = useRoute()
+
+  // Store
+  const store = useGroupsStore()
+
+  // Table configuration
+  const headers = [
+    { title: 'Name', key: 'name', sortable: true },
+    { title: 'Description', key: 'description', sortable: true },
+    { title: '', key: 'edit', sortable: false },
+    { title: '', key: 'delete', sortable: false }
+  ]
+
+  const sortByOptions = ref([{ key: 'name', order: 'asc' }])
+  const itemsPerPage = ref(10)
+
+  // Handle sort updates from Vuetify data table
+  function handleSortUpdate(value) {
+    if (value && value.length > 0) {
+      const firstSort = value[0]
+      sortByOptions.value = [{ key: firstSort.key, order: firstSort.order || 'asc' }]
+    } else {
+      sortByOptions.value = []
+    }
+  }
+
+  // Map groups to table format
+  const mappedGroups = computed(() => {
+    return store.groups.map(group => ({
+      id: group.id,
+      name: group.name || '—',
+      description: group.description || '—',
+      // Keep original group for edit/delete operations
+      _original: group
+    }))
   })
 
-  navigateTo(`/groups/${result.id}`)
-})
+  // Methods
+  function handleEdit(item) {
+    router.push(`/groups/${item.id}/edit`)
+  }
+
+  function handleDelete(item) {
+    router.push(`/groups/${item.id}/delete`)
+  }
+
+  // Fetch items on mount
+  onMounted(async () => {
+    await store.fetchGroupsList()
+  })
+
+  // Watch the route path to refresh data
+  watch(
+    () => route.path,
+    (newPath, oldPath) => {
+      if (newPath === '/groups' && oldPath && oldPath !== '/groups') {
+        store.fetchGroupsList()
+      }
+    },
+    { immediate: false }
+  )
 </script>
 
-<template>
-  <Container>
-    <h3 class="mt-8 scroll-m-20 text-2xl font-semibold tracking-tight">
-      Groups
-    </h3>
-    <p class="text-sm text-muted-foreground">Manage groups</p>
-    <div class="flex justify-end">
-      <Dialog v-if="hasPermission('group:create')">
-        <DialogTrigger as-child>
-          <Button class="mb-5">
-            <PlusIcon class="w-4 h-4 mr-2" />
-            Add new group
-          </Button>
-        </DialogTrigger>
-        <DialogContent as-child>
-          <form @submit="onSubmitCreateGroupForm">
-            <DialogHeader>
-              <DialogTitle>Create group</DialogTitle>
-            </DialogHeader>
-            <FormField v-slot="{ componentField }" name="name">
-              <FormItem class="w-full">
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input v-bind="componentField" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+<style scoped>
+  .text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-            <FormField v-slot="{ componentField }" name="description">
-              <FormItem class="w-full">
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea v-bind="componentField" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
-            <DialogFooter>
-              <Button type="submit">Create group</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
-    <div class="flex justify-end"></div>
-    <DataTable
-      v-if="groups"
-      :columns="columns"
-      :data="groups"
-      filterId="name"
-    />
-  </Container>
-</template>
+  .header-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .table-container {
+    width: 100%;
+    max-width: 870px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.groups-table) {
+    width: 100%;
+  }
+
+  :deep(.v-data-table) {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+</style>
+

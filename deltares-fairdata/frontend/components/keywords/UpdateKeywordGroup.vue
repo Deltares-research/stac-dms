@@ -1,88 +1,100 @@
-<script setup lang="ts">
-import { toTypedSchema } from "@vee-validate/zod"
-import { useForm } from "vee-validate"
-import { z } from "zod"
-import type { Facility, KeywordGroup } from "~/lib/types"
-import { toast } from "../ui/toast"
-import { CheckIcon } from "lucide-vue-next"
+<template>
+  <v-form class="flex-grow-1" @submit.prevent="handleSubmit">
+    <div class="d-flex align-center gap-2 flex-wrap">
+      <v-text-field
+        v-model="formData.group_name_nl"
+        variant="plain"
+        density="compact"
+        hide-details
+        class="flex-grow-1"
+        style="min-width: 200px; font-size: 1.5rem; font-weight: bold;"
+      />
+      <v-select
+        v-model="formData.facility_type"
+        :items="facilityTypeOptions"
+        variant="outlined"
+        density="compact"
+        hide-details
+        style="max-width: 200px;"
+        class="flex-shrink-0"
+      />
+      <v-btn
+        v-if="isDirty"
+        type="submit"
+        icon="mdi-check"
+        size="small"
+        variant="text"
+        color="success"
+        :loading="isSubmitting"
+        class="flex-shrink-0"
+      />
+    </div>
+  </v-form>
+</template>
 
-let { group, onUpdate } = defineProps<{
-  group: KeywordGroup
-  onUpdate?(): void
-}>()
+<script setup>
+  import { ref, computed, watch } from 'vue'
+  import { updateKeywordGroup } from '~/requests/keywords'
 
-let { $api } = useNuxtApp()
+  defineOptions({
+    name: 'UpdateKeywordGroup'
+  })
 
-let updateSchema = toTypedSchema(
-  z.object({
-    group_name_nl: z.string().min(2),
-    facility_type: z.string().optional(),
-  }),
-)
+  const props = defineProps({
+    group: {
+      type: Object,
+      required: true
+    }
+  })
 
-let form = useForm({
-  validationSchema: updateSchema,
-  initialValues: {
-    group_name_nl: group.group_name_nl ?? undefined,
-    facility_type: group.facility_type ?? undefined,
-  },
-})
+  const emit = defineEmits(['updated'])
 
-let onSubmit = form.handleSubmit(async (values) => {
-  await $api(`/keywordgroup/{keywordgroup_id}`, {
-    method: "put",
-    body: values,
-    path: {
-      keywordgroup_id: group.id,
+  const facilityTypeOptions = [
+    { title: 'General', value: 'general' },
+    { title: 'Experimental Facility', value: 'experimentalFacility' },
+    { title: 'Numerical Model', value: 'numericalModel' },
+    { title: 'Field', value: 'field' }
+  ]
+
+  const formData = ref({
+    group_name_nl: props.group.group_name_nl || '',
+    facility_type: props.group.facility_type || ''
+  })
+
+  const isSubmitting = ref(false)
+  const error = ref(null)
+  const successMessage = ref('')
+
+  const isDirty = computed(() => {
+    return formData.value.group_name_nl !== props.group.group_name_nl ||
+      formData.value.facility_type !== props.group.facility_type
+  })
+
+  watch(
+    () => props.group,
+    (newGroup) => {
+      formData.value.group_name_nl = newGroup.group_name_nl || ''
+      formData.value.facility_type = newGroup.facility_type || ''
     },
-  })
+    { immediate: true }
+  )
 
-  toast({
-    title: "Keyword group updated",
-  })
+  async function handleSubmit() {
+    if (!isDirty.value) return
 
-  onUpdate?.()
-})
+    isSubmitting.value = true
+    error.value = null
+    successMessage.value = ''
+    
+    try {
+      await updateKeywordGroup(props.group.id, formData.value)
+      successMessage.value = 'Keyword group updated'
+      emit('updated')
+    } catch (err) {
+      error.value = err?.data?.detail || err?.message || 'Failed to update keyword group'
+    } finally {
+      isSubmitting.value = false
+    }
+  }
 </script>
 
-<template>
-  <form @submit="onSubmit" class="flex items-center gap-1.5 w-full">
-    <FormField v-slot="{ componentField }" name="group_name_nl">
-      <FormItem class="w-full">
-        <Input
-          v-bind="componentField"
-          class="border-0 -ml-3 h-8 !ring-0 rounded-none outline-none text-2xl font-bold"
-        />
-      </FormItem>
-    </FormField>
-
-    <Button
-      v-if="form.isFieldDirty('group_name_nl')"
-      type="submit"
-      variant="outline"
-      size="icon"
-      class="flex-shrink-0 w-8 h-8"
-    >
-      <CheckIcon class="w-4 h-4 text-emerald-500" />
-    </Button>
-
-    <FormField v-slot="{ componentField }" name="facility_type">
-      <FormItem>
-        <FormControl>
-          <select
-            v-model="componentField.modelValue"
-            @blur="componentField.onBlur"
-            :name="componentField.name"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="general">General</option>
-            <option value="experimentalFacility">Experimental Facility</option>
-            <option value="numericalModel">Numerical Model</option>
-            <option value="field">Field</option>
-          </select>
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
-  </form>
-</template>

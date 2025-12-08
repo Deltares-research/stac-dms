@@ -37,6 +37,8 @@ from dmsapi.database.db import create_db_engine
 from dmsapi.extensions.core.sso_auth_extension import SSOAuthExtension
 from dmsapi.extensions.keywords.keyword_extension import KeywordExtension
 from dmsapi.extensions.rbac.rbac_extension import RBACExtension
+from dmsapi.extensions.topics.topic_extension import TopicExtension
+
 
 Settings.set(DMSAPISettings())
 settings: DMSAPISettings = Settings.get()
@@ -80,11 +82,27 @@ extensions = [
     TokenPaginationExtension(),
     filter_extension,
     KeywordExtension(db_engine=db_engine),
+    TopicExtension(
+        topic_field="properties.deltares:topics",
+        index_name="*",
+    )
 ]
 
-if (settings.auth_enabled.lower() != "false" ):
+auth_enabled_value = getattr(settings, 'auth_enabled', None) or ""
+_LOGGER.info(f"Checking auth_enabled: value='{auth_enabled_value}', lower='{auth_enabled_value.lower()}', condition result={auth_enabled_value.lower() != 'false'}")
+
+if auth_enabled_value.lower() != "false":
+    _LOGGER.info("Auth is enabled - adding RBACExtension and SSOAuthExtension")
     extensions.append(RBACExtension())
-    extensions.append(SSOAuthExtension(settings=settings, sso_client=sso_client, public_endpoints=[]))
+    extensions.append(
+        SSOAuthExtension(
+            settings=settings, 
+            sso_client=sso_client, 
+            public_endpoints=[]
+        )
+    )
+else:
+    _LOGGER.info("Auth is disabled - NOT adding authentication extensions")
 
 middlewares = []
 
