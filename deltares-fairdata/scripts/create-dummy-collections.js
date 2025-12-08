@@ -35,6 +35,7 @@
 const API_URL = process.env.API_URL || process.argv[2] || 'http://localhost:8000/api';
 const USER_EMAIL = process.env.USER_EMAIL || process.argv[3] || null;
 const DMS_TOKEN = process.env.DMS_TOKEN || process.argv[4] || null;
+const ACTION = process.env.ACTION || process.argv[5] || 'create'; // Add ACTION parameter
 const NUM_ITEMS_PER_COLLECTION = 5;
 const COOKIE_NAME = 'DMS_TOKEN';
 
@@ -529,6 +530,24 @@ async function deleteAllCollections() {
 
 // Main function
 async function main() {
+  // Handle delete-only action
+  if (ACTION === 'delete' || ACTION === 'delete-all') {
+    console.log('='.repeat(60));
+    console.log('Delete All Collections Script');
+    console.log('='.repeat(60));
+    console.log(`API URL: ${API_URL}`);
+    console.log('');
+    
+    try {
+      await deleteAllCollections();
+      console.log('✓ Deletion complete!');
+    } catch (error) {
+      console.error('\n✗ Error:', error.message);
+      process.exit(1);
+    }
+    return;
+  }
+  
   console.log('='.repeat(60));
   console.log('Create Dummy Collections Script');
   console.log('='.repeat(60));
