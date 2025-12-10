@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { center } from '@turf/turf'
-import { isEqual } from 'lodash'
+import { isEqual } from 'lodash-es'
 import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
 

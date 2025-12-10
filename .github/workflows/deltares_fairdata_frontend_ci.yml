@@ -94,7 +94,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: frontend
-          image: ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/frontend:${{ github.sha }}
+          image: ${{ env.REGISTRY_ADDRESS }}/${{ env.HARBOR_PROJECT }}/frontend:${{ env.TAG }}
 
       - name: Deploy Amazon ECS task definition
         if: ${{ github.event_name != 'pull_request'}}
