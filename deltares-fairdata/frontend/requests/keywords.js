@@ -444,3 +444,46 @@ export async function unlinkKeywordGroupFromFacility(linkData) {
   }
 }
 
+/**
+ * Fetch all keywords (flattened from keyword groups)
+ * @returns {Promise<Array>} Array of keyword objects with id, nl_keyword, en_keyword
+ */
+export async function fetchKeywords() {
+  const { $api } = useNuxtApp()
+  const headers = process.server ? useRequestHeaders() : {}
+  
+  try {
+    // Call /keywords without parameters to get all keyword groups
+    const keywordGroups = await $api('/keywords', {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    })
+    
+    // Flatten keyword groups into a single array of keywords
+    // Structure: [{ group_name_nl: string, keywords: [{ id, nl_keyword, en_keyword }] }]
+    const keywords = []
+    if (Array.isArray(keywordGroups)) {
+      keywordGroups.forEach(group => {
+        if (group.keywords && Array.isArray(group.keywords)) {
+          group.keywords.forEach(keyword => {
+            keywords.push({
+              id: keyword.id,
+              nl_keyword: keyword.nl_keyword,
+              en_keyword: keyword.en_keyword,
+            })
+          })
+        }
+      })
+    }
+    
+    return keywords
+  } catch (error) {
+    console.error('Error loading keywords:', error?.message || error?.toString() || 'Unknown error')
+    throw error
+  }
+}
+

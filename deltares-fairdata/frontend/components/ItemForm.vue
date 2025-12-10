@@ -972,6 +972,8 @@
         await createItem(formData.value.collection, itemData)
       }
 
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
       // Navigate to register page
       await router.push('/register')
     } catch (error) {
