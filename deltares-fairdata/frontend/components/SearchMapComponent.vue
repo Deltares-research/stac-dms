@@ -46,7 +46,6 @@
       <MapSelectTool
         v-if="mapInstance"
         ref="drawControlRef"
-        :map="mapInstance"
         :show-buttons="true"
         :enabled-tools="['polygon']"
         @change="onDrawChange"
