@@ -76,15 +76,15 @@
     (mapRef) => {
       const mapInstance = unref(mapRef)
       if (!mapInstance || mbDraw.value) return
-      
-      // Wait for map to be fully loaded before adding controls
+      initializeControls(mapInstance)
+      /* // Wait for map to be fully loaded before adding controls
       if (mapInstance.loaded && mapInstance.loaded()) {
         initializeControls(mapInstance)
       } else {
         mapInstance.once('load', () => {
           initializeControls(mapInstance)
         })
-      }
+      } */
     },
     { immediate: true }
   )
