@@ -164,7 +164,7 @@
               <v-autocomplete
                 v-model="selectedKeyword"
                 :items="store.keywords"
-                item-title="id"
+                item-title="nl_keyword"
                 item-value="id"
                 return-object
                 multiple
@@ -187,17 +187,11 @@
                         </v-icon>
                       </v-list-item-action>
                     </template>
-                    <v-list-item-title>
-                      <div class="d-flex justify-space-between align-center">
-                        <div class="text-caption text-grey-darken-1">
-                          {{ item.raw.count }} items
-                        </div>
-                      </div>
-                    </v-list-item-title>
+                    <!-- Remove the v-list-item-title since item-title="nl_keyword" already handles it -->
                   </v-list-item>
                 </template>
                 <template #selection="{ item }">
-                  {{ item.raw.id }}
+                  {{ item.raw.nl_keyword || item.raw.en_keyword || item.raw.id }}
                 </template>
               </v-autocomplete>
             </v-col>
@@ -556,7 +550,11 @@
     if (store.keywords && store.keywords.length > 0) {
       const selectedKeywords = store.keywords.filter(k => k.selected)
       selectedKeywords.forEach(keyword => {
-        chips.push({ key: `keyword-${keyword.id}`, label: FIELD_LABEL.keyword, value: keyword.id })
+        chips.push({ 
+          key: `keyword-${keyword.id}`, 
+          label: FIELD_LABEL.keyword, 
+          value: keyword.nl_keyword || keyword.en_keyword || keyword.id 
+        })
       })
     }
 

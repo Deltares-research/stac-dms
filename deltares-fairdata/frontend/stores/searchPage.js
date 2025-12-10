@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { center } from '@turf/turf'
 import { isEqual } from 'lodash-es'
-import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi } from '~/requests'
+import { fetchCollections as fetchCollectionsApi, fetchTopics as fetchTopicsApi, fetchKeywords as fetchKeywordsApi } from '~/requests'
 import { searchItems } from '~/requests/search'
 
 // Global bounding box constant (covers entire world)
@@ -180,10 +180,9 @@ export const useSearchPageStore = defineStore('searchPage', () => {
 
   async function fetchKeywords() {
     try {
-      // You'll need to create this endpoint or use existing one
-      // For now, assuming similar structure to topics
-      const data = await fetchKeywordsApi() // You'll need to create this function
-      keywords.value = (data?.keywords || []).map(k => ({ ...k, selected: false }))
+      const data = await fetchKeywordsApi()
+      // data is now an array of keywords, not an object with keywords property
+      keywords.value = (Array.isArray(data) ? data : []).map(k => ({ ...k, selected: false }))
     } catch (e) {
       console.error('Failed to fetch keywords:', e?.message || e?.toString() || 'Unknown error')
       keywords.value = []
