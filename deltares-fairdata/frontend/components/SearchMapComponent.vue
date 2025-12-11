@@ -51,34 +51,30 @@
         @change="onDrawChange"
       />
       
-      <MapboxPopup
+      <MapPopup
         v-if="selectedFeature && popupCoordinates && Array.isArray(popupCoordinates) && popupCoordinates.length === 2"
-        :key="`popup-${selectedFeature?.id || 'unknown'}`"
-        :lng-lat="popupCoordinates"
-        anchor="bottom"
-        :offset="[0, -30]"
+        :selected-feature="selectedFeature"
+        :coordinates="popupCoordinates"
         :close-button="false"
         :close-on-click="true"
         :close-on-move="false"
         max-width="420px"
-        @mb-close="onPopupClose"
-      >
-        <PopupContent :feature="selectedFeature" />
-      </MapboxPopup>
+        @close="onPopupClose"
+      />
     </mapbox-map>
   </div>
 </template>
 
 <script setup>
   import { ref, computed, watch, nextTick } from 'vue'
-  import { MapboxMap, MapboxCluster, MapboxNavigationControl, MapboxPopup } from '@studiometa/vue-mapbox-gl'
+  import { MapboxMap, MapboxCluster, MapboxNavigationControl } from '@studiometa/vue-mapbox-gl'
   import { center, bbox } from '@turf/turf'
   import { isEqual } from 'lodash-es'
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
   import MapCustomImage from '@/components/MapCustomImage.vue'
   import MapSelectTool from '@/components/MapSelectTool.vue'
-  import PopupContent from '@/components/PopupContent.vue'
+  import MapPopup from '@/components/MapPopup.vue'
   import * as geojsonBounds from 'geojson-bounds'
   import {
     unclusteredPointLayout,
