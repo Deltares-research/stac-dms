@@ -42,7 +42,7 @@ export const useRegisterStore = defineStore('register', () => {
       // Handle response structure
       if (data && data.features) {
         items.value = data.features || []
-        totalMatched.value = data.numberMatched || 0
+        totalMatched.value = data.numMatched || 0
 
         // Extract pagination tokens from links
         const links = data.links || []

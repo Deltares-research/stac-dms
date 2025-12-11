@@ -57,6 +57,13 @@
                 </form>
               </v-col>
             </v-row>
+            <v-row class="mb-4">
+              <v-col cols="12">
+                <v-chip color="primary" variant="flat">
+                  Available datasets: {{ store.totalMatched }}
+                </v-chip>
+              </v-col>
+            </v-row>
 
             <v-row>
               <v-col
@@ -199,7 +206,7 @@
   // Perform initial search during SSR if access is allowed
   // This runs on both server and client, preserving SSR benefits
   if (canAccess.value) {
-    await store.search(100)
+    await store.search(500)
   }
 
   const queryInput = ref(store.q || '')

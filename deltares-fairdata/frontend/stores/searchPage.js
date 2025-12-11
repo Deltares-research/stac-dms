@@ -21,6 +21,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const topics = ref([])
   
   const featureCollection = ref(null)
+  const totalMatched = ref(0)
   const searchStatus = ref('idle')
   const searchError = ref(null)
   const selectedFeatureId = ref(null)
@@ -138,11 +139,13 @@ export const useSearchPageStore = defineStore('searchPage', () => {
       }
 
       featureCollection.value = data
+      totalMatched.value = data?.numMatched || 0
       searchStatus.value = 'success'
       
     } catch (e) {
       searchError.value = e?.message || e?.toString() || 'Unknown error'
       searchStatus.value = 'error'
+      totalMatched.value = 0
     }
   }
 
@@ -189,7 +192,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     }
   }
 
-  return { q, startDate, endDate, keywords, collections, topics, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature, fetchTopics, fetchKeywords }
+  return { q, startDate, endDate, keywords, collections, topics, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, totalMatched, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature, fetchTopics, fetchKeywords }
 
 })
 
