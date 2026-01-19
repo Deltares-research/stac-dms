@@ -29,6 +29,7 @@ export const useSearchPageStore = defineStore('searchPage', () => {
   const areaDrawMode = ref(false)
 
   // Getter: Feature collection with only features that have valid geometry
+  // This keeps original geometries (doesn't convert polygons to points)
   const featureCollectionWithGeometry = computed(() => {
     if (!featureCollection.value || !featureCollection.value.features) {
       return null
@@ -44,24 +45,6 @@ export const useSearchPageStore = defineStore('searchPage', () => {
       .map(feature => {
         let processedFeature = { ...feature }
         
-        // Convert Polygon and MultiPolygon to Point using center
-        if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-          try {
-            const centerPoint = center(feature)
-            processedFeature = {
-              ...feature,
-              geometry: {
-                type: 'Point',
-                coordinates: centerPoint.geometry.coordinates,
-              },
-            }
-          } catch (error) {
-            console.error('Error calculating center for polygon feature:', error)
-            // If center calculation fails, skip this feature
-            return null
-          }
-        }
-        
         // Ensure properties.id is set to feature.id if it exists
         if (processedFeature.id) {
           processedFeature = {
@@ -75,7 +58,6 @@ export const useSearchPageStore = defineStore('searchPage', () => {
         
         return processedFeature
       })
-      .filter(feature => feature !== null) // Remove any features that failed center calculation
     
     // Return null if no valid features, otherwise return filtered collection
     if (validFeatures.length === 0) {
@@ -85,6 +67,47 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     return {
       ...featureCollection.value,
       features: validFeatures,
+    }
+  })
+
+  // Computed: Feature collection with only Point geometries (for clustering)
+  const featureCollectionPoints = computed(() => {
+    if (!featureCollectionWithGeometry.value || !featureCollectionWithGeometry.value.features) {
+      return null
+    }
+    
+    const pointFeatures = featureCollectionWithGeometry.value.features
+      .filter(feature => feature.geometry && feature.geometry.type === 'Point')
+    
+    if (pointFeatures.length === 0) {
+      return null
+    }
+    
+    return {
+      type: 'FeatureCollection',
+      features: pointFeatures,
+    }
+  })
+
+  // Computed: Feature collection with only Polygon/MultiPolygon geometries (for layer display)
+  const featureCollectionPolygons = computed(() => {
+    if (!featureCollectionWithGeometry.value || !featureCollectionWithGeometry.value.features) {
+      return null
+    }
+    
+    const polygonFeatures = featureCollectionWithGeometry.value.features
+      .filter(feature => {
+        const geomType = feature.geometry?.type
+        return geomType === 'Polygon' || geomType === 'MultiPolygon'
+      })
+    
+    if (polygonFeatures.length === 0) {
+      return null
+    }
+    
+    return {
+      type: 'FeatureCollection',
+      features: polygonFeatures,
     }
   })
 
@@ -192,7 +215,17 @@ export const useSearchPageStore = defineStore('searchPage', () => {
     }
   }
 
-  return { q, startDate, endDate, keywords, collections, topics, includeEmptyGeometry, bbox, bboxFilter, featureCollection, featureCollectionWithGeometry, totalMatched, searchStatus, searchError, selectedFeatureId, selectedFeatureBbox, areaDrawMode, search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, clearSelectedFeature, fetchTopics, fetchKeywords }
+  return { 
+    q, startDate, endDate, keywords, collections, topics, 
+    includeEmptyGeometry, bbox, bboxFilter, featureCollection, 
+    featureCollectionWithGeometry, 
+    featureCollectionPoints, // Add this
+    featureCollectionPolygons, // Add this
+    totalMatched, searchStatus, searchError, 
+    selectedFeatureId, selectedFeatureBbox, areaDrawMode, 
+    search, fetchCollections, setSelectedFeature, setSelectedFeatureBbox, 
+    clearSelectedFeature, fetchTopics, fetchKeywords, 
+  }
 
 })
 

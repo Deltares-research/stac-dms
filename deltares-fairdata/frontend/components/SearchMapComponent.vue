@@ -4,15 +4,16 @@
       v-model:map="mapInstance"
       :access-token="accessToken"
       map-style="mapbox://styles/mapbox/light-v11"
-      :center="[5.1, 52.07]"
-      :zoom="10.5"
+      :center="[0, 0]"
+      :zoom="8"
       @mb-created="onMapCreated"
       @mb-click="onMapClick"
     >
+      <!-- Points layer with clustering -->
       <MapboxCluster
-        v-if="store.featureCollectionWithGeometry && imageLoaded"
+        v-if="store.featureCollectionPoints && imageLoaded"
         :key="clusterKey"
-        :data="store.featureCollectionWithGeometry"
+        :data="store.featureCollectionPoints"
         :cluster-max-zoom="14"
         :cluster-radius="50"
         :cluster-min-points="2"
@@ -25,6 +26,17 @@
         @mb-feature-click="onFeatureClicked"
         @mb-cluster-click="onClusterClicked"
       />
+    
+      <!-- Polygons layer (non-clickable) -->
+      <div v-if="polygonLayerOptions.length > 0" :key="polygonLayerKey">
+        <MapboxLayer
+          v-for="layer in polygonLayerOptions"
+          :id="layer.id"
+          :key="layer.id"
+          :options="layer"
+        />
+      </div>
+     
     
       <MapControlsZoom
         v-if="bounds.length >= 4 && !hasActivePolygonFilter"
@@ -67,8 +79,8 @@
 
 <script setup>
   import { ref, computed, watch, nextTick } from 'vue'
-  import { MapboxMap, MapboxCluster, MapboxNavigationControl } from '@studiometa/vue-mapbox-gl'
-  import { center, bbox } from '@turf/turf'
+  import { MapboxMap, MapboxCluster, MapboxNavigationControl, MapboxLayer } from '@studiometa/vue-mapbox-gl'
+  import { bbox } from '@turf/turf'
   import { isEqual } from 'lodash-es'
   import { useSearchPageStore } from '~/stores/searchPage'
   import MapControlsZoom from '@/components/MapControlsZoom.vue'
@@ -76,6 +88,7 @@
   import MapSelectTool from '@/components/MapSelectTool.vue'
   import MapPopup from '@/components/MapPopup.vue'
   import * as geojsonBounds from 'geojson-bounds'
+  import buildGeoJsonPolygonLayer from '~/utils/build-geojson-polygon-layer'
   import {
     unclusteredPointLayout,
     unclusteredPointPaint,
@@ -190,57 +203,62 @@
     }
   )
   
-  // Timestamp that updates when featureCollectionWithGeometry changes
+  // Timestamp that updates when featureCollectionPoints changes
   const layerTimestamp = ref(Date.now())
   
+  // Timestamp that updates when featureCollectionPolygons changes
+  const polygonLayerTimestamp = ref(Date.now())
+
   watch(
-    () => store.featureCollectionWithGeometry,
+    () => store.featureCollectionPoints,
     () => {
       layerTimestamp.value = Date.now()
     },
     { deep: true }
   )
-  
+
+  watch(
+    () => store.featureCollectionPolygons,
+    () => {
+      polygonLayerTimestamp.value = Date.now()
+    },
+    { deep: true }
+  )
+
   // Generate a key using timestamp - this will force refresh when data changes
   const clusterKey = computed(() => {
-    if (!store.featureCollectionWithGeometry) return null
+    if (!store.featureCollectionPoints) return null
     return `cluster-${layerTimestamp.value}`
   })
-  
-  
-  // Popup coordinates computed property
-  const popupCoordinates = computed(() => {
-    if (!selectedFeature.value?.geometry) {
-      return null
-    }
-    
-    const geometry = selectedFeature.value.geometry
-    
-    if (geometry.type === 'Point') {
-      const coords = geometry.coordinates
-      if (Array.isArray(coords) && coords.length >= 2) {
-        return [coords[0], coords[1]]
-      }
-      return null
-    }
-    
-    try {
-      const centerPoint = center(selectedFeature.value)
-      const coords = centerPoint.geometry.coordinates
-      if (Array.isArray(coords) && coords.length >= 2) {
-        return [coords[0], coords[1]]
-      }
-      return null
-    } catch {
-      return null
-    }
+
+  // Generate a key for polygon layers - this will force refresh when data changes
+  const polygonLayerKey = computed(() => {
+    if (!store.featureCollectionPolygons) return null
+    return `polygon-layers-${polygonLayerTimestamp.value}`
   })
 
-  const bounds = computed(() => {
-    if (!store.featureCollectionWithGeometry) {
+  // Computed: Polygon layer options using build-geojson-polygon-layer
+  const polygonLayerOptions = computed(() => {
+    if (!store.featureCollectionPolygons) {
       return []
     }
-    const extent = geojsonBounds.extent(store.featureCollectionWithGeometry)
+    const layer = buildGeoJsonPolygonLayer(store.featureCollectionPolygons)
+    return layer ? [layer] : []
+  })
+
+  // Update bounds to include both points and polygons
+  const bounds = computed(() => {
+    // Combine both collections for bounds calculation
+    let combinedCollection = null
+    
+    if (store.featureCollectionWithGeometry) {
+      combinedCollection = store.featureCollectionWithGeometry
+    }
+    
+    if (!combinedCollection) {
+      return []
+    }
+    const extent = geojsonBounds.extent(combinedCollection)
     if (!extent || extent.length < 4) {
       return []
     }
@@ -281,11 +299,14 @@
       return
     }
     
-    // Find the matching feature from the original featureCollection by ID
-    // This gives us the full feature with id, assets, etc.
+    // Find the matching feature from both collections
     let matchedFeature = null
-    if (store.featureCollectionWithGeometry && store.featureCollectionWithGeometry.features) {
-      matchedFeature = store.featureCollectionWithGeometry.features.find(f => f.id === featureId)
+    if (store.featureCollectionPoints && store.featureCollectionPoints.features) {
+      matchedFeature = store.featureCollectionPoints.features.find(f => f.id === featureId)
+    }
+    // Also check polygons if not found in points
+    if (!matchedFeature && store.featureCollectionPolygons && store.featureCollectionPolygons.features) {
+      matchedFeature = store.featureCollectionPolygons.features.find(f => f.id === featureId)
     }
     
     // Use matched feature if found, otherwise use the clicked feature
