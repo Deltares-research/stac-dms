@@ -114,7 +114,7 @@
               <v-autocomplete
                 v-model="selectedTopic"
                 :items="store.topics"
-                item-title="id"
+                item-title="name"
                 item-value="id"
                 return-object
                 multiple
@@ -328,12 +328,12 @@
               cols="12"
               class="filter-col"
             >
-              <v-checkbox
+              <!--  <v-checkbox
                 v-model="store.includeEmptyGeometry"
                 label="Include items without geometry"
                 hide-details
                 density="compact"
-              />
+              /> -->
             </v-col>
           </v-row>
         </v-container>
