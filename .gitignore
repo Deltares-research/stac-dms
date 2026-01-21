@@ -3,3 +3,8 @@ __pycache__/
 .terraform*
 
 node_modules
+# Scripts input data
+scripts/input/**
+
+# Scripts output data
+scripts/stac_output/**

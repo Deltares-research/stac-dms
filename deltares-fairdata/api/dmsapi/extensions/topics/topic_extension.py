@@ -6,6 +6,8 @@ from fastapi import APIRouter, Request
 from stac_fastapi.types.extension import ApiExtension
 from stac_fastapi.types.config import Settings
 
+from .topic_mapping import get_topic_name
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -16,7 +18,7 @@ class TopicExtension(ApiExtension):
         """Initialize TopicExtension.
         
         Args:
-            topic_field: The OpenSearch field path for topics (must be keyword type)
+            topic_field: The OpenSearch field path for topics (stored as strings)
             index_name: The OpenSearch index name to query
         """
         self.topic_field = topic_field
@@ -55,7 +57,7 @@ class TopicExtension(ApiExtension):
             # Use the configured index name (can include wildcards)
             index_name = self.index_name
             
-            # Aggregation query
+            # Simple aggregation - topics are stored as strings
             body = {
                 "size": 0,
                 "aggs": {
@@ -78,11 +80,17 @@ class TopicExtension(ApiExtension):
             # Extract buckets from aggregation
             buckets = resp.get("aggregations", {}).get("topics", {}).get("buckets", [])
             
-            # Format response
-            topics = [
-                {"id": bucket["key"], "count": bucket["doc_count"]}
-                for bucket in buckets
-            ]
+            # Format response - use mapping to add names
+            topics = []
+            for bucket in buckets:
+                topic_id = bucket["key"]
+                topic_name = get_topic_name(topic_id)  # Use mapping to get name
+                
+                topics.append({
+                    "id": topic_id,
+                    "name": topic_name,
+                    "count": bucket["doc_count"]
+                })
             
             return {"topics": topics}
             
