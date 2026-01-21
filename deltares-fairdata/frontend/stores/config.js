@@ -6,9 +6,11 @@ export const useConfigStore = defineStore('config', () => {
   
   // Read from Nuxt runtime config (can be set via env variable AUTH_ENABLED)
   const authEnabled = config.public.authEnabled ?? true // Default to true for safety
+  const aboutTabEnabled = config.public.aboutTabEnabled ?? false
 
   return {
     authEnabled,
+    aboutTabEnabled,
   }
 })
 

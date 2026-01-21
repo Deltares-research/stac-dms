@@ -9,6 +9,12 @@
         >
           Search
         </v-tab>
+        <v-tab
+          v-if="configStore.aboutTabEnabled"
+          to="/about"
+        >
+          About
+        </v-tab>
       </v-tabs>
       <v-spacer />
       <v-btn
@@ -32,8 +38,10 @@
 <script setup>
 
   import { useAuth } from '~/composables/useAuth'
+  import { useConfigStore } from '~/stores/config'
 
   const { login, isLoading } = useAuth()
+  const configStore = useConfigStore()
 
   const handleLogin = () => {
     login()

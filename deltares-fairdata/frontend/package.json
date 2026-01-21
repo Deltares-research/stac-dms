@@ -21,6 +21,7 @@
     "lodash-es": "^4.17.21",
     "mapbox-gl": "^3.15.0",
     "mapbox-gl-draw-rectangle-mode": "^1.0.4",
+    "markdown-it": "^14.1.0",
     "nanoid": "^5.0.7",
     "nuxt": "^4.1.1",
     "pinia": "^3.0.3",
