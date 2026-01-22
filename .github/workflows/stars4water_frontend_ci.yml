@@ -39,6 +39,7 @@ env:
   TASK_DEFINITION_NAME: ${{ github.ref == 'refs/heads/prod' && 'dms-frontend-prod' || 'dms-frontend-devs4w' }}
   SERVICE_NAME: frontend-service
   AUTH_ENABLED: false
+  ABOUT_TAB_ENABLED: true
 
 jobs:
   build-image:
@@ -52,6 +53,7 @@ jobs:
           echo "API_URL=${{ env.API_URL }}" > deltares-fairdata/frontend/.env
           echo "VITE_MAPBOX_TOKEN=${{ secrets.VITE_MAPBOX_TOKEN }}" >> deltares-fairdata/frontend/.env
           echo "AUTH_ENABLED=${{ env.AUTH_ENABLED }}" >> deltares-fairdata/frontend/.env
+          echo "ABOUT_TAB_ENABLED=${{ env.ABOUT_TAB_ENABLED }}" >> deltares-fairdata/frontend/.env
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx

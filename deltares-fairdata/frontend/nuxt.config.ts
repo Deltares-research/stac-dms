@@ -34,6 +34,7 @@ export default defineNuxtConfig({
     // Public keys (exposed to client-side)
     public: {
       authEnabled: process.env.AUTH_ENABLED === 'true',
+      aboutTabEnabled: process.env.ABOUT_TAB_ENABLED === 'true',
     },
   },
 

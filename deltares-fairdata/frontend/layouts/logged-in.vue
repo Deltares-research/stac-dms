@@ -33,6 +33,12 @@
         >
           Groups
         </v-tab>
+        <v-tab
+          v-if="configStore.aboutTabEnabled"
+          to="/about"
+        >
+          About
+        </v-tab>
       </v-tabs>
       
      
