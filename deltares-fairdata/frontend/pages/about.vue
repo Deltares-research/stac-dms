@@ -40,3 +40,24 @@
     markdownContent ? md.render(markdownContent) : ''
   )
 </script>
+
+<style>
+  .about-content ul,
+  .about-content ol {
+    margin-left: 1.5rem;
+    padding-left: 1.5rem;
+    list-style-position: outside;
+  }
+  
+  .about-content li {
+    margin: 0.25rem 0;
+  }
+  
+  .about-content ul ul,
+  .about-content ol ol,
+  .about-content ul ol,
+  .about-content ol ul {
+    margin-left: 1.5rem;
+  }
+  </style>
+  

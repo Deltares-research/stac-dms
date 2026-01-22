@@ -1,21 +1,21 @@
-# About Stars4Water Metadata Portal
+# About Stars4Water Metadata Portal  
 
 Stars4Water is an open-access metadata portal designed to support water-related research, decision-making, and innovation. Unlike traditional data repositories, Stars4Water does not store the actual datasets; instead, it provides detailed metadata and links to the original sources enabling FAIR data.
 
 **Why do we do this?**
 
-	* Data Discovery (F): Enabling discovery of data used is a primary expectation of a research project.
-	* Data integrity: Keeping data at its original source ensures that you always access the most up-to-date and authoritative version.
-	* Efficiency: Avoids duplication and reduces storage overhead, making the system lean and sustainable.
-	* Interoperability: By referencing original sources, we maintain compatibility with diverse systems and standards.
+- Data Discovery (F): Enabling discovery of data used is a primary expectation of a research project.
+- Data integrity: Keeping data at its original source ensures that you always access the most up-to-date and authoritative version.
+- Efficiency: Avoids duplication and reduces storage overhead, making the system lean and sustainable.
+- Interoperability: By referencing original sources, we maintain compatibility with diverse systems and standards.
 
 Our mission is to provide reliable, high-quality geospatial metadata and services that empower scientists, policymakers, and stakeholders to address global water challenges.
 
 **Through this portal, you can:**
 
-	- Search and explore datasets, maps, and services related to water systems, climate, and environmental monitoring.
-	- Access curated resources organized by topics for easy navigation.
-	- Collaborate and share insights with the global water community.
+- Search and explore datasets, maps, and services related to water systems, climate, and environmental monitoring.
+- Access curated resources organized by topics for easy navigation.
+- Collaborate and share insights with the global water community.
 
 Stars4Water is promoting transparency, interoperability, and sustainability in environmental data management. By leveraging open standards and cutting-edge technology, we aim to make water knowledge accessible and actionable for everyone.
 
@@ -49,10 +49,11 @@ The Stars4Water Metadata portal is designed for intuitive exploration of water-r
 
 ## Add your Metadata to the Portal
 
-	- If you are interested in contributing data, you can download an Excel template that includes the metadata schema and mandatory fields.  
-	  Once completed, send the file to stars4water@s4w.com.  
-	  After a quality check, your metadata will be added to the portal.
+- If you are interested in contributing data, you can download an Excel template that includes the metadata schema and mandatory fields.  
+  Once completed, send the file to **stars4water@s4w.com**.  
+  After a quality check, your metadata will be added to the portal.
 
 ## Help & Support
 
-	- Access the Help section for tutorials, FAQs, and user guides.
+- Access the Help section for tutorials, FAQs, and user guides.
+
