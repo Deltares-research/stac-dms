@@ -34,8 +34,14 @@ RUN npm prune
 FROM base-dev AS run-dev
 
 COPY --from=build-dev /src/node_modules /src/node_modules
-COPY --from=build-dev /src/.nuxt /src/.nuxt
 COPY --from=build-dev /src/package.json /src/package.json
+
+# Copy source code to enable pre-compilation
+COPY --from=build-dev /src/.nuxt /src/.nuxt
+COPY --link . .
+
+# Pre-compile Nuxt to avoid cold start
+RUN npm run build || true
 
 CMD [ "npm", "run", "dev" ]
 
@@ -45,6 +51,7 @@ FROM base-prod AS run-prod
 ENV PORT=$PORT
 
 COPY --from=build-prod /src/.output /src/.output
+COPY --from=build-prod /src/content /src/content
 # Optional, only needed if you rely on unbundled dependencies
 # COPY --from=build-prod /src/node_modules /src/node_modules
 
